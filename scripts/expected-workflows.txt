@@ -21,3 +21,4 @@ secret-scan.yml
 upstream-review.yml
 verify.yml
 fleet-scout.yml
+token-check.yml
