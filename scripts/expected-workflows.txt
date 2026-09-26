@@ -23,3 +23,4 @@ verify.yml
 fleet-scout.yml
 token-check.yml
 scorecard.yml
+release-assets.yml

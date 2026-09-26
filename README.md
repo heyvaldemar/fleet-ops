@@ -41,6 +41,23 @@ This repository is the public copy of the one that acts. The private one also re
 
 The private copy's history is not here either. It starts in April 2026 and carries every wrong turn; the ledger tells that story in fewer words than `git log`.
 
+## Verify what you run
+
+Every release carries three files made on GitHub's runner with a short-lived identity and no stored key: `fleet-ops-<tag>.tar.gz`, a `git archive` of exactly the tree the tag points at; `fleet-ops-<tag>.tar.gz.sigstore.json`, a keyless [Sigstore](https://www.sigstore.dev/) signature over it; and `fleet-ops-<tag>.intoto.jsonl`, [SLSA](https://slsa.dev/) build provenance. To check them with nothing from this repository trusted:
+
+```bash
+cosign verify-blob fleet-ops-<tag>.tar.gz \
+  --bundle fleet-ops-<tag>.tar.gz.sigstore.json \
+  --certificate-identity-regexp '^https://github.com/heyvaldemar/fleet-ops/' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+
+slsa-verifier verify-artifact fleet-ops-<tag>.tar.gz \
+  --provenance-path fleet-ops-<tag>.intoto.jsonl \
+  --source-uri github.com/heyvaldemar/fleet-ops --source-tag <tag>
+```
+
+The changes between releases are in [CHANGELOG.md](CHANGELOG.md).
+
 ## Running it yourself
 
 The workflows need one secret, `FLEET_PAT`: a fine-grained token with Contents, Actions, Issues and Pull requests read and write on the repositories the fleet manages. `HEARTBEAT_PING_URL` is optional and is the dead-man switch's address; unset, the heartbeat says so rather than passing quietly.
