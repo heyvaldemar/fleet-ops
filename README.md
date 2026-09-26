@@ -1,5 +1,11 @@
 # fleet-ops
 
+[![Verify](https://github.com/heyvaldemar/fleet-ops/actions/workflows/verify.yml/badge.svg?branch=main)](https://github.com/heyvaldemar/fleet-ops/actions/workflows/verify.yml)
+[![Fleet heartbeat](https://github.com/heyvaldemar/fleet-ops/actions/workflows/fleet-heartbeat.yml/badge.svg?branch=main)](https://github.com/heyvaldemar/fleet-ops/actions/workflows/fleet-heartbeat.yml)
+[![Fleet conformance](https://github.com/heyvaldemar/fleet-ops/actions/workflows/fleet-conformance.yml/badge.svg?branch=main)](https://github.com/heyvaldemar/fleet-ops/actions/workflows/fleet-conformance.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/heyvaldemar/fleet-ops/badge)](https://scorecard.dev/viewer/?uri=github.com/heyvaldemar/fleet-ops)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 The machinery that runs a fleet of 97 public repositories without a person in the loop: 47 self-hosting templates, 8 Terraform pipelines, a published image and the tools around them. It lives in GitHub Actions, reads every repository twice a day, moves what upstream moved, proves the move on a real deployment, cuts the release, and says out loud when it cannot decide. Every rule in it was shown a real violation before it was trusted, and the tests here plant those violations again on every push.
 
 What it produces is public: [heyvaldemar.com/evidence](https://heyvaldemar.com/evidence/) carries the numbers it counts each morning, [heyvaldemar.com/ledger](https://heyvaldemar.com/ledger/) the findings that shaped it, and [heyvaldemar.com/decisions](https://heyvaldemar.com/decisions/) the trade-offs it embodies.
