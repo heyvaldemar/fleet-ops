@@ -1050,6 +1050,32 @@ def red_on_main(repo, root="."):
     return findings, rows
 
 
+def workflow_born(repo, name, now, max_details=20):
+    """When a workflow file last came into being: the newest commit that ADDED it.
+
+    The first version took the oldest commit that ever touched the path. In
+    the private copy of this repository scorecard.yml was added on
+    2026-09-05, deleted the same evening, and added again on 2026-09-25; the
+    heartbeat called it 482 hours old and never fired, about a file that had
+    existed for a day. A file's age runs from the last time it appeared.
+
+    Walked newest-first, one commit detail per step, because only the detail
+    says whether a commit added, changed or removed the file; bounded, since
+    this is asked only of a workflow that has never fired, which is almost
+    always a new one with a short history. Falls back to the oldest commit
+    when the walk finds no add inside its bound, and to now when there is no
+    history at all.
+    """
+    path = ".github/workflows/%s" % name
+    commits = gh("repos/%s/commits?path=%s&per_page=100" % (repo, path)) or []
+    when = lambda c: datetime.datetime.fromisoformat(c["commit"]["author"]["date"].replace("Z", "+00:00"))
+    for c in commits[:max_details]:
+        detail = gh("repos/%s/commits/%s" % (repo, c["sha"])) or {}
+        if any(f.get("filename") == path and f.get("status") == "added" for f in detail.get("files") or []):
+            return when(c)
+    return when(commits[-1]) if commits else now
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--failing", action="store_true", help="this repository's own jobs that run and fail")
@@ -1132,9 +1158,7 @@ def main():
         if fired is None:
             # Never fired on its schedule. New is fine; old is not, and the age
             # of the file is what tells them apart.
-            commits = gh("repos/%s/commits?path=.github/workflows/%s&per_page=100" % (a.repo, name))
-            born = datetime.datetime.fromisoformat(commits[-1]["commit"]["author"]["date"].replace("Z", "+00:00")) if commits else now
-            age = (now - born).total_seconds() / 3600
+            age = (now - workflow_born(a.repo, name, now)).total_seconds() / 3600
             verdict = "new" if age <= allowed else "never fired"
             if verdict == "never fired":
                 findings.append("%s has never fired on its schedule, and it was added %.0f hours ago" % (name, age))

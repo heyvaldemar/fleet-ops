@@ -804,6 +804,37 @@ open(os.path.join(d, ".github/workflows/d.yml"), "w").write("on:\n  pull_request
 check("a workflow that runs on push is found in either spelling, and the others are not",
       hb.push_workflows(d), ["a.yml", "b.yml"])
 
+
+print()
+print("=== a workflow's age runs from the last time it appeared ===")
+# scorecard.yml in the private copy: added 2026-09-05, deleted the same
+# evening, added again 2026-09-25, and called 482 hours old for it.
+P = ".github/workflows/scorecard.yml"
+HIST = [
+    {"sha": "re", "commit": {"author": {"date": "2026-09-25T23:15:36Z"}}},
+    {"sha": "rm", "commit": {"author": {"date": "2026-09-06T01:55:05Z"}}},
+    {"sha": "add", "commit": {"author": {"date": "2026-09-06T01:48:11Z"}}},
+]
+DETAIL = {"re": [{"filename": P, "status": "added"}], "rm": [{"filename": P, "status": "removed"}],
+          "add": [{"filename": P, "status": "added"}], "mod": [{"filename": P, "status": "modified"}]}
+def born_gh(hist):
+    def g(path):
+        if "/commits?path=" in path:
+            return hist
+        return {"files": DETAIL[path.rsplit("/", 1)[1]]}
+    return g
+t_now = datetime.datetime(2026, 9, 26, 4, 0, tzinfo=datetime.timezone.utc)
+keep_gh = hb.gh
+hb.gh = born_gh(HIST)
+check("a file deleted and added again is as old as its last add",
+      hb.workflow_born("o/r", "scorecard.yml", t_now).isoformat(), "2026-09-25T23:15:36+00:00")
+hb.gh = born_gh([{"sha": "mod", "commit": {"author": {"date": "2026-09-20T00:00:00Z"}}}] + HIST[2:])
+check("a file only ever modified since its add is as old as that add",
+      hb.workflow_born("o/r", "scorecard.yml", t_now).isoformat(), "2026-09-06T01:48:11+00:00")
+hb.gh = born_gh([])
+check("a file with no history at all is new", hb.workflow_born("o/r", "scorecard.yml", t_now), t_now)
+hb.gh = keep_gh
+
 print("passed: %d   failed: %d" % (passed, failed))
 sys.exit(1 if failed else 0)
 PY
