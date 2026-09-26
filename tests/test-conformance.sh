@@ -91,6 +91,14 @@ expect "a missing x-images block is caught" "$WORK/pins" "no x-images block"
 d="$(fixture digest)";    sed -i.bak 's/@sha256:[0-9a-f]*//g' "$d"/*.yml && rm -f "$d"/*.bak
 expect "pins with no digest are caught" "$WORK/digest" "carries no digest pin"
 
+d="$(fixture tmo-gone)";  sed -i.bak '/respondingTimeouts.idleTimeout=/d' "$d"/*.yml && rm -f "$d"/*.bak
+expect "a Traefik idle timeout with no variable is caught" "$WORK/tmo-gone" "idleTimeout on the HTTPS entry point"
+
+d="$(fixture tmo-fixed)"
+# shellcheck disable=SC2016 # the ${...} is the literal text being replaced
+sed -i.bak 's/readTimeout=${TRAEFIK_READ_TIMEOUT:-60s}/readTimeout=60s/' "$d"/*.yml && rm -f "$d"/*.bak
+expect "a Traefik read timeout written as a literal is caught" "$WORK/tmo-fixed" "readTimeout on the HTTPS entry point"
+
 d="$(fixture nonewpriv)"; sed -i.bak 's/no-new-privileges:true/keep-privileges:true/' "$d"/*.yml && rm -f "$d"/*.bak
 expect "a service without no-new-privileges is caught" "$WORK/nonewpriv" "no security_opt no-new-privileges"
 

@@ -19,13 +19,23 @@ check or a job, a patch fixes one.
   telling a waiting person from an answered one, a fresh one, a bot and a pull
   request.
 
+- **Fleet conformance requires every Traefik stack to take
+  `TRAEFIK_READ_TIMEOUT`, `TRAEFIK_WRITE_TIMEOUT` and `TRAEFIK_IDLE_TIMEOUT`.**
+  Traefik reads its static configuration from the command in the compose file,
+  and an override can only replace that command whole. Forty of fifty stacks
+  gave an operator no way to set the entry point's timeouts and nine used nine
+  different names. Forty-five take the same three today, each stack's older
+  name nested inside so it keeps working; the five holding a pending security
+  refresh follow once the triage has released it. Two planted cases: a timeout removed
+  and a timeout written as a literal.
+
 ### Changed
 
 - **The profile's badge line says why seven public repositories are not
   registered.** The profile carried 97 public repositories, 90 registered for
   the badge and 88 under the standard, and nothing said how they relate; a
-  careful reader could take three counts for three fleets. The line now names
-  the repositories that hold no code to rate.
+  careful reader could take three counts for three fleets. The line now says
+  that the unregistered ones hold no code to rate.
 
 ## [1.0.0] - 2026-09-26
 

@@ -572,6 +572,32 @@ def check(repo, exempt=None):
                        "default for it: a deployment made the documented way gets an "
                        "empty value" % ", ".join(undocumented))
 
+    # A TRAEFIK THE OPERATOR CANNOT TUNE WITHOUT FORKING THE FILE.
+    #
+    # Traefik reads its static configuration from one source, and in these
+    # stacks that source is the command list in the compose file. A compose
+    # override cannot append to that list, only replace it whole, and whoever
+    # replaces it stops taking the template's updates with it. On 2026-09-23 a
+    # Keycloak user asked for exactly this (keycloak #45): the entry point's
+    # timeouts, and no way to set them. Forty of fifty Traefik stacks had
+    # none; nine had them under nine different names. A timeout the operator
+    # may need, for a slow upload or a long stream, is a variable with
+    # Traefik's own default, so leaving it unset changes nothing.
+    for cname in [n for n in names if n.endswith((".yml", ".yaml")) and "compose" in n] or [compose_name]:
+        ctext = repo.read(cname) or ""
+        if "--providers.docker" not in ctext or "--entrypoints.websecure.address" not in ctext:
+            continue
+        # One name everywhere, so the answer to "how do I tune this" is the same
+        # in every README: a stack's own older name may sit nested inside it.
+        unset = [t for t in ("readTimeout", "writeTimeout", "idleTimeout")
+                 if not re.search(r"--entrypoints\.websecure\.transport\.respondingTimeouts\.%s="
+                                  r"\$\{TRAEFIK_%s_TIMEOUT:-" % (t, t[:-7].upper()), ctext)]
+        if unset:
+            bad.append(f"Traefik's {', '.join(unset)} on the HTTPS entry point in {cname} is not set "
+                       f"from TRAEFIK_READ_TIMEOUT, TRAEFIK_WRITE_TIMEOUT and TRAEFIK_IDLE_TIMEOUT: "
+                       f"an operator can change it only by replacing the whole command, and then "
+                       f"stops taking updates")
+
     gi = repo.read(".gitignore")
     if gi is not None and not re.search(r"^\.env\s*$", gi, re.M):
         bad.append(".gitignore does not exclude .env")
