@@ -264,6 +264,25 @@ j = json.loads(m.fleet_json(rows0, ev0, [], None, bp))
 check("fleet.json carries the badge", (j["bestpractices"]["passing"], j["bestpractices"]["short"]), (2, {"b": 96}))
 check("and an empty one when nothing was read", json.loads(m.fleet_json(rows0, ev0, []))["bestpractices"]["registered"], 0)
 
+
+print()
+print("=== a partial read is not a smaller fleet ===")
+# 2026-09-26 03:46 and 03:52: sixty repositories unread, zero restores
+# published, and the website read it.
+whole = {"unread": [], "scripts": 73}
+check("a whole read publishes", m.refuse_partial(whole, [{}] * 47, {"clean_machine_restores": [{}] * 47}), [])
+check("a few unread repositories are said, not refused",
+      m.refuse_partial({"unread": ["a", "b", "c"]}, [{}] * 47, None), [])
+r = m.refuse_partial({"unread": ["r%d" % i for i in range(60)]}, [{}] * 47, None)
+check("sixty unread is refused", len(r), 1)
+check("and the refusal names how many and why", "60 repositories could not be read" in r[0] and "partial read" in r[0], True)
+r = m.refuse_partial(whole, [], {"clean_machine_restores": [{}] * 47})
+check("restores collapsing from 47 to none is refused", "fell from 47 to 0" in (r[0] if r else ""), True)
+check("a first run with no previous file is not held to one",
+      m.refuse_partial(whole, [{}] * 3, None), [])
+check("a drill or two failing is not a collapse",
+      m.refuse_partial(whole, [{}] * 45, {"clean_machine_restores": [{}] * 47}), [])
+
 print("\npassed: %d   failed: %d" % (passed, failed))
 sys.exit(1 if failed else 0)
 PY

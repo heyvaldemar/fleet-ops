@@ -604,6 +604,31 @@ def rewrite(path, start, end, block):
     return "updated"
 
 
+# A PARTIAL READ IS NOT A SMALLER FLEET. On 2026-09-26 at 03:46 and 03:52 two
+# runs met GitHub's hourly API limit half way, could not read 60 of the
+# repositories, and published what they had: the profile said 24 restore
+# scripts across 15 repositories, fleet.json carried zero clean-machine
+# restores, and the website read it in every visitor's browser. The line did
+# say that 60 could not be read, which made it honest and still wrong. Now a
+# run that could not read more than a handful, or that sees the restores it
+# measured collapse against the last published file, publishes nothing and
+# goes red; yesterday's whole numbers stay up until a run can replace them.
+UNREAD_LIMIT = 3
+
+
+def refuse_partial(ev, drills, previous):
+    """The reasons this run must not publish, or an empty list."""
+    why = []
+    if len(ev["unread"]) > UNREAD_LIMIT:
+        why.append("%d repositories could not be read (%s%s); more than %d is a partial read, not a smaller fleet"
+                   % (len(ev["unread"]), ", ".join(ev["unread"][:4]), " …" if len(ev["unread"]) > 4 else "", UNREAD_LIMIT))
+    before = len((previous or {}).get("clean_machine_restores") or [])
+    if before and len(drills) < before / 2:
+        why.append("the clean-machine restores measured fell from %d to %d; a drill does not vanish overnight, a read does"
+                   % (before, len(drills)))
+    return why
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--catalog")
@@ -617,16 +642,29 @@ def main():
         print(render_evidence(collect_evidence([r["name"] for r in repos()])))
         print(render_catalog(rows))
         return
-    if a.catalog:
-        print("catalog:", rewrite(a.catalog, CAT_START, CAT_END, render_catalog(rows)))
-    if a.summary:
-        print("summary:", rewrite(a.summary, SUM_START, SUM_END, render_summary(rows)))
+    # Everything is read before anything is written, so a refusal leaves every
+    # file exactly as the last whole run left it.
     if a.evidence or a.json:
         names = [r["name"] for r in repos()]
         ev = collect_evidence(names)
         drills = [with_rpo(d) for d in (dr_result(n) for n in names if has_workflow(n, "dr-drill.yml")) if d]
         sc = collect_scorecard(names)
         bp = collect_bestpractices(names)
+        previous = None
+        if a.json and os.path.exists(a.json):
+            try:
+                previous = json.load(io.open(a.json, encoding="utf-8"))
+            except ValueError:
+                previous = None
+        why = refuse_partial(ev, drills, previous)
+        if why:
+            for w in why:
+                print("::error::nothing published: %s" % w)
+            sys.exit(1)
+    if a.catalog:
+        print("catalog:", rewrite(a.catalog, CAT_START, CAT_END, render_catalog(rows)))
+    if a.summary:
+        print("summary:", rewrite(a.summary, SUM_START, SUM_END, render_summary(rows)))
     if a.evidence:
         print("evidence:", rewrite(a.evidence, EVI_START, EVI_END, render_evidence(ev, drills, sc, bp)))
     if a.json:
