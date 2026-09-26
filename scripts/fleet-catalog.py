@@ -260,6 +260,8 @@ def render_evidence(ev, drills=None, sc=None, bp=None):
               "answer, is passing on %d of %d registered repositories%s." % (
                   bp["passing"], bp["registered"],
                   ("; %d could not be read today" % len(bp["unread"])) if bp.get("unread") else "")
+              + (" The %d public repositories that hold no code to rate, this profile among them, are not "
+                 "registered." % len(bp["unregistered"]) if bp.get("unregistered") else "")
               ) if bp and bp.get("registered") else ""
     if ev["run"] == ev["scripts"]:
         lead = "**Today: %d restore scripts across %d repositories, every one of them run by CI.**" % (ev["scripts"], ev["templates"])

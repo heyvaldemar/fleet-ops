@@ -257,6 +257,9 @@ check("no answer at all is unread", m.bestpractices("x", fetch=lambda u: (0, "")
 check("the profile line says how many could not be read",
       "passing on 1 of 2 registered repositories; 3 could not be read today" in m.render_evidence(
           ev_all, [], None, {"registered": 2, "passing": 1, "unread": ["p", "q", "r"]}), True)
+check("the profile line says why the unregistered are not there, so three counts do not look like three fleets",
+      "The 2 public repositories that hold no code to rate, this profile among them, are not registered." in m.render_evidence(
+          ev_all, [], None, {"registered": 2, "passing": 2, "unregistered": ["docs", "profile"]}), True)
 line = m.render_evidence(ev_all, [], None, bp)
 check("the profile line says passing of registered, and whose answers they are", "a questionnaire I answered and OpenSSF publishes with every answer, is passing on 2 of 3 registered" in line, True)
 check("with nothing registered the line says nothing about the badge", "Best Practices" in m.render_evidence(ev_all, [], None, m.collect_bestpractices([])), False)

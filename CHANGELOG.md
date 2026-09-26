@@ -19,6 +19,14 @@ check or a job, a patch fixes one.
   telling a waiting person from an answered one, a fresh one, a bot and a pull
   request.
 
+### Changed
+
+- **The profile's badge line says why seven public repositories are not
+  registered.** The profile carried 97 public repositories, 90 registered for
+  the badge and 88 under the standard, and nothing said how they relate; a
+  careful reader could take three counts for three fleets. The line now names
+  the repositories that hold no code to rate.
+
 ## [1.0.0] - 2026-09-26
 
 The first public release. The fleet has run from a private repository since
