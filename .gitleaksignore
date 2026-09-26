@@ -17,3 +17,6 @@
 
 3a0e051a8c305c4a0ec1b1c08b44fc3c0a09b99f:scripts/upstream-review.py:generic-api-key:85
 748f3cc8a491ad3139038158747f28c9ae7166e7:.gitleaksignore:generic-api-key:7
+# The same line, in the public copy's first commit: a fingerprint is bound to a
+# commit hash, and the public copy has its own history.
+3c7e50de47a4f42f1d960557fe2453fc3ea8b5f7:scripts/upstream-review.py:generic-api-key:123
