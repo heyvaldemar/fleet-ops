@@ -1,0 +1,288 @@
+name: Fleet heartbeat
+
+# Everything in this repository is scheduled, and every scheduled job fails
+# loudly when it finds something wrong. None of them can fail when it stops
+# running, and that is the failure with no symptom: the profile keeps showing
+# the numbers it last wrote, every badge keeps showing its last run, and the
+# fleet looks exactly as it did when it worked.
+#
+# This asks GitHub what it knows about the schedules themselves - which ones it
+# has disabled, and which ones have not fired inside their own interval - here
+# and across every public repository. It changes nothing.
+on:
+  schedule:
+    # 07:15 UTC — as a POSITION IN A QUEUE, not a time of day.
+    #
+    # Measured on 2026-09-21 across every cron in this repository: each one
+    # lands five to six and a half hours after the minute it names. Declared
+    # 05:00 arrives 10:22, 06:45 arrives 11:47, this one arrives around 12:20.
+    # GitHub runs scheduled workflows at low priority and the delay grows with
+    # load, so a cron here buys an ordering among these jobs and nothing more.
+    #
+    # The ordering is what matters and it survives: the morning triage is
+    # declared thirty minutes earlier and still lands before this, so a job
+    # that ran today is already visible as having run by the time this asks.
+    # Anything that needs a real time of day cannot be a cron on this account.
+    - cron: "15 7 * * *"
+  # No push trigger. verify.yml now lints and runs every suite on every push,
+  # including this one's, so a second full fleet sweep on each edit of this
+  # file bought nothing and cost seven minutes of a metered allowance.
+  workflow_dispatch:
+    inputs:
+      sweep:
+        description: "Also sweep all 94 public repositories (the slow half)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  # The findings go out as an issue, not as a red run. GitHub's Actions failure
+  # emails were switched off on 2026-09-14 — eighteen of every twenty were "a
+  # robot will fix this in forty minutes" — so a red run here would reach
+  # nobody. An issue does.
+  issues: write
+
+concurrency:
+  group: fleet-heartbeat
+  cancel-in-progress: false
+
+jobs:
+  heartbeat:
+    name: Are the scheduled jobs still running
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: The report filer, shown a violation
+        # This step decides whether a person is told anything, so the cases
+        # that matter are the silent ones: a run with nothing new must not
+        # comment, and a fingerprint that came out empty must not be mistaken
+        # for "unchanged, forever". Neither is visible from the outside, so
+        # the suite asserts what was not called as well as what was.
+        run: |
+          chmod +x scripts/file-report.sh tests/test-file-report.sh
+          ./tests/test-file-report.sh
+
+      - name: The classification, shown a violation
+        # The heartbeat is the last thing watching the machinery, so its own
+        # judgement is exercised against fabricated runs rather than trusted:
+        # a flake is not a finding, a job failing since before its own interval
+        # is, and a cancelled or still-running one is neither.
+        run: |
+          chmod +x tests/test-heartbeat.sh
+          ./tests/test-heartbeat.sh
+
+      - name: This repository's own jobs that run and fail
+        # A DIFFERENT QUESTION FROM THE ONE BELOW, and the distinction is the
+        # point. "Did the schedule fire" is right for the fleet, where a red
+        # freshness job is the designed alarm that triage consumes. It is the
+        # wrong question here: every issue this repository opens is gated on a
+        # FINDING, and a job that crashes produces no findings, opens nothing,
+        # and now sends no mail either. This reads the conclusions.
+        #
+        # On the fleet token deliberately: it also reports how long that token
+        # has left, which is the single most likely quiet death of all of this.
+        id: failing
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.FLEET_PAT }}
+          # For one question only: is this repository's own report already
+          # open. The fleet token cannot read this repository, so that lookup
+          # failed silently and the noise it exists to remove kept arriving.
+          FLEET_SELF_TOKEN: ${{ github.token }}
+          # Read-only, scoped to the repositories the main token does not reach.
+          # Absent until one exists, and absent is the behaviour that shipped.
+          FLEET_READ_TOKEN: ${{ secrets.FLEET_READ_PAT }}
+        run: |
+          python3 scripts/fleet-heartbeat.py --failing --json failing.json | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: This repository's own schedules
+        # The workflow list comes from the directory that is checked out, never
+        # from a list kept here: a list by hand falls behind the files it
+        # describes, which is the exact fault this job looks for.
+        id: local
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 scripts/fleet-heartbeat.py --json beat.json
+          {
+            echo "## fleet-ops"
+            echo
+            echo '```'
+            python3 -c "import json;[print('%-26s %6.0fh  %-13s %s' % (w['name'],w['period_hours'],w['state'],w['last'])) for w in json.load(open('beat.json'))['workflows']]"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Every public repository's schedules
+        # A separate token because this reads other repositories, and a separate
+        # step so an expired PAT shows up as its own failure rather than as the
+        # fleet having gone quiet.
+        id: fleet
+        # THE SLOW HALF, AND THE ONE A DEBUGGING RUN DOES NOT NEED.
+        #
+        # It asks GitHub about 94 repositories and takes six to eight minutes
+        # of a metered allowance. On 2026-09-20 thirteen hand-started runs went
+        # into fixing the REPORTING logic below, ninety minutes of sweeping
+        # nobody read, on the day the account reached 100% of its included
+        # minutes. A scheduled run always sweeps; a hand-started one asks.
+        if: always() && (github.event_name != 'workflow_dispatch' || inputs.sweep)
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.FLEET_PAT }}
+          # Read-only, scoped to the repositories the main token does not reach.
+          # Absent until one exists, and absent is the behaviour that shipped.
+          FLEET_READ_TOKEN: ${{ secrets.FLEET_READ_PAT }}
+        run: |
+          python3 scripts/fleet-heartbeat.py --fleet --json fleet-beat.json | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Tell something outside GitHub that this ran
+        # THE ONE FAILURE NOTHING HERE CAN REPORT. Every check in this job runs
+        # on GitHub and asks GitHub questions. If GitHub stops running this
+        # repository at all — schedules disabled, the token revoked, the repo
+        # gone — the checks do not fail. They do not happen, and silence is
+        # indistinguishable from a quiet week.
+        #
+        # An external switch inverts that: it expects a ping on a period, and
+        # the ABSENCE of one is the alarm. This account publishes a tool built
+        # on exactly that argument (deadman-switch); this is the same argument
+        # applied to the thing that watches everything else.
+        #
+        # Unconfigured, it says so rather than passing quietly. A step that
+        # no-ops in silence when its secret is missing is the failure shape
+        # this whole file exists to refuse.
+        if: always()
+        env:
+          PING: ${{ secrets.HEARTBEAT_PING_URL }}
+          REHEARSAL: ${{ vars.FLEET_REHEARSAL }}
+        run: |
+          if [ "$REHEARSAL" = "true" ]; then
+            echo "rehearsal: the external witness belongs to the copy of this repository that acts, and is not pinged from here" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if [ -z "$PING" ]; then
+            echo "no external witness: set HEARTBEAT_PING_URL (healthchecks.io or any switch that alarms on a MISSING ping) so that GitHub not running this at all is also visible" \
+              | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          code="$(curl -sS -m 20 -o /dev/null -w '%{http_code}' --retry 3 "$PING")"
+          case "$code" in
+            200|201|204) echo "external witness pinged" ;;
+            *) echo "::error::the external witness answered HTTP ${code:-000} — it did not record this run, so its alarm is now the only thing that would notice, and it cannot"; exit 1 ;;
+          esac
+
+      - name: Say it where it will be read
+        # Three checks, one channel. An issue is opened when any of them finds
+        # something and closed when a later run finds nothing, the same shape
+        # the triage and lifecycle reports use — and the shape he already
+        # reads. The run also ends red, so both channels carry it.
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SWEPT: ${{ steps.fleet.outcome != 'skipped' }}
+        run: |
+          python3 - <<'PY' > body.md
+          import io, json, os
+          # A FINDING THAT IS TRUE AND A FINDING THAT IS NEW ARE NOT THE SAME
+          # THING. The script marks the first kind (see STANDING_PREFIX in
+          # scripts/fleet-heartbeat.py); both reach the issue, only the second
+          # reaches the exit code. Red here has to keep meaning "a watcher
+          # stopped last night", which it cannot do if it is also red every
+          # morning for a permission nobody is going to widen today.
+          MARK = "(standing) "
+          # A HAND-STARTED RUN THAT SKIPPED THE SWEEP DOES NOT SPEAK FOR THE
+          # FLEET, so it does not get to rewrite the thread that does. Saying
+          # "the sweep was skipped" inside the report was worse than useless:
+          # it replaced a complete picture with a partial one and left the
+          # residue of somebody's debugging in the record. Such a run prints
+          # what it found and stops; the shell below never files it.
+          SWEPT = os.environ.get("SWEPT") == "true"
+          found, standing = [], []
+          for f, what in (("failing.json", "jobs here that run and fail"),
+                          ("beat.json", "schedules here"),
+                          ("fleet-beat.json", "schedules across the fleet")):
+              try:
+                  d = json.load(io.open(f, encoding="utf-8"))
+              except Exception:
+                  if f == "fleet-beat.json" and not SWEPT:
+                      continue
+                  found.append(("the %s check" % what, ["did not produce a result at all — it failed before it could report"]))
+                  continue
+              items = d.get("findings") or []
+              standing += [i[len(MARK):] for i in items if i.startswith(MARK)]
+              fresh = [i for i in items if not i.startswith(MARK)]
+              if fresh:
+                  found.append((what, fresh))
+          io.open("blocking.count", "w", encoding="utf-8").write("%d\n" % sum(len(i) for _, i in found))
+          # WHAT A COMMENT IS FOR. The thread is mailed when the set of
+          # findings GAINS one, because that is something new needing a
+          # person. A standing finding is the opposite by definition: already
+          # filed, already true, waiting on a decision that is not urgent. On
+          # 2026-09-22 a sweep whose only change was a standing line still sent
+          # mail, which is the noise this whole mechanism exists to remove.
+          #
+          # So the fingerprint is taken over the blocking findings alone. When
+          # there are none but standing ones remain, one fixed line stands in:
+          # an empty fingerprint makes file-report.sh fall back to the whole
+          # body, and the body moves whenever a standing age does.
+          io.open("blocking.txt", "w", encoding="utf-8").write(
+              "".join("- %s\n" % i for _, items in found for i in items)
+              or ("- only findings that are standing\n" if standing else ""))
+          if not found and not standing:
+              print("CLEAN")
+          else:
+              print("The machinery that watches this fleet has something to say. Nothing here is a template's own alarm; those reach the triage report.\n")
+              for what, items in found:
+                  print("### %s\n" % what)
+                  for i in items:
+                      print("- %s" % i)
+                  print()
+              if standing:
+                  print("### waiting on a decision\n")
+                  print("True, and already known. These do not turn the heartbeat red, because a job "
+                        "that is red every day cannot also mean a watcher stopped last night. Either "
+                        "act on one, or accept it for good by naming it in `scripts/known-gaps.txt`.\n")
+                  for i in standing:
+                      print("- %s" % i)
+                  print()
+          PY
+          if [ "${SWEPT}" != "true" ]; then
+            # Printed, never filed. The thread holds the last complete answer
+            # and a partial run must not overwrite it — the exit code below
+            # still reflects what this run did look at, so a crash in the
+            # cheap half is as loud as it ever was.
+            echo "the fleet sweep was skipped, so this run does not speak for the fleet and has not touched the report"
+            sed -n '1,60p' body.md
+            [ "$(cat blocking.count)" = "0" ] || exit 1
+            exit 0
+          fi
+          if head -1 body.md | grep -qx CLEAN; then
+            ./scripts/file-report.sh --label heartbeat --nothing-to-report \
+              --empty-comment "A later heartbeat found nothing."
+            echo "nothing to report"
+            exit 0
+          fi
+          # The findings themselves are what changes when the fleet's state
+          # changes. The prose around them is the same every day, and so is a
+          # watcher that has been broken since Tuesday: one thread that says so
+          # once, not a fresh issue every morning.
+          # Blocking findings only — see blocking.txt above.
+          cp blocking.txt findings.txt
+          ./scripts/file-report.sh --label heartbeat \
+            --title "Heartbeat: the watchers need a look" \
+            --body body.md --fingerprint findings.txt --colour b60205 \
+            --description "The machinery that watches the fleet" \
+            --changed-comment "The heartbeat findings changed; the body above is current."
+          cat body.md
+          # Red only for the findings nobody has seen before. The standing ones
+          # are in the issue above, where they stay visible without costing a
+          # failure mail every twelve hours.
+          [ "$(cat blocking.count)" = "0" ] || exit 1
+          echo "only standing findings: reported in the issue, not a red run"

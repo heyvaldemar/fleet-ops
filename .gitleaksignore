@@ -1,0 +1,19 @@
+# Findings gitleaks is told to stay quiet about, one line each, by fingerprint.
+# A fingerprint names one match in one commit in one file: nothing else in this
+# repository is exempted, and a new secret in the same file still fails the run.
+#
+# The one below is a line of the SOURCES table in upstream-review.py, which
+# maps an image name to the GitHub repository publishing its release notes.
+# Both halves of that line are repository names; the rule that fires is
+# gitleaks' catch-all, keying on a word like api or key appearing before a
+# colon.
+#
+# The example is described rather than quoted on purpose: the first version of
+# this file pasted the line in, and the scan then flagged the comment
+# explaining the false positive.
+#
+# The second entry is that mistake's own commit: the comment is in the history
+# now, and history is what this scan reads.
+
+3a0e051a8c305c4a0ec1b1c08b44fc3c0a09b99f:scripts/upstream-review.py:generic-api-key:85
+748f3cc8a491ad3139038158747f28c9ae7166e7:.gitleaksignore:generic-api-key:7

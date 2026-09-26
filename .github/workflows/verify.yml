@@ -1,0 +1,99 @@
+name: Verify
+
+# WHY THIS EXISTS, AND WHY IT DID NOT BEFORE. Every workflow here is a
+# scheduled job that gates on its own test before doing its work, which is a
+# good arrangement and left one hole: nothing ever looked at this repository's
+# code on a push. A script could be edited, committed and merged, and the first
+# thing to read it would be a cron at 06:45.
+#
+# That is exactly how it went wrong. answer() was pulled into the shared
+# federation module, the scout and the lab sweep were given the import, and
+# upstream-review.py was not, while its call site was rewritten to use it.
+# Python resolves names at run time, so the file compiled and nothing said a
+# word. Every upstream review since raised NameError, and each one was reported
+# as a line in the triage issue saying the bump would proceed on the CI gate
+# alone. A feature this repository advertises had been dead for days.
+#
+# pyflakes finds an undefined name by reading the file. One second, on every
+# push, and it says: undefined name 'answer'.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lint:
+    name: Read every script before a cron has to
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Undefined names, unused imports
+        run: |
+          python3 -m pip install --quiet pyflakes
+          python3 -m pyflakes scripts/*.py
+
+      - name: ShellCheck
+        # The pinned container, not the runner's preinstalled shellcheck. The
+        # first run of this job failed on two lines the local container passes:
+        # the runner ships 0.9.0 and the two versions disagree about SC2015. A
+        # linter whose version depends on the machine gives an answer that
+        # depends on the machine, which is the opposite of what a gate is for.
+        run: |
+          docker run --rm -v "$PWD:/mnt" -w /mnt \
+            koalaman/shellcheck@sha256:bb596a0d169b85ddd81d8b6d3a2ff6d5baf5fca10b97f575ebc647c3dff62b3d scripts/*.sh tests/*.sh
+
+      - name: actionlint
+        run: |
+          docker run --rm -v "$PWD:/mnt" -w /mnt rhysd/actionlint:1.7.12 -color
+
+  tests:
+    name: Every suite, not only the one whose cron is next
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Run them
+        # Each scheduled workflow gates on its own suite, so on a normal day
+        # only the suite belonging to the next cron gets run. Here they all do,
+        # at the moment the change is made rather than hours later.
+        env:
+          # test-review-sources.sh asks GitHub whether each repository in the
+          # reviewer's lookup table is really there, which is the only way a
+          # table of repository names can be checked at all. `gh` will not run
+          # without a credential, and the job's own read-only token is enough.
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # test-conformance.sh breaks a conforming repository one rule at a
+          # time, so it needs one to break. Its own workflow clones this;
+          # without it here the suite exits on its first line, which is what
+          # the first run of this job did.
+          git clone --depth 1 https://github.com/${{ github.repository_owner }}/nextcloud-traefik-letsencrypt-docker-compose /tmp/reference
+          git -C /tmp/reference fetch --depth 1 origin --tags
+          # split-freshness.py compares workflows as data, so the suite that
+          # proves it needs a YAML parser; installed rather than assumed, since
+          # a test that skips when its library is missing is a test that passes.
+          python3 -m pip install --quiet pyyaml
+          chmod +x tests/*.sh
+          fail=0
+          for t in tests/*.sh; do
+            echo "== $t"
+            case "$t" in
+              */test-conformance.sh) "$t" /tmp/reference || fail=1 ;;
+              *) "$t" || fail=1 ;;
+            esac
+          done
+          exit "$fail"

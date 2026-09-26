@@ -1,0 +1,36 @@
+# Repositories the fleet's token is known not to read, accepted on purpose.
+#
+# THIS LIST IS EMPTY, AND THAT IS THE HEALTHY STATE. Every name here buys
+# silence for one repository: the heartbeat goes on reporting it, but stops
+# turning its run red over it. Nothing is accepted at the moment, so any
+# repository that falls out of reach is reported red and by name.
+#
+# A name belongs here only when somebody has decided that repository does not
+# need watching from this fleet. It is an edit that shows up in a diff and in
+# review, never a default and never something a script decides for itself.
+#
+# The heartbeat also removes names: a repository it demonstrably reads while
+# this file still accepts it as unwatched is a finding. A list that only ever
+# grows ends up accepting anything, which is the mechanism switching itself
+# off quietly.
+#
+# HOW THIS CAME TO BE EMPTY. On 2026-09-18 the heartbeat learned to look at
+# the private half of the fleet and found eleven repositories its token could
+# not read, heyvaldemar-com among them — where two Dependabot pull requests
+# had sat four and seven days, one green and mergeable the whole time. They
+# were accepted here for two days and the gap was closed on 2026-09-20 by a
+# second credential rather than a wider one:
+#
+#   A fine-grained token named fleet-ops-read, resource owner heyvaldemar,
+#   All repositories, with the single permission Pull requests: Read-only.
+#   It reaches fleet-ops as the secret FLEET_READ_PAT and is picked up by
+#   open_prs() in scripts/fleet-heartbeat.py.
+#
+# Widening FLEET_PAT would have done the same job and cost far more: adding a
+# repository to a token grants it every permission that token already holds,
+# and FLEET_PAT writes — branches, releases, issues. None of that belongs on
+# the home-lab config or the live website. Breadth on a read-only token is
+# cheap; permission is what costs something.
+#
+# If that token lapses, those repositories go unreadable again with nothing
+# here accepting them, so the finding returns red and names them.

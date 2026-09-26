@@ -1,0 +1,34 @@
+{
+  "_comment": [
+    "Candidates the scout has already put forward and that were judged not",
+    "worth a template. It re-ranks the same catalogue every Monday and the",
+    "scores barely move, so without this it proposes the same shortlist for",
+    "ever and the report stops being read — which is the one failure a scout",
+    "cannot recover from.",
+    "",
+    "A line here is a decision somebody made, and removing one is how a",
+    "candidate gets a second hearing: say so in the commit that does it. The",
+    "scout says how many it skipped, so this list cannot quietly swallow the",
+    "whole catalogue.",
+    "",
+    "The key is the scout's own slug: the catalogue name lowercased with every",
+    "run of non-alphanumerics turned into a hyphen. \"Dify.ai\" is dify-ai, not",
+    "dify. A key that matches nothing is reported rather than ignored, because a",
+    "typo here would make this whole list a no-op that looks like it is working."
+  ],
+  "dify-ai": {
+    "decided": "2026-09-20",
+    "verdict": "THIN",
+    "why": "the fleet already ships dify-traefik-letsencrypt-docker-compose, released v1.0.3 on 2026-09-18; a second template would duplicate it rather than add anything"
+  },
+  "hoppscotch-community-edition": {
+    "decided": "2026-09-20",
+    "verdict": "NO",
+    "why": "no state worth backing up, and self-hosting an API client for one person is a thin justification for a permanent template"
+  },
+  "stirling-pdf": {
+    "decided": "2026-09-20",
+    "verdict": "THIN",
+    "why": "stateless in practice, so the backup, restore and upgrade-on-same-volumes half of this fleet's contract would be vacuous"
+  }
+}

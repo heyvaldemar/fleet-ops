@@ -1,0 +1,23 @@
+# The workflows this repository is supposed to carry. The heartbeat compares
+# this list with the checkout on every run and goes red on any difference:
+# a file named here and missing, or a file present and not named here.
+#
+# WHY A LIST, WHEN THE FILES ARE RIGHT THERE. On 2026-09-24 a commit made
+# from a clone that had lost its .git/config also deleted twenty tracked
+# files, six of these workflows among them, and nothing noticed for sixteen
+# hours: the heartbeat reads the schedules it watches from the checkout, so
+# a workflow that vanished from the checkout vanished from the list too. The
+# set of watchers is a list that may only change on purpose, in a diff, with
+# a reason. Removing a workflow means removing its line here in the same
+# commit; forgetting either half is the finding.
+dependabot-automerge.yml
+fleet-catalog.yml
+fleet-conformance.yml
+fleet-heartbeat.yml
+fleet-lifecycle.yml
+fleet-triage.yml
+rollout-daily-cron.yml
+secret-scan.yml
+upstream-review.yml
+verify.yml
+fleet-scout.yml

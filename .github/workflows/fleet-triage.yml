@@ -1,0 +1,150 @@
+name: Fleet Triage
+
+on:
+  schedule:
+    # 06:45 UTC — right after every template's own 06:00 UTC freshness cron,
+    # so a repository that went red at six is fixed by seven instead of
+    # sitting red, and mailing about it, until the afternoon.
+    - cron: "45 6 * * *"
+    # 19:30 UTC — the second, and the reason it exists: a bump's CI verdict is
+    # no longer waited on, it is read at the next run. One run a day would
+    # leave a red pin on main for a full day, and a revert thrown away is
+    # recoverable where a broken pin left in place is not. Two runs cap the
+    # wait at about twelve hours.
+    #
+    # There was a third at 13:00, a second pass for anything the registry
+    # answered late. It went on 2026-09-22 when the account's Actions minutes
+    # were measured: this repository is private, so every run is billed, and
+    # the whole fleet was projected at about 4400 minutes a month against an
+    # allowance of 3000. The evening pass covers a late registry as well as
+    # the afternoon one did; what could not be given up is the twelve-hour
+    # ceiling on a red bump, so that is what these two are for.
+    - cron: "30 19 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Report only, push nothing"
+        type: boolean
+        default: false
+
+permissions:
+  # The pending ledger is committed back here: which bumps are pushed and not
+  # yet judged is a fact about the fleet, and a run that forgot it would leave
+  # a red pin on main with nothing to find it.
+  contents: write
+  # The upstream review authenticates to Anthropic with this job's OIDC
+  # token under a federation rule pinned to this repository and branch.
+  # No API key exists anywhere.
+  id-token: write
+  # To open the issue that carries the report when a line in it needs a
+  # person. The default token reaches this repository, which is where the
+  # issue lives; the fleet PAT is not involved.
+  issues: write
+
+concurrency:
+  group: fleet-triage
+  cancel-in-progress: false
+
+jobs:
+  triage:
+    name: Rerun flakes, refresh drifted digests, report the rest
+    runs-on: ubuntu-latest
+    # 350 was for the days this waited on every repository's CI, one at a
+    # time: a traefik repush across thirty repositories once took two hours.
+    # Nothing is waited on now — the work is API calls, a clone per bump and a
+    # push — so a run that is still going after forty minutes is stuck, and a
+    # stuck run should be cut off rather than billed. The script keeps its own
+    # budget under this and reports what it did not reach.
+    timeout-minutes: 40
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: The report filer, shown a violation
+        # This step decides whether a person is told anything, so the cases
+        # that matter are the silent ones: a run with nothing new must not
+        # comment, and a fingerprint that came out empty must not be mistaken
+        # for "unchanged, forever". Neither is visible from the outside, so
+        # the suite asserts what was not called as well as what was.
+        run: |
+          chmod +x scripts/file-report.sh tests/test-file-report.sh
+          ./tests/test-file-report.sh
+
+      - name: Install the SDK for the upstream review
+        run: python3 -m pip install --quiet --upgrade "anthropic>=0.80"
+
+      - name: Run the triage
+        id: triage
+        env:
+          # Fine-grained PAT with Contents read/write + Actions read/write
+          # on the heyvaldemar template repositories. The default
+          # GITHUB_TOKEN only reaches this repo, so it cannot do the job.
+          GH_TOKEN: ${{ secrets.FLEET_PAT }}
+          # REHEARSAL. A copy of this repository that is not yet the fleet's
+          # executor (a public one being proven beside the private one, or a
+          # fork) sets the repository variable FLEET_REHEARSAL=true and this
+          # workflow then reads everything and pushes nothing, the same as a
+          # manual dry run. The variable is unset where the fleet acts.
+          DRY_RUN: ${{ (inputs.dry_run || vars.FLEET_REHEARSAL == 'true') && 'true' || 'false' }}
+        run: |
+          chmod +x scripts/fleet-triage.sh
+          ./scripts/fleet-triage.sh
+
+      - name: Remember what was pushed and not yet judged
+        # Always: a run that failed half way still pushed whatever it pushed,
+        # and the ledger is the only record that those commits are waiting for
+        # a verdict. Losing it means a red pin nothing will ever revert.
+        if: always() && inputs.dry_run != true && vars.FLEET_REHEARSAL != 'true'
+        env:
+          GIT_AUTHOR_NAME: Vladimir Mikhalev
+          GIT_AUTHOR_EMAIL: 10498744+heyvaldemar@users.noreply.github.com
+          GIT_COMMITTER_NAME: Vladimir Mikhalev
+          GIT_COMMITTER_EMAIL: 10498744+heyvaldemar@users.noreply.github.com
+        run: |
+          git add triage-pending.json 2>/dev/null || true
+          git diff --cached --quiet && { echo "nothing pending changed"; exit 0; }
+          git commit -q -m "chore(triage): what is pushed and not yet judged" \
+            -m "Written by scripts/fleet-triage.sh. The next run reads the CI verdict for each of these and cuts the release or reverts."
+          git pull -q --rebase origin main || true
+          git push -q origin HEAD:main
+
+      - name: Keep one report thread, and speak only when it changes
+        # A line that says "needs a human" is a decision waiting, and a
+        # decision waiting in a job summary nobody opens is not waiting
+        # anywhere. So it goes in an issue. But this job runs three times a
+        # day, and closing the issue and opening a new one each time sent two
+        # notifications per run to say the same thing: six a day, identical,
+        # until the reader archives the label unread and the one run that
+        # mattered goes with them.
+        #
+        # scripts/file-report.sh keeps one thread and rewrites its body every
+        # run, which notifies nobody, and comments only when the set of lines
+        # below has actually changed.
+        #
+        # A dry run's report is full of "would bump" and "would rerun": real
+        # decisions and hypotheticals in one issue is an issue nobody can act on.
+        if: always() && inputs.dry_run != true && steps.triage.outputs.needs_human != '' && steps.triage.outputs.needs_human != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COUNT: ${{ steps.triage.outputs.needs_human }}
+        run: |
+          # What needs a decision, and nothing else. The rest of the report is
+          # ages, clock times and run ids, every one of which moves on every
+          # run while nothing at all has happened.
+          grep 'needs a human' triage-report.md > needs-human.txt || true
+          ./scripts/file-report.sh --label triage-report \
+            --title "Fleet triage: $COUNT item(s) need a decision" \
+            --body triage-report.md --fingerprint needs-human.txt \
+            --description "Fleet triage: what needs a decision" \
+            --changed-comment "What needs a decision has changed. $COUNT item(s) now, listed in the body above."
+
+      - name: Close the report when nothing needs a person any more
+        # A report issue is a decision waiting. When a later run finds nothing
+        # to decide, the wait is over and the issue says so and closes; an
+        # open issue about a solved problem is the noise this exists to avoid.
+        if: always() && inputs.dry_run != true && steps.triage.outcome == 'success' && (steps.triage.outputs.needs_human == '' || steps.triage.outputs.needs_human == '0')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ./scripts/file-report.sh --label triage-report --nothing-to-report \
+            --empty-comment "A later triage run found nothing left to decide."

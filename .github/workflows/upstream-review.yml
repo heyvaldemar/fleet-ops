@@ -1,0 +1,88 @@
+name: Upstream review
+
+# What upstream changed between two versions of an image, read against the
+# template that pins it. Run by hand here; fleet triage calls the same script
+# for every version bump it prepares.
+#
+# Authentication is workload identity federation: this job mints a GitHub
+# OIDC token and Anthropic exchanges it under a federation rule pinned to
+# this repository and branch. No API key is stored anywhere.
+on:
+  workflow_dispatch:
+    inputs:
+      repo:
+        description: "Template repository (e.g. dashy-traefik-letsencrypt-docker-compose)"
+        required: true
+      image:
+        description: "Image reference without tag (e.g. lissy93/dashy)"
+        required: true
+      from:
+        description: "Version the template is on"
+        required: true
+      to:
+        description: "Version upstream offers"
+        required: true
+      source:
+        description: "GitHub owner/name with the release notes (optional; derived when blank)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  review:
+    name: Read the release notes against the template
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout fleet-ops
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Checkout the template
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: heyvaldemar/${{ inputs.repo }}
+          token: ${{ secrets.FLEET_PAT }}
+          path: template
+
+      - name: An answer that is empty is not an answer
+        # The guard every call here shares, asserted without spending a token:
+        # a budget spent entirely on thinking, a truncated answer, and a model
+        # that refuses to be told not to think.
+        run: |
+          # The lab sweep and its test stay in the private copy of this
+          # repository; the public copy has neither, on purpose.
+          if [ -f tests/test-lab-sweep.sh ]; then chmod +x tests/test-lab-sweep.sh; ./tests/test-lab-sweep.sh; else echo "no lab sweep in this copy"; fi
+
+      - name: Install the SDK
+        run: python3 -m pip install --quiet --upgrade "anthropic>=0.80"
+
+      - name: What the OIDC token says about this run (claims only, never the token)
+        # The federation rule matches on these. When an exchange is denied,
+        # this is the side of the comparison the console does not show.
+        run: |
+          tok="$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https%3A%2F%2Fapi.anthropic.com" | jq -r .value)"
+          echo "::add-mask::$tok"
+          printf '%s' "$tok" | cut -d. -f2 | python3 -c 'import base64,json,sys; p=sys.stdin.read().strip(); p+="="*(-len(p)%4); c=json.loads(base64.urlsafe_b64decode(p)); print(json.dumps({k: c.get(k) for k in ("iss","aud","sub","repository","repository_owner","repository_owner_id","ref","event_name","workflow","job_workflow_ref")}, indent=2))'
+
+      - name: Review
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ inputs.repo }}
+          IMAGE: ${{ inputs.image }}
+          FROM: ${{ inputs.from }}
+          TO: ${{ inputs.to }}
+          SOURCE: ${{ inputs.source }}
+        run: |
+          cd template
+          python3 ../scripts/upstream-review.py --repo "$REPO" --image "$IMAGE" --from "$FROM" --to "$TO" \
+            ${SOURCE:+--source "$SOURCE"} --out ../review.md --json ../review.json
+          {
+            cat ../review.md
+            echo
+            echo '```json'
+            cat ../review.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

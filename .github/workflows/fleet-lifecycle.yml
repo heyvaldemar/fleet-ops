@@ -1,0 +1,111 @@
+name: Fleet Lifecycle
+
+# The question the freshness check cannot ask. A database is pinned at a major
+# on purpose, so postgres:16 keeps taking patches for years and never lags -
+# and a major that reaches end of vendor support would sit in a template
+# forever with every check green. This reads the vendors' own support
+# calendars instead, weekly, and says which pin runs out and when.
+on:
+  schedule:
+    # Mondays 09:00 UTC, after the scout and well clear of the triage crons.
+    - cron: "0 9 * * 1"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/fleet-lifecycle.py"
+      - ".github/workflows/fleet-lifecycle.yml"
+  workflow_dispatch:
+    inputs:
+      warn_days:
+        description: "How far ahead an approaching end of support is worth saying"
+        type: string
+        default: "180"
+
+permissions:
+  contents: read
+  # To open the issue that carries the report. It lives in this repository,
+  # so the default token is the right one; the fleet PAT only reads pins.
+  issues: write
+
+concurrency:
+  group: fleet-lifecycle
+  cancel-in-progress: false
+
+jobs:
+  lifecycle:
+    name: Read every pinned data store against its vendor's calendar
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout fleet-ops
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: The report filer, shown a violation
+        # This step decides whether a person is told anything, so the cases
+        # that matter are the silent ones: a run with nothing new must not
+        # comment, and a fingerprint that came out empty must not be mistaken
+        # for "unchanged, forever". Neither is visible from the outside, so
+        # the suite asserts what was not called as well as what was.
+        run: |
+          chmod +x scripts/file-report.sh tests/test-file-report.sh
+          ./tests/test-file-report.sh
+
+      - name: Check the fleet's data stores
+        id: check
+        env:
+          # Read-only use of the fleet PAT: the default token sees this
+          # repository alone, and a private template that never reaches the
+          # listing is a template nobody checks.
+          GH_TOKEN: ${{ secrets.FLEET_PAT }}
+          WARN_DAYS: ${{ inputs.warn_days || '180' }}
+        run: |
+          python3 scripts/fleet-lifecycle.py \
+            --warn-days "$WARN_DAYS" \
+            --report lifecycle-report.md \
+            --json lifecycle.json
+          cat lifecycle-report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: fleet-lifecycle
+          path: |
+            lifecycle-report.md
+            lifecycle.json
+          if-no-files-found: ignore
+          retention-days: 90
+
+      - name: Open an issue when a pin runs out
+        # One open issue at a time, the newest. A support window closing is a
+        # decision with a date on it, and a date in a job summary nobody
+        # opens is a date nobody meets.
+        if: always() && steps.check.outputs.needs_human != '' && steps.check.outputs.needs_human != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          COUNT: ${{ steps.check.outputs.needs_human }}
+        run: |
+          # A support window closing is a condition, not a weekly bulletin: it
+          # stays true until somebody acts on it. One thread that says so, and
+          # a comment on the week the list actually changes.
+          # The findings, with the countdowns taken out. "goes out of support
+          # in 47 days" becomes "in 40 days" a week later without anything
+          # having happened, and a fingerprint that moves on its own is a
+          # fingerprint that mails every week to report the passage of time.
+          grep '^- \*\*' lifecycle-report.md \
+            | sed -E 's/, in [0-9]+ days//; s/, [0-9]+ days ago//' > lifecycle-findings.txt || true
+          ./scripts/file-report.sh --label lifecycle-report \
+            --title "Fleet lifecycle: $COUNT data store(s) need a decision" \
+            --body lifecycle-report.md --fingerprint lifecycle-findings.txt --colour 5319e7 \
+            --description "Data stores approaching or past end of support" \
+            --changed-comment "The list of data stores needing a decision changed; the body above is current."
+
+      - name: Close the open report when every pin is inside its window
+        if: always() && steps.check.outcome == 'success' && (steps.check.outputs.needs_human == '' || steps.check.outputs.needs_human == '0')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          ./scripts/file-report.sh --label lifecycle-report --nothing-to-report \
+            --empty-comment "A later run found every pinned data store inside its supported window."

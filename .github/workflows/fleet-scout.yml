@@ -1,0 +1,86 @@
+name: Fleet scout
+
+# What is worth adding to the fleet, and what it would cost. Reads the
+# awesome-selfhosted catalogue, drops what this fleet already covers and what
+# cannot be pinned or maintained, and asks Claude to assess the few that are
+# left against how these templates are actually built.
+#
+# It opens an issue. It never creates a repository: the value of a template
+# here is what running the thing taught, and that cannot be generated. The
+# scaffold comes after a decision, not before one.
+on:
+  schedule:
+    # Monday morning. A daily shortlist would be a daily interruption for a
+    # decision nobody makes daily.
+    - cron: "0 8 * * 1"
+  workflow_dispatch:
+    inputs:
+      shortlist:
+        description: "How many candidates to assess"
+        required: false
+        default: "3"
+
+permissions:
+  contents: read
+  issues: write
+  id-token: write
+
+concurrency:
+  group: fleet-scout
+  cancel-in-progress: false
+
+jobs:
+  scout:
+    name: Propose what is worth adding
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: An answer that is empty is not an answer
+        # The guard every call here shares, asserted without spending a token:
+        # a budget spent entirely on thinking, a truncated answer, and a model
+        # that refuses to be told not to think.
+        run: |
+          # The lab sweep and its test stay in the private copy of this
+          # repository; the public copy has neither, on purpose.
+          if [ -f tests/test-lab-sweep.sh ]; then chmod +x tests/test-lab-sweep.sh; ./tests/test-lab-sweep.sh; else echo "no lab sweep in this copy"; fi
+
+      - name: Install the SDK
+        run: python3 -m pip install --quiet --upgrade "anthropic>=0.80"
+
+      - name: Look
+        id: scout
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHORTLIST: ${{ inputs.shortlist || '3' }}
+        run: |
+          python3 scripts/fleet-scout.py --shortlist "$SHORTLIST" --out scout.md --json scout.json
+          {
+            echo "## Fleet scout — $(date -u '+%Y-%m-%d')"
+            echo
+            cat scout.md
+          } >> "$GITHUB_STEP_SUMMARY"
+          jq -r '"candidates=\(.shortlist | length)"' scout.json >> "$GITHUB_OUTPUT"
+
+      - name: Open the shortlist as an issue
+        if: steps.scout.outputs.candidates != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh label create scout --repo "$REPO" --color 0e8a16 --description "Candidate services for the fleet" 2>/dev/null || true
+          for n in $(gh issue list --repo "$REPO" --label scout --state open --json number --jq '.[].number'); do
+            gh issue close "$n" --repo "$REPO" --comment "Superseded by this week's shortlist." >/dev/null
+          done
+          {
+            cat scout.md
+            echo
+            echo "---"
+            echo
+            echo "Nothing here has been created. Pick one and say so, and the scaffold comes next: compose with digest pins, \`.env.example\`, CI with the upgrade drill, and a README with its \"what this file knows\" section left empty — because that section is written by running the thing, not by reading about it."
+          } > body.md
+          gh issue create --repo "$REPO" --label scout \
+            --title "Fleet scout $(date -u '+%Y-%m-%d'): $(jq -r '.shortlist | join(", ")' scout.json)" \
+            --body-file body.md

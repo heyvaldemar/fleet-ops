@@ -1,0 +1,18 @@
+{
+  "_": [
+    "A pin held deliberately, with the reason and a date to look again. Not a",
+    "way to silence the check: a waiver past its review_by date is reported as",
+    "loudly as an unwaived finding, and the reason is printed every week so the",
+    "decision stays visible instead of turning into something nobody remembers",
+    "making."
+  ],
+  "waivers": [
+    {
+      "repo": "rocketchat-traefik-letsencrypt-docker-compose",
+      "image": "mongo",
+      "pinned": "7.0",
+      "review_by": "2026-12-01",
+      "reason": "Rocket.Chat 8.8.1 lists MongoDB 8.0 as the only compatible engine, and MongoDB 8.x refuses to start on Linux kernel 6.19 and newer (SERVER-121912, a TCMalloc rseq violation that crashed 8.0+ until MongoDB added the refusal). Verified on 2026-09-09 against kernel 7.0.12: 8.0.28, 8.0.29, 8.0.30 and 8.3.9 all exit at startup; 8.2.12 starts only because it predates the guard, not because it is fixed. GitHub's runners are on kernel 6.17, so CI would pass a bump that a modern host refuses. MongoDB 7.0 is supported until 2027-08-31 and runs everywhere. Held there until an 8.0 patch starts on current kernels."
+    }
+  ]
+}
