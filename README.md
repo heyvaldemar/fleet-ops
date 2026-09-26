@@ -4,6 +4,7 @@
 [![Fleet heartbeat](https://github.com/heyvaldemar/fleet-ops/actions/workflows/fleet-heartbeat.yml/badge.svg?branch=main)](https://github.com/heyvaldemar/fleet-ops/actions/workflows/fleet-heartbeat.yml)
 [![Fleet conformance](https://github.com/heyvaldemar/fleet-ops/actions/workflows/fleet-conformance.yml/badge.svg?branch=main)](https://github.com/heyvaldemar/fleet-ops/actions/workflows/fleet-conformance.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/heyvaldemar/fleet-ops/badge)](https://scorecard.dev/viewer/?uri=github.com/heyvaldemar/fleet-ops)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/14945/badge)](https://www.bestpractices.dev/projects/14945)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 The machinery that runs a fleet of 97 public repositories without a person in the loop: 47 self-hosting templates, 8 Terraform pipelines, a published image and the tools around them. It lives in GitHub Actions, reads every repository twice a day, moves what upstream moved, proves the move on a real deployment, cuts the release, and says out loud when it cannot decide. Every rule in it was shown a real violation before it was trusted, and the tests here plant those violations again on every push.
