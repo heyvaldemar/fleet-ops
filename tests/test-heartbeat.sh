@@ -253,14 +253,26 @@ check("a URL inside a code fence or a code span is an argument, not a link",
       hb.policy_links("Verify:\n```\ncosign verify --certificate-identity-regexp \"https://github.com/o/r/.*\" \\\n  --certificate-oidc-issuer \"https://token.actions.githubusercontent.com\"\n```\nThen `curl https://in.code/` and see https://real.example/page."),
       ["https://real.example/page"])
 check("a URL that answers 200 is not a finding",
-      hb.dead_links(["https://ok.example/"], fetch=lambda u: 200), [])
+      hb.dead_links(["https://ok.example/"], fetch=lambda u: 200, cache={}), [])
 check("a redirect is an answer",
-      hb.dead_links(["https://moved.example/"], fetch=lambda u: 301), [])
+      hb.dead_links(["https://moved.example/"], fetch=lambda u: 301, cache={}), [])
 check("a 404 is",
-      hb.dead_links(["https://gone.example/", "https://ok.example/"], fetch=lambda u: 404 if "gone" in u else 200),
+      hb.dead_links(["https://gone.example/", "https://ok.example/"], fetch=lambda u: 404 if "gone" in u else 200, sleep=lambda s: None, cache={}),
       ["https://gone.example/"])
 check("and so is a host that does not answer at all",
-      hb.dead_links(["https://down.example/"], fetch=lambda u: 0), ["https://down.example/"])
+      hb.dead_links(["https://down.example/"], fetch=lambda u: 0, sleep=lambda s: None, cache={}), ["https://down.example/"])
+# 2026-09-26: one of ninety-seven identical requests went unanswered and a
+# page that answered 200 before and after was reported dead.
+answers = iter([0, 200])
+check("one missed answer, then 200, is not a dead link",
+      hb.dead_links(["https://flaky.example/"], fetch=lambda u: next(answers), sleep=lambda s: None, cache={}), [])
+asked = []
+shared = {}
+for _ in range(97):
+    hb.dead_links(["https://same.example/security/"], fetch=lambda u: asked.append(u) or 200, sleep=lambda s: None, cache=shared)
+check("the same URL in ninety-seven policies is asked once", len(asked), 1)
+check("and a dead one stays dead on the second asking",
+      hb.dead_links(["https://gone2.example/"], fetch=lambda u: 404, sleep=lambda s: None, cache={}), ["https://gone2.example/"])
 
 print()
 print("=== the list of watchers may only change on purpose ===")

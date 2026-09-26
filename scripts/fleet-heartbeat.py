@@ -87,6 +87,7 @@ import os
 import re
 import subprocess
 import urllib.error
+import time
 import urllib.request
 import sys
 
@@ -250,12 +251,33 @@ def policy_links(text):
     return sorted({u.rstrip(".,;:") for u in URL_RE.findall(prose)})
 
 
-def dead_links(urls, fetch=None):
+_LINK_CACHE = {}
+
+
+def dead_links(urls, fetch=None, sleep=time.sleep, cache=None):
     """The URLs that do not answer. A policy that sends a reporter to a 404
     has no channel: every SECURITY.md in the fleet did, from April to
-    2026-09-25, and nothing opened the link."""
+    2026-09-25, and nothing opened the link.
+
+    ONCE PER SWEEP, AND ASKED TWICE. Ninety-seven policies name the same
+    page, and the first version asked it ninety-seven times a sweep; on
+    2026-09-26 one of those answers did not come and one repository was
+    reported as sending reporters to a page that answered 200 before and
+    after. A URL is asked once per run, and a failure is asked again after a
+    pause before it is called dead."""
     fetch = fetch or _http_status
-    return [u for u in urls if not (200 <= fetch(u) < 400)]
+    cache = _LINK_CACHE if cache is None else cache
+    dead = []
+    for u in urls:
+        if u not in cache:
+            ok = 200 <= fetch(u) < 400
+            if not ok:
+                sleep(5)
+                ok = 200 <= fetch(u) < 400
+            cache[u] = ok
+        if not cache[u]:
+            dead.append(u)
+    return dead
 
 
 def _http_status(url):
