@@ -133,6 +133,8 @@ hb.gh = subs("heyvaldemar/fleet-ops", "heyvaldemar/a-new-tool")
 out = hb.watch_drift()
 check("one of his own beyond fleet-ops is drift", len(out), 1)
 check("and it is named",  "heyvaldemar/a-new-tool" in out[0], True)
+hb.gh = subs("heyvaldemar/fleet-ops", "heyvaldemar/fleet-ops-private")
+check("the house copy is watched on purpose, not drift", hb.watch_drift(), [])
 
 print()
 print("=== the order GitHub returns runs in is not a contract ===")

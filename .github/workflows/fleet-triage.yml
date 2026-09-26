@@ -48,6 +48,11 @@ concurrency:
 jobs:
   triage:
     name: Rerun flakes, refresh drifted digests, report the rest
+    # THE HOUSE COPY DOES NOT ACT. The fleet runs from the public copy of
+    # this repository; the private one keeps the two jobs about the home
+    # servers and sets the repository variable FLEET_ROLE=house, under which
+    # this job is skipped rather than run twice from two places.
+    if: vars.FLEET_ROLE != 'house'
     runs-on: ubuntu-latest
     # 350 was for the days this waited on every repository's CI, one at a
     # time: a traefik repush across thirty repositories once took two hours.

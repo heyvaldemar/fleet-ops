@@ -902,11 +902,12 @@ def token_expiry():
     return None, "no expiry header: this token does not expire, or does not say so"
 
 
-def watch_drift(keep=("heyvaldemar/fleet-ops",)):
+def watch_drift(keep=("heyvaldemar/fleet-ops", "heyvaldemar/fleet-ops-private")):
     """Repositories this account is watching beyond the ones it means to.
 
-    Every report the fleet produces is an issue in fleet-ops, so that is the
-    one repository worth watching; the rest were turned down to Participating
+    Every report the fleet produces is an issue in fleet-ops, and every report
+    about the home servers an issue in fleet-ops-private, so those two are
+    the repositories worth watching; the rest were turned down to Participating
     on 2026-09-15 to stop a hundred Dependabot threads a week. It drifts back
     on its own: GitHub subscribes the creator of a repository, and there is no
     longer a setting to opt out of that - the checkbox the documentation used

@@ -34,6 +34,11 @@ concurrency:
 jobs:
   lifecycle:
     name: Read every pinned data store against its vendor's calendar
+    # THE HOUSE COPY DOES NOT ACT. The fleet runs from the public copy of
+    # this repository; the private one keeps the two jobs about the home
+    # servers and sets the repository variable FLEET_ROLE=house, under which
+    # this job is skipped rather than run twice from two places.
+    if: vars.FLEET_ROLE != 'house'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

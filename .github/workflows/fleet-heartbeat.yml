@@ -132,7 +132,9 @@ jobs:
         # into fixing the REPORTING logic below, ninety minutes of sweeping
         # nobody read, on the day the account reached 100% of its included
         # minutes. A scheduled run always sweeps; a hand-started one asks.
-        if: always() && (github.event_name != 'workflow_dispatch' || inputs.sweep)
+        # The house copy (FLEET_ROLE=house) watches its own two jobs and leaves
+        # the fleet to the copy that acts on it.
+        if: always() && vars.FLEET_ROLE != 'house' && (github.event_name != 'workflow_dispatch' || inputs.sweep)
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.FLEET_PAT }}
@@ -161,8 +163,9 @@ jobs:
         env:
           PING: ${{ secrets.HEARTBEAT_PING_URL }}
           REHEARSAL: ${{ vars.FLEET_REHEARSAL }}
+          ROLE: ${{ vars.FLEET_ROLE }}
         run: |
-          if [ "$REHEARSAL" = "true" ]; then
+          if [ "$REHEARSAL" = "true" ] || [ "$ROLE" = "house" ]; then
             echo "rehearsal: the external witness belongs to the copy of this repository that acts, and is not pinged from here" | tee -a "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
@@ -186,7 +189,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          SWEPT: ${{ steps.fleet.outcome != 'skipped' }}
+          # The house copy never sweeps and still has to speak for its own jobs.
+          SWEPT: ${{ steps.fleet.outcome != 'skipped' || vars.FLEET_ROLE == 'house' }}
+          ROLE: ${{ vars.FLEET_ROLE }}
         run: |
           python3 - <<'PY' > body.md
           import io, json, os
@@ -211,7 +216,7 @@ jobs:
               try:
                   d = json.load(io.open(f, encoding="utf-8"))
               except Exception:
-                  if f == "fleet-beat.json" and not SWEPT:
+                  if f == "fleet-beat.json" and (not SWEPT or os.environ.get("ROLE") == "house"):
                       continue
                   found.append(("the %s check" % what, ["did not produce a result at all — it failed before it could report"]))
                   continue
