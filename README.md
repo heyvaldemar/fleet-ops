@@ -31,7 +31,7 @@ Each of these has a date and a failure behind it. The [ledger](https://heyvaldem
 
 ## What is not here
 
-This repository is the public copy of the one that acts. The private one also reads two home servers' configuration mirrors and files what they taught the fleet; those two scripts, their tests and their reports stay private because they name what runs in a house. Everything else is here, and `scripts/export-public.sh` is the gate: it refuses the whole export if any published file matches a line of `scripts/public-deny.txt`, and `tests/test-export-public.sh` plants a hostname and a private address to prove that it does.
+This repository is the public copy of the one that acts. The private one also reads two home servers' configuration mirrors and files what they taught the fleet; those two scripts, their tests and their reports stay private because they name what runs in a house. Everything else is here. The gate that produces this copy lives in the private one: an export script that refuses the whole export if any published file matches a line of a deny list, and a test that plants a hostname and a private address to prove that it does. The deny list is the one file that cannot be published, because it spells out what it denies.
 
 The private copy's history is not here either. It starts in April 2026 and carries every wrong turn; the ledger tells that story in fewer words than `git log`.
 
