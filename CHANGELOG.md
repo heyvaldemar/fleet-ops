@@ -9,7 +9,15 @@ check or a job, a patch fixes one.
 
 ## [Unreleased]
 
-_(no unreleased changes yet)_
+### Added
+
+- **The heartbeat reports a person outside the fleet who is waiting for an
+  answer.** An issue or pull request opened by someone who is not the owner and
+  not a bot, open for more than 48 hours, never answered or answered last by
+  them, is a finding with its link. Keycloak #45 sat three days unanswered
+  because nothing read the issue trackers; six planted cases show the rule
+  telling a waiting person from an answered one, a fresh one, a bot and a pull
+  request.
 
 ## [1.0.0] - 2026-09-26
 

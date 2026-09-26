@@ -847,6 +847,36 @@ hb.gh = born_gh([])
 check("a file with no history at all is new", hb.workflow_born("o/r", "scorecard.yml", t_now), t_now)
 hb.gh = keep_gh
 
+print()
+print("=== a person outside the fleet, waiting for an answer ===")
+# Keycloak #45 sat three days with no reply because nothing here read the
+# issue trackers. Each shape below is one the rule must tell apart.
+def item(n, login, hours, comments=0, pr=False, bot=False):
+    return {"number": n, "user": {"login": login, "type": "Bot" if bot else "User"},
+            "created_at": ago(hours), "comments": comments,
+            "repository_url": "https://api.github.com/repos/o/a",
+            "html_url": "https://github.com/o/a/issues/%d" % n,
+            **({"pull_request": {}} if pr else {})}
+THREADS = {2: [{"user": {"login": "stranger"}}, {"user": {"login": "o"}}],
+           3: [{"user": {"login": "o"}}, {"user": {"login": "stranger"}}]}
+def wait_gh(path):
+    if path.startswith("search/issues"):
+        return {"items": [item(1, "stranger", 72), item(2, "stranger", 72, 2), item(3, "stranger", 72, 2),
+                          item(4, "stranger", 10), item(5, "dependabot[bot]", 100, bot=True),
+                          item(6, "stranger", 50, pr=True)]}
+    return THREADS[int(path.split("/issues/")[1].split("/")[0])]
+keep_gh = hb.gh
+hb.gh = wait_gh
+waiting = hb.waiting_on_us("o", now)
+hb.gh = keep_gh
+check("an issue with no reply after three days is a finding", len([w for w in waiting if w.startswith("o/a#1:") and "no reply at all" in w]), 1)
+check("one the owner answered last is not",                   len([w for w in waiting if w.startswith("o/a#2:")]), 0)
+check("one where the asker spoke last is",                    len([w for w in waiting if w.startswith("o/a#3:") and "last word is stranger's" in w]), 1)
+check("one ten hours old is given time",                      len([w for w in waiting if w.startswith("o/a#4:")]), 0)
+check("a bot is not a person waiting",                        len([w for w in waiting if w.startswith("o/a#5:")]), 0)
+check("a pull request from outside counts too",               len([w for w in waiting if w.startswith("o/a#6:") and "pull request" in w]), 1)
+check("and nothing else was invented",                        len(waiting), 3)
+
 print("passed: %d   failed: %d" % (passed, failed))
 sys.exit(1 if failed else 0)
 PY

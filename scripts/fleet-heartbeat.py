@@ -87,6 +87,7 @@ import os
 import re
 import subprocess
 import urllib.error
+import urllib.parse
 import time
 import urllib.request
 import sys
@@ -638,6 +639,48 @@ def unverified_heads(owner, repos, now, hours=3):
     return out
 
 
+def waiting_on_us(owner, now, hours=48):
+    """Issues and pull requests a person outside the fleet opened, still
+    waiting for its maintainer to say something.
+
+    Everything else here watches the machinery, and the machinery never
+    watched the people it serves. On 2026-09-23 a Keycloak user asked for a
+    way to tune Traefik's timeouts (keycloak #45). The request was reasonable,
+    the fix was a day's work, and three days later it had no reply, because no
+    job read the issue trackers of 97 repositories and the notification email
+    went where every other notification goes. A question from outside is the
+    one signal no test can produce, and silence is what a reader of the
+    tracker sees.
+
+    Waiting means: opened by someone who is not the owner and not a bot, open
+    longer than `hours`, and either never answered or answered last by them.
+    """
+    q = urllib.parse.quote("user:%s is:open -author:%s" % (owner, owner))
+    found = gh("search/issues?q=%s&per_page=100&sort=created&order=asc" % q) or {}
+    out = []
+    for it in found.get("items", []):
+        who = (it.get("user") or {})
+        if who.get("type") == "Bot" or who.get("login", "").endswith("[bot]"):
+            continue
+        opened = datetime.datetime.fromisoformat(it["created_at"].replace("Z", "+00:00"))
+        age = (now - opened).total_seconds() / 3600
+        if age < hours:
+            continue
+        full = it["repository_url"].split("/repos/", 1)[1]
+        kind = "pull request" if "pull_request" in it else "issue"
+        if it.get("comments", 0):
+            thread = gh("repos/%s/issues/%d/comments?per_page=100" % (full, it["number"]))
+            last = (thread[-1].get("user") or {}).get("login") if thread else None
+            if last == owner:
+                continue                       # answered; the next word is theirs
+            said = "last word is %s's" % last
+        else:
+            said = "no reply at all"
+        out.append("%s#%d: %s opened this %s %.0f hours ago and it has %s: %s"
+                   % (full, it["number"], who.get("login", "someone"), kind, age, said, it["html_url"]))
+    return out
+
+
 def dependabot_branches(full):
     """Branch names Dependabot pushed and could not turn into a pull request.
 
@@ -869,6 +912,7 @@ def fleet(owner, tolerance, now):
     pr_stats = {}
     owned = list_owned(include_private=True)
     findings += stuck_dependabot(owner, owned, now, stats=pr_stats)
+    findings += waiting_on_us(owner, now)
     # AND THE PRIVATE HALF'S SCHEDULES, only those two questions: is a schedule
     # disabled, and has one stopped firing. heyvaldemar-com, the live website,
     # carries the daily job that copies the fleet's numbers into its HTML, and
