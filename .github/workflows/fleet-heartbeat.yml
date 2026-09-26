@@ -159,6 +159,11 @@ jobs:
         # Unconfigured, it says so rather than passing quietly. A step that
         # no-ops in silence when its secret is missing is the failure shape
         # this whole file exists to refuse.
+        #
+        # ONE WITNESS, AND IT WATCHES THE COPY THAT ACTS. Since 2026-09-26 the
+        # fleet runs from the public heyvaldemar/fleet-ops; the private copy
+        # (FLEET_ROLE=house) and any rehearsal copy skip the ping, because two
+        # copies pinging one switch would let a live one hide a dead one.
         if: always()
         env:
           PING: ${{ secrets.HEARTBEAT_PING_URL }}
