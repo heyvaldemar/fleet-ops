@@ -655,10 +655,15 @@ def waiting_on_us(owner, now, hours=48):
     Waiting means: opened by someone who is not the owner and not a bot, open
     longer than `hours`, and either never answered or answered last by them.
     """
-    q = urllib.parse.quote("user:%s is:open -author:%s" % (owner, owner))
-    found = gh("search/issues?q=%s&per_page=100&sort=created&order=asc" % q) or {}
+    # One query per kind: since late September 2026 the search API answers
+    # 422 to a query that names neither is:issue nor is:pull-request, and the
+    # first version of this rule took the whole fleet check down with it.
+    items = []
+    for kind in ("is:issue", "is:pull-request"):
+        q = urllib.parse.quote("user:%s is:open %s -author:%s" % (owner, kind, owner))
+        items += (gh("search/issues?q=%s&per_page=100&sort=created&order=asc" % q) or {}).get("items", [])
     out = []
-    for it in found.get("items", []):
+    for it in items:
         who = (it.get("user") or {})
         if who.get("type") == "Bot" or who.get("login", "").endswith("[bot]"):
             continue

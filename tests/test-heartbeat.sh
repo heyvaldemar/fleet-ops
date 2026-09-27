@@ -861,9 +861,14 @@ THREADS = {2: [{"user": {"login": "stranger"}}, {"user": {"login": "o"}}],
            3: [{"user": {"login": "o"}}, {"user": {"login": "stranger"}}]}
 def wait_gh(path):
     if path.startswith("search/issues"):
-        return {"items": [item(1, "stranger", 72), item(2, "stranger", 72, 2), item(3, "stranger", 72, 2),
-                          item(4, "stranger", 10), item(5, "dependabot[bot]", 100, bot=True),
-                          item(6, "stranger", 50, pr=True)]}
+        # The search API refuses a query that names neither kind (HTTP 422),
+        # so the fake refuses it too, and answers each kind with its own.
+        if "is%3Aissue" in path:
+            return {"items": [item(1, "stranger", 72), item(2, "stranger", 72, 2), item(3, "stranger", 72, 2),
+                              item(4, "stranger", 10), item(5, "dependabot[bot]", 100, bot=True)]}
+        if "is%3Apull-request" in path:
+            return {"items": [item(6, "stranger", 50, pr=True)]}
+        raise SystemExit("cannot read %s: gh: Query must include 'is:issue' or 'is:pull-request' (HTTP 422)" % path)
     return THREADS[int(path.split("/issues/")[1].split("/")[0])]
 keep_gh = hb.gh
 hb.gh = wait_gh

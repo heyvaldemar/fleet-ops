@@ -37,6 +37,15 @@ check or a job, a patch fixes one.
   careful reader could take three counts for three fleets. The line now says
   that the unregistered ones hold no code to rate.
 
+### Fixed
+
+- **The waiting-person rule no longer takes the fleet check down with it.**
+  Its search named neither issues nor pull requests, which the search API now
+  refuses with HTTP 422; on 27 September that one refusal ended the whole
+  fleet check before it reported anything, and heartbeat issue #5 said so.
+  It now asks once for issues and once for pull requests, and the suite's fake
+  refuses a query that names neither, as GitHub does.
+
 ## [1.0.0] - 2026-09-26
 
 The first public release. The fleet has run from a private repository since
