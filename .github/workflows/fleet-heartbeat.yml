@@ -14,10 +14,13 @@ on:
     # 07:15 UTC — as a POSITION IN A QUEUE, not a time of day.
     #
     # Measured on 2026-09-21 across every cron in this repository: each one
-    # lands five to six and a half hours after the minute it names. Declared
-    # 05:00 arrives 10:22, 06:45 arrives 11:47, this one arrives around 12:20.
-    # GitHub runs scheduled workflows at low priority and the delay grows with
-    # load, so a cron here buys an ordering among these jobs and nothing more.
+    # landed five to six and a half hours after the minute it names (declared
+    # 05:00 arrived 10:22, 06:45 arrived 11:47, this one around 12:20). Over
+    # the whole of September the delay ranged from two to eight hours, by hour
+    # and by day: this cron 4.7 to 6.9 hours, the triage 0 to 5.7, the
+    # conformance sweep 2.3 to 8.1. GitHub runs scheduled workflows at low
+    # priority and the delay grows with load, so a cron here buys an ordering
+    # among these jobs on most days and nothing more.
     #
     # The ordering is what matters and it survives: the morning triage is
     # declared thirty minutes earlier and still lands before this, so a job

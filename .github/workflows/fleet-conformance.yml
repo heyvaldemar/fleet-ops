@@ -10,8 +10,9 @@ name: Fleet Conformance
 on:
   schedule:
     # Before the evening Fleet Triage, so its report is read first. Exact
-    # spacing is fiction on this account — every cron here lands five to six
-    # hours after the minute it names — but the ordering holds.
+    # spacing is fiction on this account — every cron here lands two to eight
+    # hours after the minute it names, measured over September — but the
+    # ordering holds on most days.
     - cron: '0 12 * * *'
     # THE SECOND PASS IS GONE, AND WHAT IT COVERED IS NOT. It was insurance
     # against GitHub dropping a scheduled run outright, which it does: on
