@@ -9,6 +9,16 @@ check or a job, a patch fixes one.
 
 ## [Unreleased]
 
+### Changed
+
+- **The weekly sweep of the house writes down only what could become a
+  template change.** Its report listed every commit it had read, the host it
+  came from and the model's verdict on each, local ones included: a weekly
+  narrative of two home servers for the sake of the few rows that could move
+  to a public repository. The mirrors hold the commits already. The report now
+  carries the counts, the rows judged portable or already shipped, and the
+  sections for the portable ones; everything judged local is a number.
+
 ### Fixed
 
 - **The commit message goes through the export gate too.** The public copy
