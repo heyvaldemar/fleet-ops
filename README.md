@@ -15,8 +15,8 @@ What it produces is public: [heyvaldemar.com/evidence](https://heyvaldemar.com/e
 
 | Workflow | Cadence | What it does |
 |---|---|---|
-| [Fleet Triage](.github/workflows/fleet-triage.yml) | twice a day | Reads every template's freshness verdict. For a digest repush or a patch release it reads the upstream release notes through Claude, writes a verdict, moves the pin, and pushes. The next run reads that push's CI answer: green cuts a release, red reverts, anything else is left in place and judged as HEAD. Minor and major versions are prepared on a branch and handed to a person. A failed run is rerun once if the log says a registry refused it, and never twice. |
-| [Fleet Heartbeat](.github/workflows/fleet-heartbeat.yml) | twice a day | Asks whether the watchers are still watching: every scheduled workflow in this repository and in the fleet, whether it fired inside its own interval, whether a push workflow is red on main, whether every repository carries the standard files and branch rules, whether every URL in every security policy answers. Findings go to one issue thread that is mailed only when the set of findings gains one. An external dead-man switch expects its ping, so GitHub not running this at all is also visible. |
+| [Fleet Triage](.github/workflows/fleet-triage.yml) | three times a day | Reads every template's freshness verdict. For a digest repush or a patch release it reads the upstream release notes through Claude, writes a verdict, moves the pin, and pushes. The next run reads that push's CI answer: green cuts a release, red reverts, anything else is left in place and judged as HEAD. Minor and major versions are prepared on a branch and handed to a person. A failed run is rerun once if the log says a registry refused it, and never twice. |
+| [Fleet Heartbeat](.github/workflows/fleet-heartbeat.yml) | daily | Asks whether the watchers are still watching: every scheduled workflow in this repository and in the fleet, whether it fired inside its own interval, whether a push workflow is red on main, whether every repository carries the standard files and branch rules, whether every URL in every security policy answers. Findings go to one issue thread that is mailed only when the set of findings gains one. An external dead-man switch expects its ping, so GitHub not running this at all is also visible. |
 | [Fleet Conformance](.github/workflows/fleet-conformance.yml) | daily | Asks a different question from CI: not "did it pass" but "does this repository still meet the standard". Digest pins, a restart policy on every service, every variable the compose needs present in the file people copy, every restore script actually run by a test, every prune actually exercised. Each rule is broken on purpose in `tests/test-conformance.sh` before the check runs. |
 | [Fleet Catalog](.github/workflows/fleet-catalog.yml) | daily | Recounts the fleet and rewrites the catalogue, the profile's evidence line and `fleet.json`, which the website reads. It repeats OpenSSF Scorecard's result and the OpenSSF Best Practices badge, low marks included, rather than awarding itself a number. Nothing is committed when only the timestamp changed. |
 | [Fleet Lifecycle](.github/workflows/fleet-lifecycle.yml) | weekly | Reads every pinned upstream's end-of-life date and names what is about to be unsupported, with the waivers held on purpose printed beside it so they cannot become something nobody remembers deciding. |
@@ -40,7 +40,7 @@ Each of these has a date and a failure behind it. The [ledger](https://heyvaldem
 
 This repository is the public copy of the one that acts. The private one also reads two home servers' configuration mirrors and files what they taught the fleet; those two scripts, their tests and their reports stay private because they name what runs in a house. Everything else is here. The gate that produces this copy lives in the private one: an export script that refuses the whole export if any published file matches a line of a deny list, and a test that plants a hostname and a private address to prove that it does. The deny list is the one file that cannot be published, because it spells out what it denies.
 
-The private copy's history is not here either. It starts in April 2026 and carries every wrong turn; the ledger tells that story in fewer words than `git log`.
+The private copy's history is not here either. It starts on 1 September 2026 and carries every wrong turn; the ledger tells that story in fewer words than `git log`.
 
 ## Verify what you run
 
@@ -61,7 +61,7 @@ The changes between releases are in [CHANGELOG.md](CHANGELOG.md).
 
 ## Running it yourself
 
-The workflows need one secret, `FLEET_PAT`: a fine-grained token with Contents, Actions, Issues and Pull requests read and write on the repositories the fleet manages. `HEARTBEAT_PING_URL` is optional and is the dead-man switch's address; unset, the heartbeat says so rather than passing quietly.
+The workflows need one secret, `FLEET_PAT`: a fine-grained token with Contents, Actions, Issues, Pull requests and Workflows read and write on the repositories the fleet manages; Workflows because rollouts and the publish push workflow files, which GitHub refuses without it. `HEARTBEAT_PING_URL` is optional and is the dead-man switch's address; unset, the heartbeat says so rather than passing quietly.
 
 A copy that should read everything and push nothing sets the repository variable `FLEET_REHEARSAL=true`. This is how a new copy is proven beside the one that acts.
 

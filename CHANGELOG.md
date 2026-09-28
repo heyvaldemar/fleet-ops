@@ -9,6 +9,14 @@ check or a job, a patch fixes one.
 
 ## [Unreleased]
 
+### Fixed
+
+- **The commit message goes through the export gate too.** The public copy
+  is committed with the private commit's first line, and the deny list had
+  never been asked about it: a hostname in a message would have reached the
+  public history, where main cannot be rewritten. A message matching the
+  list now refuses the publish and says so; the suite plants one.
+
 ### Added
 
 - **The heartbeat reports a person outside the fleet who is waiting for an
@@ -48,8 +56,9 @@ check or a job, a patch fixes one.
 
 ## [1.0.0] - 2026-09-26
 
-The first public release. The fleet has run from a private repository since
-April 2026; this is the same code, published with a clean history. What it
+The first public release. The templates have carried their own automation
+since April 2026 and this repository has run them together since 1 September;
+this is the same code, published with a clean history. What it
 learned on the way is on the [ledger](https://heyvaldemar.com/ledger/), and the
 trade-offs it embodies are the [decisions](https://heyvaldemar.com/decisions/).
 

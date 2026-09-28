@@ -580,7 +580,8 @@ def check(repo, exempt=None):
     # replaces it stops taking the template's updates with it. On 2026-09-23 a
     # Keycloak user asked for exactly this (keycloak #45): the entry point's
     # timeouts, and no way to set them. Forty of fifty Traefik stacks had
-    # none; nine had them under nine different names. A timeout the operator
+    # none, nine had them under nine different names, and one had only the
+    # read timeout. A timeout the operator
     # may need, for a slow upload or a long stream, is a variable with
     # Traefik's own default, so leaving it unset changes nothing.
     for cname in [n for n in names if n.endswith((".yml", ".yaml")) and "compose" in n] or [compose_name]:
