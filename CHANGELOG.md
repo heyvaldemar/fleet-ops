@@ -10,6 +10,7 @@ check or a job, a patch fixes one.
 ## [Unreleased]
 
 ### Changed
+- **Triage moves `.env.example` with the pin.** The commented `X_IMAGE_VERSION=` default now follows every version bump and every prepared major, the way the README already did. Conformance reports an example that names a version the compose file no longer pins; on 2026-09-30 fifty-four such lines across forty-two templates were found and fixed by hand.
 
 - **The weekly sweep of the house writes down only what could become a
   template change.** Its report listed every commit it had read, the host it

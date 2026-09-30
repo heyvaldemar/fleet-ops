@@ -113,6 +113,29 @@ readme_version() {
   rm -f "$tmpf"
 }
 
+# The .env.example carries the same version as a commented default:
+#     # OLLAMA_IMAGE_VERSION=0.33.2
+# It was written once and never moved with the pin. On 2026-09-30 fifty-four
+# such lines across forty-two templates named an older release than the
+# compose file pinned, and a reader uncommenting one would have pinned the
+# past. The same narrowness as readme_version: only the variable this pin
+# declares, only where the string is exactly the tag being moved off.
+example_version() {
+  local d="$1" var="$2" oldtag="$3" newtag="$4"
+  local f="$d/.env.example"
+  [ -f "$f" ] || return 0
+  [ -n "$var" ] && [ -n "$oldtag" ] && [ "$oldtag" != "$newtag" ] || return 0
+  local esc tmpf
+  esc="$(printf '%s' "$oldtag" | sed -e 's/[][\.*^$|]/\\&/g')"
+  tmpf="$(mktemp)"
+  sed -E "s|^(#? *${var}=)${esc}([[:space:]#].*)?$|\1${newtag}\2|" "$f" > "$tmpf"
+  if ! cmp -s "$f" "$tmpf"; then
+    cat "$tmpf" > "$f"
+    note "$repo: .env.example now names $newtag for $var where it named $oldtag"
+  fi
+  rm -f "$tmpf"
+}
+
 # A line under [Unreleased] for every version bump, so the next release
 # notes are written by the time somebody cuts them. Digest refreshes stay
 # silent: same version, same tag, a rebuilt base.
@@ -293,6 +316,10 @@ major_branch() {
     # Nextcloud templates shipped exactly that on 2026-09-18, and the fleet's
     # own conformance suite is what caught it.
     readme_version "$dir" "$oldv" "$newv"
+    # The pin is ${X_IMAGE_TAG:-repo:${X_IMAGE_VERSION:-tag@digest}}; the
+    # example declares X_IMAGE_VERSION, so its name follows from the tag's.
+    vervar="${pin#\$\{}"; vervar="${vervar%%:-*}"; vervar="${vervar%_IMAGE_TAG}_IMAGE_VERSION"
+    example_version "$dir" "$vervar" "$oldtag" "$newtag"
     changelog_line "$dir" "Changed" "- **\`${ref}\` moved to \`${newref}\`.** The freshness check reported the lag; the deploy job booted the stack on the new image before this landed."
     moved+=("$ref -> $newref")
   done < <(grep -h -oE '\$\{[A-Z0-9_]+_IMAGE_TAG:-.*' "${composes[@]}" | sed -E -e ':a' -e 's/(\$\{[A-Z0-9_]+_IMAGE_TAG:-[^{}]*)\$\{[A-Z0-9_]+:-([^{}]*)\}/\1\2/' -e 'ta' | sort -u)
@@ -1250,6 +1277,8 @@ for repo in "${REPOS[@]}"; do
         continue
       fi
       readme_version "$dir" "$oldv" "$newv"
+      vervar="${pin#\$\{}"; vervar="${vervar%%:-*}"; vervar="${vervar%_IMAGE_TAG}_IMAGE_VERSION"
+      example_version "$dir" "$vervar" "$oldtag" "$newtag"
       note "$repo: version bump $ref -> $newref"
       changelog_line "$dir" "Changed" "- **\`${ref}\` moved to \`${newref}\`.** The freshness check reported the lag; the deploy job booted the stack on the new image before this landed."
       drift_fixed=1

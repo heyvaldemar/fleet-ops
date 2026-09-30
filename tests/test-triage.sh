@@ -58,6 +58,14 @@ x-images:
   app: &app-image \${APP_IMAGE_TAG:-server/app:\${APP_IMAGE_VERSION:-19.3.2-ee.0@$OLDDG_A}}
   runner: &runner-image \${RUNNER_IMAGE_TAG:-vendor/runner:\${RUNNER_IMAGE_VERSION:-ubuntu-v19.3.2@$OLDDG_B}}
 YML
+# The example declares each pin's version as a commented default. It has to
+# move with the pin, and only the line of the pin that moved: OTHER shares the
+# value and must stay.
+cat > "$dir/.env.example" <<'ENV'
+# APP_IMAGE_VERSION=19.3.2-ee.0
+# RUNNER_IMAGE_VERSION=ubuntu-v19.3.2
+# OTHER_IMAGE_VERSION=19.3.2-ee.0
+ENV
 cat > "$dir/CHANGELOG.md" <<'MD'
 # Changelog
 
@@ -125,6 +133,23 @@ case "$main_file" in
 esac
 
 same "it is reported as prepared, once" "1" "$(printf '%s\n' "${PREPARED_THIS_RUN[@]}" | grep -c 'bump/19.4.0')"
+branch_env="$(git -C "$dir" show "bump/19.4.0:.env.example")"
+case "$branch_env" in
+  *"# APP_IMAGE_VERSION=19.4.0-ee.0"*) ok "the example's server default moved with the pin" ;;
+  *) no "the example's server default did not move: $branch_env" ;;
+esac
+case "$branch_env" in
+  *"# RUNNER_IMAGE_VERSION=ubuntu-v19.4.0"*) ok "the example's runner default moved too" ;;
+  *) no "the example's runner default did not move" ;;
+esac
+case "$branch_env" in
+  *"# OTHER_IMAGE_VERSION=19.3.2-ee.0"*) ok "a variable that only shares the value stays" ;;
+  *) no "an unrelated variable was rewritten because its value matched" ;;
+esac
+case "$(git -C "$dir" show "main:.env.example")" in
+  *"# APP_IMAGE_VERSION=19.3.2-ee.0"*) ok "main's example is untouched" ;;
+  *) no "main's example was modified, and it must not be" ;;
+esac
 same "the verdict flag is set" "1" "$PREPARED_MAJOR"
 named="$(printf '%s\n' "${NOTES[@]}")"
 case "$named" in

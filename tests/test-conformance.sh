@@ -99,6 +99,11 @@ d="$(fixture tmo-fixed)"
 sed -i.bak 's/readTimeout=${TRAEFIK_READ_TIMEOUT:-60s}/readTimeout=60s/' "$d"/*.yml && rm -f "$d"/*.bak
 expect "a Traefik read timeout written as a literal is caught" "$WORK/tmo-fixed" "readTimeout on the HTTPS entry point"
 
+d="$(fixture example-stale)"
+# the example's default is the version the pin had one release ago
+sed -i.bak -E 's/^(#? *NEXTCLOUD_IMAGE_VERSION=).*/\10.0.1/' "$d/.env.example" && rm -f "$d/.env.example.bak"
+expect "an .env.example default older than the pin is caught" "$WORK/example-stale" ".env.example names 0.0.1 for NEXTCLOUD_IMAGE_VERSION"
+
 d="$(fixture nonewpriv)"; sed -i.bak 's/no-new-privileges:true/keep-privileges:true/' "$d"/*.yml && rm -f "$d"/*.bak
 expect "a service without no-new-privileges is caught" "$WORK/nonewpriv" "no security_opt no-new-privileges"
 

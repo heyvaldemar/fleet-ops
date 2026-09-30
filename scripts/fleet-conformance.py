@@ -747,6 +747,36 @@ def check(repo, exempt=None):
                                   for q in pinned):
                 bad.append(f"README names {v} in {where} and no compose file pins that version")
 
+    # 6. the .env.example names the version the compose file pins. Each pin
+    # is ${X_IMAGE_TAG:-repo:${X_IMAGE_VERSION:-tag@digest}} and the example
+    # shows "# X_IMAGE_VERSION=tag" as the default to override. Triage moved
+    # the pin and cut the release; the example kept the version it was
+    # written with. On 2026-09-30 fifty-four such lines across forty-two
+    # templates named an older release, and a reader uncommenting one would
+    # have pinned the past. Placeholders (<version>@sha256:<digest>, ...)
+    # are a deliberate shape and are not read.
+    example = repo.read(".env.example")
+    if example is not None:
+        declared = {}
+        for line in example.splitlines():
+            m = re.match(r"#?\s*([A-Z0-9_]+_IMAGE_VERSION)=(\S+)", line)
+            if m and "<" not in m.group(2) and "..." not in m.group(2):
+                declared.setdefault(m.group(1), m.group(2))
+        for n in names:
+            if not n.endswith((".yml", ".yaml")) or n.startswith("."):
+                continue
+            text = repo.read(n) or ""
+            block = re.search(r"^x-images:\n(.*?)(?=^\S)", text, re.S | re.M)
+            if not block:
+                continue
+            for line in block.group(1).splitlines():
+                m = re.search(r":-\s*[A-Za-z0-9][A-Za-z0-9./_-]*:\$\{([A-Z0-9_]+):-([^@}\s]+)", line)
+                if not m:
+                    continue
+                var, tag = m.group(1), m.group(2)
+                if var in declared and declared[var] != tag:
+                    bad.append(f".env.example names {declared[var]} for {var} and the compose file pins {tag}")
+
     bad += workflow_claims(repo)
     bad += changelog_claims(repo)
     return bad
