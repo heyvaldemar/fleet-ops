@@ -297,7 +297,9 @@ lagcase "a lag that names its variable keeps it and still parses" \
 
 # ONE VERSION STRING, TWO IMAGES THAT DO NOT MOVE TOGETHER. The server and its
 # backup sidecar both pinned 2026.9.2 on 2026-10-01; only the sidecar lagged.
+# shellcheck disable=SC2016  # ${...} is compose interpolation, written literally
 srv='${MINECRAFT_SERVER_IMAGE_TAG:-itzg/minecraft-server:2026.9.2@sha256:aaaa}'
+# shellcheck disable=SC2016  # ${...} is compose interpolation, written literally
 bak='${MINECRAFT_SERVER_BACKUP_IMAGE_TAG:-itzg/mc-backup:2026.9.2@sha256:bbbb}'
 named="$(printf '%s\n' "::error::MINECRAFT_SERVER_BACKUP_IMAGE_TAG is behind: pinned 2026.9.2, latest itzg/docker-mc-backup release is 2026.9.3" | lag_lines)"
 pl() { pin_lags "$1" "$2" "$3" && echo yes || echo no; }
@@ -305,6 +307,7 @@ same "the pin the alarm names moves" "yes" "$(pl "$bak" "$named" 2026.9.2)"
 same "a pin that only shares the version stays" "no" "$(pl "$srv" "$named" 2026.9.2)"
 unnamed="$(printf '%s\n' "::error::pin is behind: pinned 2026.9.2, latest release is 2026.9.3" | lag_lines)"
 same "an alarm that names no variable still moves every pin on that version" "yes" "$(pl "$srv" "$unnamed" 2026.9.2)"
+# shellcheck disable=SC2016  # ${...} is compose interpolation, written literally
 same "a pin on another version never moves" "no" "$(pl '${X_IMAGE_TAG:-a/b:1.0.0@sha256:cccc}' "$named" 2026.9.2)"
 
 # AND WHAT MUST STILL MATCH NOTHING. rathena counts commits behind a branch:
