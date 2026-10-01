@@ -945,12 +945,34 @@ workflow_file_for() {
 # second version - rathena counts commits behind a branch - still matches
 # nothing, which is right: it is not a version bump.
 lag_lines() {        # stdin: a workflow log -> one line per lag it names
-  { grep -oE 'is behind[^:]*: pinned ([a-z]+ )?v?[0-9][^,]*, (latest|newest)[^,]* is v?[0-9][^ "]*' || true; } | sort -u
+  # The pin's variable is kept when the alarm names one ("X_IMAGE_TAG is
+  # behind: ..."), so the bump below can move that pin and no other.
+  { grep -oE '([A-Z0-9_]+_IMAGE_TAG )?is behind[^:]*: pinned ([a-z]+ )?v?[0-9][^,]*, (latest|newest)[^,]* is v?[0-9][^ "]*' || true; } | sort -u
+}
+
+lag_var() {          # lag_var <line> -> the pin variable the alarm names, or nothing
+  case "$1" in [A-Z]*_IMAGE_TAG" is behind"*) printf '%s\n' "${1%% is behind*}" ;; esac
+}
+
+# A PIN MOVES WHEN IT IS THE ONE THAT LAGS. Matching by version alone moved
+# every pin that carried the same string: on 2026-10-01 itzg/mc-backup went
+# 2026.9.2 -> 2026.9.3, the server image pins 2026.9.2 too under its own
+# release line, and the run tried to move it to a 2026.9.3 that does not
+# exist, then asked a person about it. When the alarm names its variable,
+# only that pin is touched; when it does not, the version is all there is.
+pin_lags() {         # pin_lags <pin> <lag line> <old version> -> 0 if this pin is the one
+  local pin="$1" lag="$2" oldv="$3" def var want
+  def="${pin#*:-}"; def="${def%\}}"
+  case "$def" in *"$oldv"*@sha256:*) ;; *) return 1 ;; esac
+  want="$(lag_var "$lag")"
+  [ -z "$want" ] && return 0
+  var="${pin#\$\{}"; var="${var%%:-*}"
+  [ "$var" = "$want" ]
 }
 
 lag_pair() {         # lag_pair <line> -> old<TAB>new
   local line="$1" old new
-  old="$(sed -E 's/^is behind[^:]*: pinned ([a-z]+ )?(v?[0-9][^,]*),.*/\2/' <<<"$line")"
+  old="$(sed -E 's/^([A-Z0-9_]+_IMAGE_TAG )?is behind[^:]*: pinned ([a-z]+ )?(v?[0-9][^,]*),.*/\3/' <<<"$line")"
   new="$(sed -E 's/.* is (v?[0-9][^ "]*)$/\1/' <<<"$line")"
   printf '%s\t%s\n' "$old" "$new"
 }
@@ -1211,7 +1233,7 @@ for repo in "${REPOS[@]}"; do
     fi
     while IFS= read -r pin; do
       def="${pin#*:-}"; def="${def%\}}"
-      case "$def" in *"$oldv"*@sha256:*) ;; *) continue ;; esac
+      pin_lags "$pin" "$lag" "$oldv" || continue
       ref="${def%%@*}"; olddg="${def##*@}"
       newref="${ref//$oldv/$newv}"
       newdg="$(docker buildx imagetools inspect "$newref" --format '{{json .Manifest}}' 2>/dev/null | jq -r '.digest // empty' || true)"

@@ -21,6 +21,7 @@ check or a job, a patch fixes one.
   sections for the portable ones; everything judged local is a number.
 
 ### Fixed
+- **A version bump moves the pin the alarm names, not every pin that shares the version.** On 2026-10-01 `itzg/mc-backup` went to 2026.9.3; the Minecraft server image, on its own release line, pinned the same 2026.9.2, and triage tried to move it to a tag that does not exist and asked a person about it. When a freshness alarm names its variable (`X_IMAGE_TAG is behind: …`), only that pin moves now.
 
 - **The commit message goes through the export gate too.** The public copy
   is committed with the private commit's first line, and the deny list had
