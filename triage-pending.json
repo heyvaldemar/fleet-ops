@@ -1,1 +1,124 @@
-[]
+[
+  {
+    "repo": "amazon-eks-cluster-pipeline-terraform",
+    "sha": "0dcacaa41cbeeaaf4ce113c6b8b9daffdbd3b9be",
+    "wf": "Terraform Verification",
+    "kind": "version",
+    "pushed_at": "2026-10-02T13:15:31Z",
+    "review": "\n## Upstream changes 6.66.0 -> 6.67.0\n\n**Verdict:** SAFE TO APPLY \u2014 the notes contain only additive features, enhancements and bug fixes; no breaking changes, no renamed/removed variables, and this is a Terraform provider (not a long-running container), so the \"companion service version\" and image-comparison concerns don't apply here. The version pin `~> 6.66.0` in `01-providers.tf` will need to be widened to pick up 6.67.0.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none renamed or removed. One new optional behavior-toggle variable was added: `resource/aws_route53_record: Add the TF_AWS_ROUTE53_RECORD_BATCH_READS environment variable to reduce AWS API calls when managing many records in a zone` ([#48525](https://github.com/hashicorp/terraform-provider-aws/issues/48525)). This is an opt-in environment variable read by the provider at runtime (not a Terraform variable, not referenced in `.env.example`); no action required unless you want to use it. The 6.67.0 NOTES section flags this feature as experimental: \"Batched reads is experimental. The behavior may change without notice, and it is not subject to the backwards compatibility guarantee of the provider.\"\n\n### Data and dependencies\n- none. No companion service (database, cache, search engine) version requirements appear in these notes, and the compose/provider file here pins only the `hashicorp/aws` Terraform provider plus `tls`, `random`, and `helm` providers, none of which are touched by this release.\n\n### Before applying\n- Edit `01-providers.tf`: the `required_providers.aws.version` constraint is currently `~> 6.66.0`, which will not permit 6.67.0. Widen it (e.g. to `~> 6.67.0` or `>= 6.66.0, < 7.0.0`) to allow the upgrade.\n- Run `terraform init -upgrade` to pull the new provider version, then `terraform plan` to confirm no unexpected diffs before applying \u2014 this is routine practice for a provider bump, not something the notes specifically require.\n- No state migration, no manual data steps.\n\n### Notes read\n- hashicorp/terraform-provider-aws release notes and CHANGELOG.md for `6.67.0` (covering the full range from `6.66.0` to `6.67.0`, the only entry between the two versions).\n"
+  },
+  {
+    "repo": "amazon-lightsail-instance-pipeline-terraform",
+    "sha": "7ee524b6cd7f703bfbe6436e8d27817e9a555799",
+    "wf": "Terraform Verification",
+    "kind": "version",
+    "pushed_at": "2026-10-02T13:16:07Z",
+    "review": "\n## Upstream changes 6.66.0 -> 6.67.0\n\n**Verdict:** SAFE TO APPLY \u2014 the notes contain only additive features, enhancements and bug fixes; no breaking changes, no renamed/removed variables, and this is a Terraform provider (not a long-running container), so the \"companion service version\" and image-comparison concerns don't apply here. The version pin `~> 6.66.0` in `01-providers.tf` will need to be widened to pick up 6.67.0.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none renamed or removed. One new optional behavior-toggle variable was added: `resource/aws_route53_record: Add the TF_AWS_ROUTE53_RECORD_BATCH_READS environment variable to reduce AWS API calls when managing many records in a zone` ([#48525](https://github.com/hashicorp/terraform-provider-aws/issues/48525)). This is an opt-in environment variable read by the provider at runtime (not a Terraform variable, not referenced in `.env.example`); no action required unless you want to use it. The 6.67.0 NOTES section flags this feature as experimental: \"Batched reads is experimental. The behavior may change without notice, and it is not subject to the backwards compatibility guarantee of the provider.\"\n\n### Data and dependencies\n- none. No companion service (database, cache, search engine) version requirements appear in these notes, and the compose/provider file here pins only the `hashicorp/aws` Terraform provider plus `tls`, `random`, and `helm` providers, none of which are touched by this release.\n\n### Before applying\n- Edit `01-providers.tf`: the `required_providers.aws.version` constraint is currently `~> 6.66.0`, which will not permit 6.67.0. Widen it (e.g. to `~> 6.67.0` or `>= 6.66.0, < 7.0.0`) to allow the upgrade.\n- Run `terraform init -upgrade` to pull the new provider version, then `terraform plan` to confirm no unexpected diffs before applying \u2014 this is routine practice for a provider bump, not something the notes specifically require.\n- No state migration, no manual data steps.\n\n### Notes read\n- hashicorp/terraform-provider-aws release notes and CHANGELOG.md for `6.67.0` (covering the full range from `6.66.0` to `6.67.0`, the only entry between the two versions).\n"
+  },
+  {
+    "repo": "chatops-privilege-wall",
+    "sha": "b35dd232d446fe1e128462aa565994f44c6bed0b",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-02T13:16:19Z"
+  },
+  {
+    "repo": "game-server-wireguard-relay-docker-compose",
+    "sha": "7aff435a3326b1d4fade50c232701e841a1e6018",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-02T13:16:32Z"
+  },
+  {
+    "repo": "gaseous-server-using-docker-compose",
+    "sha": "7e3a7cd0fc4434968fc59dd53905367f55cd830e",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-02T13:16:37Z"
+  },
+  {
+    "repo": "glpi-traefik-letsencrypt-docker-compose",
+    "sha": "7a81b8f6177748206a2844fbe8100f3c2eaa2ab5",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-02T13:16:45Z"
+  },
+  {
+    "repo": "jellyfin-traefik-letsencrypt-docker-compose",
+    "sha": "2df6e48b30d4a5fd05238c253096991ebf46d20a",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-02T13:16:57Z"
+  },
+  {
+    "repo": "joomla-traefik-letsencrypt-docker-compose",
+    "sha": "58c839933fd2d1e33869ca71351e9715b186d243",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-02T13:17:04Z"
+  },
+  {
+    "repo": "minecraft-server-proxy-docker-compose",
+    "sha": "12a50a5ad993233a4729469a3173944285616e8a",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-02T13:17:26Z",
+    "review": "\n## Upstream changes 2026.9.2 -> 2026.10.0\n\n**Verdict:** SAFE TO APPLY \u2014 only dependency bumps and a bundled-tool addition; no breaking changes, no variable or port/volume changes.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- The registry diff shows the bundled JDK moved from `jdk-25.0.4+7` to `jdk-25.0.4.1+1` \u2014 a patch-level JDK bump, not called out in the release notes themselves but confirmed as a real image difference.\n- Release notes list routine dependency bumps: `itzg/mc-monitor` to v0.18.0, then v0.18.1, then v1; `itzg/mc-image-helper` to v1.70.0, v1.70.1, v1.70.2; a Docker base image bump via dependabot (\"bump the docker group with 3 updates\"); and addition of `jattach` (\"Add jattach\" by @nelsongraca). None of these are described as breaking.\n- No companion-service version (database, cache, search engine) is named in the notes, so the compose file's lack of such a pin is not a mismatch here.\n\n### Before applying\n- No manual migration or config edit required.\n- Standard precaution: confirm the proxy still starts and both ports (25565 TCP, 19132/udp) come up correctly after pulling, since a JDK point revision and a Docker base image bump landed even though the notes don't describe behavioral change.\n\n### Notes read\n- 2026.10.0 release notes (covering the 2026.9.2...2026.10.0 range), as quoted above. No UPGRADING, BREAKING_CHANGES, or CHANGELOG section was supplied, so none was consulted beyond the release notes text given.\n"
+  },
+  {
+    "repo": "nextcloud-onlyoffice-traefik-letsencrypt-docker-compose",
+    "sha": "36acdfc6ffcf89c07317fa72ba459025e34d7c6a",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-02T13:17:37Z"
+  },
+  {
+    "repo": "owncloud-traefik-letsencrypt-docker-compose",
+    "sha": "be6a2ffd272684a39cc6b90862b66771094ce26c",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-02T13:17:47Z"
+  },
+  {
+    "repo": "rocketchat-traefik-letsencrypt-docker-compose",
+    "sha": "8abbf3e04798b4a380de9ee79c4cc2d4cbe7d6f4",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-02T13:17:55Z"
+  },
+  {
+    "repo": "romm-traefik-letsencrypt-docker-compose",
+    "sha": "da8aa14f99ad5d1189891a67230f02388e8e8eb9",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-02T13:18:01Z"
+  },
+  {
+    "repo": "seafile-traefik-letsencrypt-docker-compose",
+    "sha": "617b5c16b61b8937a18269f34441e8a3a01bd1ef",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-02T13:18:07Z"
+  },
+  {
+    "repo": "sonarqube-traefik-letsencrypt-docker-compose",
+    "sha": "b7329ba269078ce535675e8e5b2dfd5cdfac4125",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-02T13:18:14Z"
+  },
+  {
+    "repo": "wordpress-traefik-letsencrypt-docker-compose",
+    "sha": "0e474cb2c66077cea04e66ade4e90927f3ca0267",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-02T13:18:53Z"
+  },
+  {
+    "repo": "xwiki-traefik-letsencrypt-docker-compose",
+    "sha": "1fb786d96e591a996360fdfecef42fbd25828836",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-02T13:18:59Z"
+  }
+]
