@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Every repository this reviewer would go looking in has to exist.
+# Every repository this reviewer would go looking in has to be the right one:
+# present under exactly that name and carrying a version the fleet pinned, as a
+# tag (scripts/verify-mapping.sh, against PROVEN_AT in upstream-review.py).
 #
 # A third of the images this fleet pins once resolved to a repository that is
 # not there, and every one of those reviews came back "the release notes could
@@ -37,26 +39,54 @@ PY
 
 sources="$(read_table SOURCES)"
 [ -n "$sources" ] || { echo "  FAIL  SOURCES could not be read at all"; exit 1; }
-echo "== every SOURCES value is a repository that exists"
-missing=""
+export GITHUB_TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
+proven="$(read_table PROVEN_AT)"
+
+echo "== every mapping is proven: the repository, under that name, carries the tag"
+# Existence alone was the old check, and it could not say no: gh api treated a
+# 401, a 403 and a rate limit the same as a 404, and a repository that merely
+# answers is a coincidence. verify-mapping.sh answers 0 proven, 1 disproven,
+# 2 GitHub did not answer, and only 0 passes.
+broken=""; unanswered=""; unrecorded=""; n=0
 while IFS=$'\t' read -r image repo; do
   [ -n "$repo" ] || continue
-  gh api "repos/$repo" --jq .full_name >/dev/null 2>&1 || missing="$missing $image->$repo"
+  n=$((n + 1))
+  tag="$(awk -F'\t' -v k="$image" '$1 == k {print $2}' <<< "$proven")"
+  if [ -z "$tag" ]; then unrecorded="$unrecorded $image"; continue; fi
+  rc=0; ./scripts/verify-mapping.sh "$repo" "$tag" >/dev/null 2>&1 || rc=$?
+  case "$rc" in
+    0) ;;
+    1) broken="$broken $image->$repo@$tag" ;;
+    *) unanswered="$unanswered $image->$repo" ;;
+  esac
 done <<< "$sources"
-if [ -z "$missing" ]; then
-  ok "all $(printf '%s\n' "$sources" | wc -l | tr -d ' ') of them resolve"
+if [ -z "$broken$unanswered$unrecorded" ]; then
+  ok "all $n of them proven by tag"
 else
-  no "these point at nothing:$missing"
+  [ -z "$unrecorded" ] || no "no proving version recorded in PROVEN_AT:$unrecorded"
+  [ -z "$broken" ] || no "disproven, the repository or the tag is gone:$broken"
+  [ -z "$unanswered" ] || no "GitHub gave no verdict, which is not a pass:$unanswered"
+fi
+stale="$(comm -13 <(cut -f1 <<< "$sources" | sort) <(cut -f1 <<< "$proven" | sort))"
+if [ -z "$stale" ]; then
+  ok "PROVEN_AT names no image that SOURCES dropped"
+else
+  no "PROVEN_AT entries with no mapping: $stale"
 fi
 
-echo "== a name that cannot exist is caught"
-# The check above can only be trusted if it fails on a repository that is not
-# there. This one cannot be: the owner is reserved and the name is nonsense.
-if gh api "repos/heyvaldemar/this-name-is-not-a-repository-xyzzy" --jq .full_name >/dev/null 2>&1; then
-  no "a repository that should not exist answered — this check proves nothing"
-else
-  ok "the lookup this check relies on does report absence"
-fi
+echo "== the check can say no, three ways, and can say it does not know"
+# Each answer the script gives is shown a case that must produce it, or the
+# zero above proves nothing.
+expect_rc() {        # expect_rc <name> <wanted> <command...>
+  local name="$1" want="$2" rc=0; shift 2
+  "$@" >/dev/null 2>&1 || rc=$?
+  if [ "$rc" -eq "$want" ]; then ok "$name"; else no "$name: exit $rc, wanted $want"; fi
+}
+expect_rc "a repository that does not exist is 1" 1 ./scripts/verify-mapping.sh henrygd/beszel-agent 0.20.0
+expect_rc "a name that redirects to another project is 1" 1 ./scripts/verify-mapping.sh mysql/mysql 9.4.0
+expect_rc "a real repository without the pinned tag is 1" 1 ./scripts/verify-mapping.sh henrygd/beszel 0.0.0-never-released
+expect_rc "the right repository with its tag is 0" 0 ./scripts/verify-mapping.sh henrygd/beszel 0.20.0
+expect_rc "a credential GitHub refuses is 2, not absent" 2 env GITHUB_TOKEN=ghp_this-token-is-not-valid ./scripts/verify-mapping.sh henrygd/beszel 0.20.0
 
 echo "== nothing is in both tables"
 both="$(comm -12 <(read_table SOURCES | cut -f1 | sort) <(read_table NO_NOTES | cut -f1 | sort))"

@@ -55,6 +55,13 @@ NO_NOTES = {
     "mcr.microsoft.com/mssql/server": "Microsoft publishes SQL Server release notes in its own documentation, not on GitHub",
     "gitlab/gitlab-runner": "GitLab Runner is developed on gitlab.com, not on GitHub",
     "codeberg.org/forgejo/forgejo": "Forgejo is developed on Codeberg, not on GitHub",
+    # Moved here on 2026-10-03 from SOURCES, where each pointed at a packaging
+    # repository with no version tags: the review read nothing under it and
+    # reported a lookup failure instead of where the notes actually live.
+    "postgres": "PostgreSQL publishes release notes at postgresql.org; docker-library/postgres is the packaging and tags no versions",
+    "wordpress": "WordPress publishes release notes on wordpress.org; docker-library/wordpress is the packaging and tags no versions",
+    "xwiki": "XWiki publishes release notes on xwiki.org; xwiki/xwiki-docker is the packaging and tags no versions",
+    "danixu86/project-zomboid-dedicated-server": "The game's notes are The Indie Stone's; the packaging repository tags no versions at all",
 }
 
 # Images whose GitHub source is not <owner>/<name> of the image reference.
@@ -81,7 +88,6 @@ SOURCES = {
     "owncloud/server": "owncloud/core",
     "gitlab/gitlab-ee": "gitlabhq/gitlabhq",
     "traefik": "traefik/traefik",
-    "postgres": "docker-library/postgres",
     "mariadb": "MariaDB/server",
     "redis": "redis/redis",
     "valkey/valkey": "valkey-io/valkey",
@@ -95,15 +101,13 @@ SOURCES = {
     "gitea/gitea": "go-gitea/gitea",
     "grafana/grafana": "grafana/grafana",
     "portainer/portainer-ce": "portainer/portainer",
-    "nextcloud": "nextcloud/docker",
+    "nextcloud": "nextcloud/server",
     "ghost": "TryGhost/Ghost",
-    "wordpress": "docker-library/wordpress",
     "homeassistant/home-assistant": "home-assistant/core",
     "vaultwarden": "dani-garcia/vaultwarden",
     "ollama/ollama": "ollama/ollama",
     "requarks/wiki": "requarks/wiki",
     "docmost/docmost": "docmost/docmost",
-    "xwiki": "xwiki/xwiki-docker",
     "zabbix/zabbix-server-pgsql": "zabbix/zabbix-docker",
     "mattermost/mattermost-team-edition": "mattermost/mattermost",
     "rocketchat/rocket.chat": "RocketChat/Rocket.Chat",
@@ -113,7 +117,6 @@ SOURCES = {
     "outlinewiki/outline": "outline/outline",
     "authelia/authelia": "authelia/authelia",
     "glpi/glpi": "glpi-project/glpi",
-    "danixu86/project-zomboid-dedicated-server": "Danixu/project-zomboid-server-docker",
     # Images whose notes live somewhere the name does not say. Without an
     # entry here the fallback treats "owner/name" on Docker Hub as a GitHub
     # repository of the same name, which 404s for every image published from a
@@ -146,6 +149,81 @@ SOURCES = {
     "elasticsearch": "elastic/elasticsearch",
     "joomla": "joomla/joomla-cms",
     "rabbitmq": "rabbitmq/rabbitmq-server",
+}
+
+# The version at which each SOURCES mapping was proven: the repository exists
+# under exactly that name and carries this tag (scripts/verify-mapping.sh).
+# tests/test-review-sources.sh proves every one again on every run, so a
+# repository that is renamed, emptied or retagged fails there and not in a
+# review. Taken from the fleet's pins on 2026-10-03; a line pin (3.7, 9) is
+# proven by the newest tag in that line, a floating tag by the latest release.
+PROVEN_AT = {
+    "henrygd/beszel-agent": "0.21.0",
+    "ghcr.io/advplyr/audiobookshelf": "2.37.1",
+    "ghcr.io/crazy-max/diun": "4.33.0",
+    "ghcr.io/gethomepage/homepage": "v2.4.0",
+    "ghcr.io/tecnativa/docker-socket-proxy": "v0.5.0",
+    "zabbix/zabbix-agent2": "7.0.31",
+    "zabbix/zabbix-web-nginx-pgsql": "7.0.31",
+    "elestio/glpi": "11.0.8",
+    "owncloud/server": "11.0.1",
+    "gitlab/gitlab-ee": "19.4.1",
+    "traefik": "3.7.13",
+    "mariadb": "mariadb-11.8.3",
+    "redis": "7.4.11",
+    "valkey/valkey": "9.1.2",
+    "lissy93/dashy": "4.7.17",
+    "b3log/siyuan": "v3.8.6",
+    "itzg/minecraft-server": "2026.9.2",
+    "itzg/mc-backup": "2026.9.3",
+    "itzg/mc-proxy": "2026.10.0",
+    "joedwards32/cs2": "5.0.0",
+    "vaultwarden/server": "1.37.3",
+    "gitea/gitea": "28.0.0",
+    "grafana/grafana": "13.2.3",
+    "portainer/portainer-ce": "2.45.1",
+    "nextcloud": "35.0.1",
+    "ghost": "6.67.0",
+    "homeassistant/home-assistant": "2026.9.4",
+    "vaultwarden": "1.37.3",
+    "ollama/ollama": "0.35.1",
+    "requarks/wiki": "2.5.315",
+    "docmost/docmost": "0.96.0",
+    "zabbix/zabbix-server-pgsql": "7.0.31",
+    "mattermost/mattermost-team-edition": "11.11.1",
+    "rocketchat/rocket.chat": "8.8.1",
+    "sonarqube": "26.9.0.129388",
+    "keycloak/keycloak": "26.8.0",
+    "quay.io/keycloak/keycloak": "26.8.0",
+    "outlinewiki/outline": "1.10.1",
+    "authelia/authelia": "4.39.28",
+    "glpi/glpi": "11.0.8",
+    "langgenius/dify-api": "1.17.1",
+    "langgenius/dify-web": "1.17.1",
+    "langgenius/dify-agent-backend": "1.17.1",
+    "langgenius/dify-agent-local-sandbox": "1.17.1",
+    "langgenius/dify-sandbox": "0.2.15",
+    "langgenius/dify-plugin-daemon": "0.6.10",
+    "ghcr.io/immich-app/immich-server": "v3.2.4",
+    "ghcr.io/immich-app/immich-machine-learning": "v3.2.4",
+    "semitechnologies/weaviate": "1.27.0",
+    "ghcr.io/mailu/admin": "2024.06.61",
+    "ghcr.io/mailu/dovecot": "2024.06.61",
+    "ghcr.io/mailu/fetchmail": "2024.06.61",
+    "ghcr.io/mailu/nginx": "2024.06.61",
+    "ghcr.io/mailu/oletools": "2024.06.61",
+    "ghcr.io/mailu/postfix": "2024.06.61",
+    "ghcr.io/mailu/radicale": "2024.06.61",
+    "ghcr.io/mailu/rspamd": "2024.06.61",
+    "ghcr.io/mailu/unbound": "2024.06.61",
+    "ghcr.io/mailu/webmail": "2024.06.61",
+    "ghcr.io/open-webui/open-webui": "0.11.4",
+    "ghcr.io/sysadminsmedia/homebox": "0.26.2",
+    "ghcr.io/toeverything/affine": "0.27.4",
+    "ghcr.io/zammad/zammad": "7.2.0",
+    "elasticsearch": "8.19.20",
+    "joomla": "6.1.4",
+    "rabbitmq": "4.3.6",
 }
 
 
