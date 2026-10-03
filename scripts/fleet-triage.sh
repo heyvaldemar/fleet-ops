@@ -970,6 +970,16 @@ pin_lags() {         # pin_lags <pin> <lag line> <old version> -> 0 if this pin 
   [ "$var" = "$want" ]
 }
 
+# A PRE-RELEASE IS NOT A TARGET, WHATEVER THE FEED CALLS IT. On 2 October
+# 2026 requarks published Wiki.js 3.0.0-beta.617 without the pre-release flag,
+# releases/latest named it, the template's freshness check went red, and this
+# run prepared a branch to move a production template onto a beta. The suffix
+# is read, not the flag. Image tags with ordinary hyphens (18.8.0-postgres-
+# tomcat, 19.4.1-ee.0, 2022-CU27-ubuntu-22.04) are not pre-releases.
+is_prerelease() {    # is_prerelease <version> -> 0 for alpha, beta, rc, preview, dev, nightly
+  grep -qiE -- '-(alpha|beta|rc|pre|preview|dev|nightly|snapshot)([.0-9-]|$)' <<<"$1"
+}
+
 lag_pair() {         # lag_pair <line> -> old<TAB>new
   local line="$1" old new
   old="$(sed -E 's/^([A-Z0-9_]+_IMAGE_TAG )?is behind[^:]*: pinned ([a-z]+ )?(v?[0-9][^,]*),.*/\3/' <<<"$line")"
@@ -1216,6 +1226,10 @@ for repo in "${REPOS[@]}"; do
     oldv="$(lag_pair "$lag" | cut -f1)"
     newv="$(lag_pair "$lag" | cut -f2)"
     ob="${oldv#v}"; nb="${newv#v}"
+    if is_prerelease "$newv"; then
+      note "$repo: upstream names $newv as its latest, which is a pre-release whatever its flag says — not applied, not prepared; the freshness check should read stable releases only"
+      continue
+    fi
     # THE MAJOR IS THE LINE. Inside one major, a minor or a patch rides the
     # same commit, CI gate and revert as a digest refresh: the deploy job boots
     # the stack on the new image before anything stays on main. Across a

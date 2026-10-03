@@ -310,6 +310,18 @@ same "an alarm that names no variable still moves every pin on that version" "ye
 # shellcheck disable=SC2016  # ${...} is compose interpolation, written literally
 same "a pin on another version never moves" "no" "$(pl '${X_IMAGE_TAG:-a/b:1.0.0@sha256:cccc}' "$named" 2026.9.2)"
 
+# A PRE-RELEASE PUBLISHED AS LATEST. The suffix decides, and the ordinary
+# hyphens in image tags must not be mistaken for one.
+pr() { is_prerelease "$1" && echo yes || echo no; }
+same "a beta published without the flag is still a pre-release" "yes" "$(pr 3.0.0-beta.617)"
+same "a release candidate is one" "yes" "$(pr v2.6.0-rc.1)"
+same "and so is an upper-case RC" "yes" "$(pr 1.0.0-RC2)"
+same "a stable version is not" "no" "$(pr 2.5.315)"
+same "an XWiki flavour tag is not" "no" "$(pr 18.8.0-postgres-tomcat)"
+same "a GitLab edition tag is not" "no" "$(pr 19.4.1-ee.0)"
+same "a SQL Server CU tag is not" "no" "$(pr 2022-CU27-ubuntu-22.04)"
+same "nor a word that merely starts like one" "no" "$(pr 7.0-debian-preserve)"
+
 # AND WHAT MUST STILL MATCH NOTHING. rathena counts commits behind a branch:
 # real, reported, and not a version bump anybody can make automatically.
 same "a commits-behind line is not a version lag" "" \

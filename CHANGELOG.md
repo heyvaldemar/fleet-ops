@@ -21,6 +21,7 @@ check or a job, a patch fixes one.
   sections for the portable ones; everything judged local is a number.
 
 ### Fixed
+- **A pre-release is never a bump, whatever the upstream feed calls it.** On 2026-10-02 requarks published Wiki.js 3.0.0-beta.617 without the pre-release flag, `releases/latest` named it, and triage prepared a branch to move the template onto a beta. A version with an alpha, beta, rc, preview, dev, nightly or snapshot suffix is now reported once and left alone; the Wiki.js freshness check reads the newest stable release instead of `releases/latest`.
 - **A version bump moves the pin the alarm names, not every pin that shares the version.** On 2026-10-01 `itzg/mc-backup` went to 2026.9.3; the Minecraft server image, on its own release line, pinned the same 2026.9.2, and triage tried to move it to a tag that does not exist and asked a person about it. When a freshness alarm names its variable (`X_IMAGE_TAG is behind: …`), only that pin moves now.
 
 - **The commit message goes through the export gate too.** The public copy
