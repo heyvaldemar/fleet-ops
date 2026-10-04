@@ -1,59 +1,9 @@
 [
   {
-    "repo": "chatops-privilege-wall",
-    "sha": "5d2a1954fb200668be85b4898e0df385767cf25c",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-04T12:54:33Z"
-  },
-  {
-    "repo": "confluence-traefik-letsencrypt-docker-compose",
-    "sha": "0bac60d7132c70ca5b20acb9b4756762dce3f943",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-04T12:54:42Z"
-  },
-  {
-    "repo": "dozzle-traefik-letsencrypt-docker-compose",
-    "sha": "b90d6a80727407806f938e9fc882e896b5f00aae",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-04T12:55:18Z",
-    "review": "\n## Upstream changes v11.1.3 -> v11.2.0\n\n**Verdict:** SAFE TO APPLY \u2014 feature and bug-fix release, no breaking changes named in the notes, and the image configurations (user, entrypoint, cmd, ports, volumes, healthcheck, environment) are unchanged.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none. No new, renamed or removed environment variables are mentioned, and the image diff confirms the environment surface is unchanged.\n\n### Data and dependencies\n- none. No database or companion-service version requirement is named in these notes, and the compose file pins no such service for Dozzle itself (dockerproxy, traefik, and backups/alpine are unaffected by this release).\n\n### Before applying\n- None required beyond the normal pull/recreate of the `dozzle` service. Worth a quick look by hand given the size of this release:\n  - The log-view behaviour changed for stopped containers (several \"stop treating stopped containers as live\" fixes) \u2014 confirm nothing in your workflow depends on the old (arguably buggy) behaviour.\n  - Mobile UI got a new shell/tab bar (`**mobile**: Native-feeling shell with a floating tab bar`) \u2014 cosmetic only, no action needed.\n  - Kubernetes-specific features (rollout restart, image-update checks) are irrelevant to this docker-compose deployment.\n\n### Notes read\n- v11.2.0 (2026-10-03), compared against v11.1.3 via `https://github.com/amir20/dozzle/compare/v11.1.3...v11.2.0`. No UPGRADING, BREAKING_CHANGES or CHANGELOG section was supplied separately \u2014 only the release notes above were available.\n"
-  },
-  {
-    "repo": "game-server-wireguard-relay-docker-compose",
-    "sha": "8652edd2ef1db27e579066849e92d63a118dfce8",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-04T12:55:26Z"
-  },
-  {
-    "repo": "jellyfin-traefik-letsencrypt-docker-compose",
-    "sha": "32a35c0428724d3c23e4c98b2a440e0bfaf8854c",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-04T12:55:49Z"
-  },
-  {
-    "repo": "jira-traefik-letsencrypt-docker-compose",
-    "sha": "bacfdc4b65c06f50e9f2029fe3dd64b72812690f",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-04T12:55:58Z"
-  },
-  {
     "repo": "kf2-server-docker-compose",
-    "sha": "0cd8e1e679fa14e3ac24e0a7f62e80d2962d819b",
+    "sha": "7236cbc5c619ef37a9a8374e9655c32b2942eaf1",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-04T12:56:06Z"
-  },
-  {
-    "repo": "owncloud-traefik-letsencrypt-docker-compose",
-    "sha": "a53d13ed505d22bbf55735c7207d5cbdc3768964",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-04T12:56:32Z"
+    "pushed_at": "2026-10-04T22:30:00Z"
   }
 ]
