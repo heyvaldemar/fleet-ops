@@ -696,6 +696,18 @@ def check(repo, exempt=None):
         bad.append("no update.sh: a deployed host has no release-tag updater")
     elif "NEW VARIABLES SINCE YOUR VERSION" not in up:
         bad.append("update.sh does not name variables that became required since the deployed version")
+    if up is not None:
+        # Both found on 2026-10-05, both silent. An env file read with
+        # 2>/dev/null made every value in it look unset when this user could
+        # not read it, and with nothing new to check the checkout went ahead
+        # and the stack failed afterwards on the permission. And the
+        # ${VAR:?} search, under pipefail in a command substitution, ended
+        # the script with status 1 whenever no compose file required
+        # anything. tests/test-update-sh.sh runs both against a real script.
+        if "is not readable by" not in up or "! -r" not in up:
+            bad.append("update.sh does not stop on an env file it cannot read")
+        if re.search(r"_required=.*\| tr '\\n' ' '\)\"", up):
+            bad.append("update.sh ends with no message when no compose file requires a variable (the ${VAR:?} search needs '|| true' under pipefail)")
     if wf is not None and "Start up services using Docker Compose" in wf and "Upgrade drill" not in wf:
         # Declared in the workflow, with a reason, the way a missing resource
         # limit is declared in the compose file. An image built from the tree

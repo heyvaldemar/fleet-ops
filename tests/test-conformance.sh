@@ -141,6 +141,20 @@ expect "a .gitignore that does not exclude .env is caught" "$WORK/gitignore" "do
 d="$(fixture workflow)";  rm -f "$d/.github/workflows/deployment-verification.yml"
 expect "a missing workflow is caught" "$WORK/workflow" "no Deployment Verification workflow"
 
+d="$(fixture updater)";   rm -f "$d/update.sh"
+expect "a missing update.sh is caught" "$WORK/updater" "no update.sh"
+
+d="$(fixture unreadable)"
+python3 - "$d/update.sh" <<'PY'
+import re, sys
+p = sys.argv[1]; s = open(p).read()
+open(p, "w").write(re.sub(r"\n# docker compose reads \.env last.*?\nfi\n\n", "\n", s, count=1, flags=re.S))
+PY
+expect "an update.sh that reads past an unreadable .env is caught" "$WORK/unreadable" "does not stop on an env file it cannot read"
+
+d="$(fixture silentexit)"; sed -i.bak "s/| tr '\\\\n' ' ' || true)\"/| tr '\\\\n' ' ')\"/" "$d/update.sh" && rm -f "$d"/*.bak
+expect "an update.sh that dies silently on no required variable is caught" "$WORK/silentexit" "ends with no message when no compose file requires a variable"
+
 d="$(fixture trivy)";     sed -i.bak 's/[Tt]rivy/scanner/g' "$d/.github/workflows/deployment-verification.yml" && rm -f "$d/.github/workflows"/*.bak
 expect "a workflow that scans nothing is caught" "$WORK/trivy" "does not scan an image with Trivy"
 

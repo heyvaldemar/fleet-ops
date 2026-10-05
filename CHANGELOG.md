@@ -9,6 +9,20 @@ check or a job, a patch fixes one.
 
 ## [Unreleased]
 
+### Added
+- **Every `update.sh` stops on an env file it cannot read, and conformance
+  requires it.** The new-variable check read `.env` (or the `.tfvars`) with
+  `2>/dev/null`. An env file a restore had copied back as root:root 0600 made
+  every value in it look unset, and with nothing new to check the checkout
+  went ahead and the stack failed afterwards on the permission, with the tree
+  already on the new tag. The guard names the file, its owner and mode, and
+  stops before anything moves; it went to all 75 templates. Running the real
+  script for that case found a second silent exit: the `${VAR:?}` search,
+  under `pipefail` in a command substitution, ended the script with status 1
+  whenever a release added a variable and no compose file required one, which
+  is four templates today. `tests/test-update-sh.sh` runs both against the
+  published scripts in a sandbox, and again with each fix taken out.
+
 ### Changed
 - **Triage moves `.env.example` with the pin.** The commented `X_IMAGE_VERSION=` default now follows every version bump and every prepared major, the way the README already did. Conformance reports an example that names a version the compose file no longer pins; on 2026-09-30 fifty-four such lines across forty-two templates were found and fixed by hand.
 
