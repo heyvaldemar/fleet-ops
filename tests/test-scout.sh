@@ -49,11 +49,15 @@ import re
 def slug(name):
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
 check("every key is already in slug form", [k for k in d if slug(k) != k], [])
-check("and the three that were judged are the three named",
-      sorted(d), ["dify-ai", "hoppscotch-community-edition", "stirling-pdf"])
+# Every decision ever made is still there. A list that only grows is the
+# point; one that lost an entry would re-open a question somebody answered,
+# and removing one is supposed to be a deliberate commit, not a side effect.
+judged = ["appflowy", "caddy", "code-server", "dify-ai", "hoppscotch-community-edition", "stirling-pdf"]
+check("every candidate judged so far is still declined",
+      [k for k in judged if k not in d], [])
 
-# The three as the catalogue actually spells them.
-for name in ("Dify.ai", "Stirling-PDF", "Hoppscotch Community Edition"):
+# As the catalogue actually spells them, the way the scout's issues name them.
+for name in ("Dify.ai", "Stirling-PDF", "Hoppscotch Community Edition", "code-server", "AppFlowy", "Caddy"):
     check("%s resolves to a declined key" % name, slug(name) in d, True)
 
 # A missing file means nothing has been declined, which is the safe reading:

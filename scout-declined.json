@@ -30,5 +30,20 @@
     "decided": "2026-09-20",
     "verdict": "THIN",
     "why": "stateless in practice, so the backup, restore and upgrade-on-same-volumes half of this fleet's contract would be vacuous"
+  },
+  "code-server": {
+    "decided": "2026-10-05",
+    "verdict": "THIN",
+    "why": "a browser IDE is a terminal on the host's Docker network with a password in front of it; a one-command template for strangers makes that the default, and the compose itself is one container, a volume and Traefik, which the fleet already shows a dozen times"
+  },
+  "appflowy": {
+    "decided": "2026-10-05",
+    "verdict": "NO",
+    "why": "the catalogue's AGPL-3.0 is the client's: the open server, AppFlowy-IO/AppFlowy-Cloud, was archived after 2026-09-11, and self-hosting now goes through AppFlowy-SelfHost-Commercial under a commercial licence whose free tier is one user seat per instance, which is not a licence this fleet can hand to strangers"
+  },
+  "caddy": {
+    "decided": "2026-10-05",
+    "verdict": "NO",
+    "why": "a reverse proxy, not a service: every template already ships its ingress as Traefik, and Caddy's only state is a certificate cache Let's Encrypt reissues, so there is nothing for a backup, a restore drill or an upgrade on the same volumes to prove"
   }
 }
