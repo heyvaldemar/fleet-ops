@@ -750,6 +750,8 @@ workdir_for() {   # repo -> dir on stdout, or non-zero
 #   keep     cancelled by a later push, or an answer that is not a verdict on
 #            the change (skipped, neutral): left in place, judged as HEAD
 #   revert   failure or timed_out: the refresh broke the stack
+#   hold     GitHub did not answer the lookup: no verdict either way, kept
+#            for the next run and never escalated on age
 # On 2026-09-25 13:10 twenty-three digest refreshes were reverted at once:
 # the pending row carried the freshness workflow, whose push run is always
 # skipped, and "skipped" fell into the revert branch. A refresh is judged by
@@ -758,6 +760,7 @@ pending_action() {
   case "$1" in
     success) echo release ;;
     running|none) echo wait ;;
+    unread) echo hold ;;
     failure|timed_out) echo revert ;;
     *) echo keep ;;
   esac
@@ -771,10 +774,26 @@ settle_pending() {
   while IFS=$'\t' read -r repo sha wf kind age; do
     [ -n "$repo" ] || continue
     any=1
-    run_for_sha="$(gh run list --repo "$OWNER/$repo" --branch main --workflow "$wf" --limit 10 \
-        --json headSha,status,conclusion,databaseId 2>/dev/null \
-        | jq -r --arg sha "$sha" '[.[] | select(.headSha==$sha)][0] // empty' 2>/dev/null || true)"
-    verdict="$(jq -r 'if . == null or . == "" then "none" elif .status=="completed" then (.conclusion // "unknown") else "running" end' <<<"${run_for_sha:-null}" 2>/dev/null || echo "none")"
+    # NO ANSWER IS NOT "NO RUN". The lookup's own failure used to be swallowed
+    # into an empty result, read as a CI that never answered, and escalated on
+    # age: on 2026-10-05 kf2's refresh, green one minute after its push, was
+    # reported as unjudged for 16.8 hours and dropped from this ledger, so its
+    # release was never cut. A failed lookup is retried once, and if GitHub
+    # still says nothing the row is kept, with no verdict, for the next run.
+    runs_json="" run_for_sha=""
+    for _try in 1 2; do
+      if runs_json="$(gh run list --repo "$OWNER/$repo" --branch main --workflow "$wf" --limit 10 \
+          --json headSha,status,conclusion,databaseId 2>/dev/null)" && [ -n "$runs_json" ]; then
+        break
+      fi
+      runs_json=""; sleep 5
+    done
+    if [ -z "$runs_json" ]; then
+      verdict="unread"
+    else
+      run_for_sha="$(jq -r --arg sha "$sha" '[.[] | select(.headSha==$sha)][0] // empty' <<<"$runs_json" 2>/dev/null || true)"
+      verdict="$(jq -r 'if . == null or . == "" then "none" elif .status=="completed" then (.conclusion // "unknown") else "running" end' <<<"${run_for_sha:-null}" 2>/dev/null || echo "none")"
+    fi
     # A FRESHNESS FAILURE IS NOT A VERDICT ON WHAT WAS PUSHED. The rerun pass
     # below already reads which jobs failed; this one used the run's overall
     # conclusion, which cannot tell the designed alarm from a real failure.
@@ -806,6 +825,10 @@ settle_pending() {
         else
           note "$repo: green, but the clone for its release failed — the refresh is on main without a release, needs a human"
         fi
+        ;;
+      hold)
+        note "$repo: GitHub did not answer the run lookup for the $kind refresh $sha (pushed ${age}h ago) — no verdict, kept for the next run"
+        keep+=("$sha")
         ;;
       wait)
         if [ "${age%%.*}" -ge "$STALE_HOURS" ]; then

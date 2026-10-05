@@ -224,6 +224,35 @@ same "no run yet is a wait" "wait" "$(pending_action none)"
 same "cancelled by a later push is kept" "keep" "$(pending_action cancelled)"
 same "skipped is not a verdict on the change, and is kept" "keep" "$(pending_action skipped)"
 same "an answer nobody has seen is kept, not reverted" "keep" "$(pending_action neutral)"
+same "a lookup GitHub did not answer is held, never escalated" "hold" "$(pending_action unread)"
+
+echo "== a lookup that fails is not a CI that never answered"
+# 2026-10-05: kf2's refresh was green one minute after its push. The triage's
+# lookup failed, the failure was swallowed into "no run", and at 16.8 hours
+# the row was escalated and dropped, so the release was never cut. A gh that
+# refuses every call must leave the row in the ledger with no verdict.
+(
+  fakebin="$(mktemp -d)"
+  printf '#!/usr/bin/env bash\nexit 1\n' > "$fakebin/gh"; chmod +x "$fakebin/gh"
+  sleep() { :; }
+  PATH="$fakebin:$PATH"
+  # DRY_RUN off, so "kept" means the ledger was rewritten and the row survived.
+  PENDING="$(mktemp)"; REPORT="$(mktemp)"; WORKDIR="$(mktemp -d)"; STALE_HOURS=12; DRY_RUN=false
+  printf '[{"repo": "r", "sha": "abc1234", "wf": "Deployment Verification", "kind": "digest", "pushed_at": "%s"}]\n' \
+    "$(python3 -c 'import datetime;print((datetime.datetime.now(datetime.timezone.utc)-datetime.timedelta(hours=20)).strftime("%Y-%m-%dT%H:%M:%SZ"))')" > "$PENDING"
+  NOTES=()
+  settle_pending >/dev/null 2>&1
+  # note() is the test's own, collecting into NOTES; the report file is not it.
+  said="$(printf '%s\n' "${NOTES[@]+"${NOTES[@]}"}")"
+  case "$said" in *"did not answer"*) echo "SAID";; esac
+  case "$said" in *"needs a human"*) echo "ESCALATED";; esac
+  grep -q '"abc1234"' "$PENDING" && echo "KEPT"
+  rm -rf "$fakebin" "$PENDING" "$REPORT" "$WORKDIR"
+) > "$WORK/unread.out"
+out="$(cat "$WORK/unread.out")"
+case "$out" in *SAID*) ok "it says GitHub did not answer" ;; *) no "it did not say GitHub was silent: $out" ;; esac
+case "$out" in *ESCALATED*) no "a silent GitHub was escalated to a person" ;; *) ok "and it does not ask a person about it" ;; esac
+case "$out" in *KEPT*) ok "the row stays in the ledger for the next run" ;; *) no "the row was dropped, so its release would never be cut" ;; esac
 same "a refresh is judged by the verification workflow, never by the freshness one" "Deployment Verification" \
   "$(workflow_for gitea-traefik-letsencrypt-docker-compose)"
 
