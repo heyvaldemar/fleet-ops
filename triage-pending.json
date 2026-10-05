@@ -1,1 +1,45 @@
-
+[
+  {
+    "repo": "amazon-ec2-instance-pipeline-terraform",
+    "sha": "8e015fd0dda7dfb6d880213ce6fe4a02cb067ef4",
+    "wf": "Terraform Verification",
+    "kind": "version",
+    "pushed_at": "2026-10-05T15:20:35Z"
+  },
+  {
+    "repo": "amazon-ec2-keycloak-docker-swarm-pipeline-terraform",
+    "sha": "83457956e85996a5e9920d0527aa02eff8be2168",
+    "wf": "Terraform Verification",
+    "kind": "version",
+    "pushed_at": "2026-10-05T15:21:47Z",
+    "review": "\n## Upstream changes 6.66.0 -> 6.67.0\n\n**Verdict:** SAFE TO APPLY \u2014 the notes contain no breaking changes, no removed/renamed arguments, and no companion-service version requirements; the version pin in the compose file only needs a routine bump.\n\n### Breaking changes\n- none found in the notes. The one NOTES entry for this release is a disclosure, not a change in behavior: *\"resource/aws_route53_record: Batched reads is experimental. The behavior may change without notice, and it is not subject to the backwards compatibility guarantee of the provider.\"* This affects only `aws_route53_record` resources and only if the new experimental `TF_AWS_ROUTE53_RECORD_BATCH_READS` environment variable (see below) is explicitly turned on.\n\n### Variables\n- No Terraform provider configuration variables are renamed, removed, or newly required.\n- New, opt-in environment variable introduced by this release: *\"resource/aws_route53_record: Add the `TF_AWS_ROUTE53_RECORD_BATCH_READS` environment variable to reduce AWS API calls when managing many records in a zone\"*. This is not referenced in `01-providers.tf` or `.env.example`, is off by default, and requires no action unless the operator wants to opt in (and accept the experimental-behavior caveat above).\n\n### Data and dependencies\n- none. No database, cache, or other companion-service version requirement is named in these notes, and the compose/Terraform files here pin only the AWS provider itself, so there is no mismatch to flag.\n\n### Before applying\n- Bump the version constraint in `01-providers.tf` from `version = \"~> 6.66.0\"` to allow `6.67.0` (e.g. `~> 6.67.0`), then run `terraform init -upgrade` followed by `terraform plan` to confirm no unexpected diffs before `terraform apply`.\n- If this deployment manages any `aws_route53_record` resources, review whether to enable `TF_AWS_ROUTE53_RECORD_BATCH_READS`; if enabling it, treat its behavior as unstable per the NOTES entry and watch for drift after enabling.\n- No state migration, backup, or manual data step is called for by these notes.\n\n### Notes read\n- hashicorp/terraform-provider-aws release notes and CHANGELOG.md for `v6.67.0` (covering the 6.66.0 -> 6.67.0 range only).\n"
+  },
+  {
+    "repo": "amazon-ec2-nextcloud-docker-swarm-pipeline-terraform",
+    "sha": "e958bb0b5ba57d34c5664735e7db9481c6763139",
+    "wf": "Terraform Verification",
+    "kind": "version",
+    "pushed_at": "2026-10-05T15:21:54Z"
+  },
+  {
+    "repo": "owncloud-traefik-letsencrypt-docker-compose",
+    "sha": "16fd554c2761d36f34e8d1d4cab3d1620f1990d1",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-05T15:23:06Z"
+  },
+  {
+    "repo": "sftp-traefik-letsencrypt-docker-compose",
+    "sha": "60aa4afedf8867a5c8981ef7653978a8ab55ca70",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-05T15:23:20Z"
+  },
+  {
+    "repo": "kf2-server-docker-compose",
+    "sha": "7236cbc5c619ef37a9a8374e9655c32b2942eaf1",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-04T22:30:00Z"
+  }
+]
