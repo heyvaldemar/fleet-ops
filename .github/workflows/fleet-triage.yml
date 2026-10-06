@@ -28,18 +28,7 @@ on:
         default: false
 
 permissions:
-  # The pending ledger is committed back here: which bumps are pushed and not
-  # yet judged is a fact about the fleet, and a run that forgot it would leave
-  # a red pin on main with nothing to find it.
-  contents: write
-  # The upstream review authenticates to Anthropic with this job's OIDC
-  # token under a federation rule pinned to this repository and branch.
-  # No API key exists anywhere.
-  id-token: write
-  # To open the issue that carries the report when a line in it needs a
-  # person. The default token reaches this repository, which is where the
-  # issue lives; the fleet PAT is not involved.
-  issues: write
+  contents: read
 
 concurrency:
   group: fleet-triage
@@ -61,6 +50,19 @@ jobs:
     # stuck run should be cut off rather than billed. The script keeps its own
     # budget under this and reports what it did not reach.
     timeout-minutes: 40
+    permissions:
+      # The pending ledger is committed back here: which bumps are pushed and
+      # not yet judged is a fact about the fleet, and a run that forgot it
+      # would leave a red pin on main with nothing to find it.
+      contents: write
+      # The upstream review authenticates to Anthropic with this job's OIDC
+      # token under a federation rule pinned to this repository and branch.
+      # No API key exists anywhere.
+      id-token: write
+      # To open the issue that carries the report when a line in it needs a
+      # person. The default token reaches this repository, which is where the
+      # issue lives; the fleet PAT is not involved.
+      issues: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

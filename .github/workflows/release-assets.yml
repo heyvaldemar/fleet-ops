@@ -123,7 +123,9 @@ jobs:
     # then reports the repository as private and stops, to keep a name out of
     # the transparency log), and OpenSSF Scorecard scores this line as an
     # unpinned dependency, 8 of 10, on every repository that carries it. The
-    # evidence page says so beside the score.
+    # evidence page says so beside the score. SLSA's own documentation requires
+    # the tag form for the verifier to accept the provenance:
+    # https://github.com/slsa-framework/slsa-github-generator#referencing-slsa-builders-and-generators
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
     with:
       base64-subjects: ${{ needs.archive.outputs.subjects }}
