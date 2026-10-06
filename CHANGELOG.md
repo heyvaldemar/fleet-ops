@@ -23,6 +23,24 @@ check or a job, a patch fixes one.
   is four templates today. `tests/test-update-sh.sh` runs both against the
   published scripts in a sandbox, and again with each fix taken out.
 
+- **The heartbeat reports a person outside the fleet who is waiting for an
+  answer.** An issue or pull request opened by someone who is not the owner and
+  not a bot, open for more than 48 hours, never answered or answered last by
+  them, is a finding with its link. Keycloak #45 sat three days unanswered
+  because nothing read the issue trackers; six planted cases show the rule
+  telling a waiting person from an answered one, a fresh one, a bot and a pull
+  request.
+
+- **Fleet conformance requires every Traefik stack to take
+  `TRAEFIK_READ_TIMEOUT`, `TRAEFIK_WRITE_TIMEOUT` and `TRAEFIK_IDLE_TIMEOUT`.**
+  Traefik reads its static configuration from the command in the compose file,
+  and an override can only replace that command whole. Forty of fifty stacks
+  gave an operator no way to set the entry point's timeouts and nine used nine
+  different names. Forty-five take the same three today, each stack's older
+  name nested inside so it keeps working; the five holding a pending security
+  refresh follow once the triage has released it. Two planted cases: a timeout removed
+  and a timeout written as a literal.
+
 ### Changed
 - **Triage moves `.env.example` with the pin.** The commented `X_IMAGE_VERSION=` default now follows every version bump and every prepared major, the way the README already did. Conformance reports an example that names a version the compose file no longer pins; on 2026-09-30 fifty-four such lines across forty-two templates were found and fixed by hand.
 
@@ -33,6 +51,12 @@ check or a job, a patch fixes one.
   to a public repository. The mirrors hold the commits already. The report now
   carries the counts, the rows judged portable or already shipped, and the
   sections for the portable ones; everything judged local is a number.
+
+- **The profile's badge line says why seven public repositories are not
+  registered.** The profile carried 97 public repositories, 90 registered for
+  the badge and 88 under the standard, and nothing said how they relate; a
+  careful reader could take three counts for three fleets. The line now says
+  that the unregistered ones hold no code to rate.
 
 ### Fixed
 - **The upstream review reads the release a template already runs, as a
@@ -56,36 +80,6 @@ check or a job, a patch fixes one.
   never been asked about it: a hostname in a message would have reached the
   public history, where main cannot be rewritten. A message matching the
   list now refuses the publish and says so; the suite plants one.
-
-### Added
-
-- **The heartbeat reports a person outside the fleet who is waiting for an
-  answer.** An issue or pull request opened by someone who is not the owner and
-  not a bot, open for more than 48 hours, never answered or answered last by
-  them, is a finding with its link. Keycloak #45 sat three days unanswered
-  because nothing read the issue trackers; six planted cases show the rule
-  telling a waiting person from an answered one, a fresh one, a bot and a pull
-  request.
-
-- **Fleet conformance requires every Traefik stack to take
-  `TRAEFIK_READ_TIMEOUT`, `TRAEFIK_WRITE_TIMEOUT` and `TRAEFIK_IDLE_TIMEOUT`.**
-  Traefik reads its static configuration from the command in the compose file,
-  and an override can only replace that command whole. Forty of fifty stacks
-  gave an operator no way to set the entry point's timeouts and nine used nine
-  different names. Forty-five take the same three today, each stack's older
-  name nested inside so it keeps working; the five holding a pending security
-  refresh follow once the triage has released it. Two planted cases: a timeout removed
-  and a timeout written as a literal.
-
-### Changed
-
-- **The profile's badge line says why seven public repositories are not
-  registered.** The profile carried 97 public repositories, 90 registered for
-  the badge and 88 under the standard, and nothing said how they relate; a
-  careful reader could take three counts for three fleets. The line now says
-  that the unregistered ones hold no code to rate.
-
-### Fixed
 
 - **The waiting-person rule no longer takes the fleet check down with it.**
   Its search named neither issues nor pull requests, which the search API now
