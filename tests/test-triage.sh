@@ -256,6 +256,31 @@ case "$out" in *KEPT*) ok "the row stays in the ledger for the next run" ;; *) n
 same "a refresh is judged by the verification workflow, never by the freshness one" "Deployment Verification" \
   "$(workflow_for gitea-traefik-letsencrypt-docker-compose)"
 
+echo "== the latest run on main is chosen here, not by GitHub's branch filter"
+# 2026-10-06 13:38: --branch main --limit 1 answered with a run from
+# 2026-09-14 on a repository whose newest runs on main were from that morning,
+# and the report called a three-week-old failure the current one. The stand-in
+# answers in the stale order: the old failure first, a newer run on another
+# branch next to it, the newest run on main last.
+(
+  answer="$(mktemp)"; GH_ARGS="$(mktemp)"
+  cat > "$answer" <<'JSON'
+[{"headBranch":"main","createdAt":"2026-09-14T11:18:03Z","databaseId":1,"conclusion":"failure","status":"completed","attempt":1},
+ {"headBranch":"bump/9.0.0","createdAt":"2026-10-06T09:00:00Z","databaseId":3,"conclusion":"failure","status":"completed","attempt":1},
+ {"headBranch":"main","createdAt":"2026-10-06T00:33:07Z","databaseId":2,"conclusion":"success","status":"completed","attempt":1}]
+JSON
+  gh() { printf '%s\n' "$*" >> "$GH_ARGS"; cat "$answer"; }
+  runs_on_main r "Terraform Verification" 20 databaseId,conclusion,status,attempt | jq -r '.[0].databaseId'
+  grep -q -- '--branch' "$GH_ARGS" && echo "FILTERED"
+  gh() { return 1; }
+  runs_on_main r "Terraform Verification" 20 databaseId || echo "FAILED"
+  rm -f "$answer" "$GH_ARGS"
+) > "$WORK/onmain.out" 2>/dev/null
+out="$(cat "$WORK/onmain.out")"
+same "the newest run on main is the one judged" "2" "$(head -1 <<<"$out")"
+case "$out" in *FILTERED*) no "the branch filter is still asked for" ;; *) ok "and GitHub's branch filter is never asked for" ;; esac
+case "$out" in *FAILED*) ok "a gh that fails still fails, so the caller can retry" ;; *) no "a failed lookup came back as an empty answer" ;; esac
+
 echo "== the log is read before the job names"
 # immich, 2026-09-25 11:01: the registry refused the three scans and the
 # deploy's pulls in one run; the deploy job's name matched first and the run

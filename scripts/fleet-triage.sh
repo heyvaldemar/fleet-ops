@@ -366,6 +366,19 @@ because a version shared by two images is one version." || true
 # Two shapes, two workflow names. Everything below asks for the name rather
 # than assuming it, so a terraform repository is not silently skipped by a
 # `gh run list` that matches nothing.
+# THE BRANCH FILTER IS AN INDEX, AND IT CAN BE STALE. On 2026-10-06 13:38 the
+# rerun pass asked for the latest run on main with --branch main and got one
+# from 2026-09-14, three weeks and two newer runs old; the freshness pass in
+# the same triage run, listing without the filter, saw the run from that
+# morning. The list without --branch is the one that was current, so main is
+# selected here, newest first by the time GitHub created each run. A failed
+# call still fails, because settle_pending retries on exactly that.
+runs_on_main() {     # runs_on_main <repo> <workflow> <limit> <json fields>
+  local out
+  out="$(gh run list --repo "$OWNER/$1" --workflow "$2" --limit "$3" --json "headBranch,createdAt,$4")" || return 1
+  jq -c '[.[] | select(.headBranch == "main")] | sort_by(.createdAt) | reverse' <<<"$out"
+}
+
 workflow_for() {
   case "$1" in
     *-terraform) echo "Terraform Verification" ;;
@@ -782,8 +795,7 @@ settle_pending() {
     # still says nothing the row is kept, with no verdict, for the next run.
     runs_json="" run_for_sha=""
     for _try in 1 2; do
-      if runs_json="$(gh run list --repo "$OWNER/$repo" --branch main --workflow "$wf" --limit 10 \
-          --json headSha,status,conclusion,databaseId 2>/dev/null)" && [ -n "$runs_json" ]; then
+      if runs_json="$(runs_on_main "$repo" "$wf" 30 headSha,status,conclusion,databaseId 2>/dev/null)" && [ -n "$runs_json" ]; then
         break
       fi
       runs_json=""; sleep 5
@@ -1029,8 +1041,7 @@ section "Reruns"
 RERUns=0
 for repo in "${REPOS[@]}"; do
   wf="$(workflow_for "$repo")"
-  run_json="$(gh run list --repo "$OWNER/$repo" --branch main --workflow "$wf" --limit 1 \
-      --json databaseId,conclusion,status,attempt 2>/dev/null || true)"
+  run_json="$(runs_on_main "$repo" "$wf" 20 databaseId,conclusion,status,attempt 2>/dev/null || true)"
   if [ -z "$run_json" ]; then continue; fi
   concl="$(jq -r '.[0].conclusion // empty' <<<"$run_json")"
   status="$(jq -r '.[0].status // empty' <<<"$run_json")"
@@ -1090,8 +1101,7 @@ done
 # error; a genuine Scorecard failure is reported and left alone.
 for repo in "${REPOS[@]}"; do
   budget_left || continue
-  scj="$( (gh run list --repo "$OWNER/$repo" --branch main --workflow 'OpenSSF Scorecard' --limit 1 \
-      --json databaseId,conclusion,status,attempt 2>/dev/null || true) | jq -c '.[0] // empty')"
+  scj="$( (runs_on_main "$repo" 'OpenSSF Scorecard' 20 databaseId,conclusion,status,attempt 2>/dev/null || true) | jq -c '.[0] // empty')"
   [ -n "$scj" ] || continue
   [ "$(jq -r '.status // empty' <<<"$scj")" = "completed" ] || continue
   [ "$(jq -r '.conclusion // empty' <<<"$scj")" = "failure" ] || continue

@@ -59,6 +59,15 @@ check or a job, a patch fixes one.
   that the unregistered ones hold no code to rate.
 
 ### Fixed
+- **The latest run on main is chosen by triage, not by GitHub's branch
+  filter.** On 2026-10-06 the rerun pass asked for the newest run on main with
+  `--branch main --limit 1` and was answered with one from 2026-09-14, three
+  weeks and two newer runs old, so the report called a fixed freshness alarm
+  current. The freshness pass in the same run, listing without the filter,
+  saw that morning's run. Every lookup that wanted main now lists without it
+  and picks main itself, newest first; a failed call still fails, so the
+  retry around it keeps working.
+
 - **The upstream review reads the release a template already runs, as a
   baseline.** On 2026-10-06 the review of Rocket.Chat 8.8.1 to 8.9.0 read
   `MongoDB: 8.0` under the new engine versions, called it a mismatch with
