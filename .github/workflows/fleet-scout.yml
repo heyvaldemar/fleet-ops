@@ -22,8 +22,6 @@ on:
 
 permissions:
   contents: read
-  issues: write
-  id-token: write
 
 concurrency:
   group: fleet-scout
@@ -39,6 +37,14 @@ jobs:
     if: vars.FLEET_ROLE != 'house'
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    permissions:
+      contents: read
+      # The shortlist is opened as an issue in this repository, with the
+      # default token; the fleet PAT is not involved.
+      issues: write
+      # The assessment authenticates to Anthropic with this job's OIDC token
+      # under a federation rule pinned to this repository and branch.
+      id-token: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
