@@ -281,6 +281,39 @@ same "the newest run on main is the one judged" "2" "$(head -1 <<<"$out")"
 case "$out" in *FILTERED*) no "the branch filter is still asked for" ;; *) ok "and GitHub's branch filter is never asked for" ;; esac
 case "$out" in *FAILED*) ok "a gh that fails still fails, so the caller can retry" ;; *) no "a failed lookup came back as an empty answer" ;; esac
 
+echo "== a template built from source moves its commit when no SQL moved"
+# 2026-10-06: rAthena's master moved two commits, both duplicate keys removed
+# from item tables, and the report could only say nothing was auto-fixable.
+P=e985006171d2eb320ee512a653f4c83aea3d81b6; H=d4b8e7b8f16061cc2496d377ac8f777ce72a4f39
+srcfix() {           # srcfix <files the compare lists, one per line> [log line]
+  local d; d="$(mktemp -d)"
+  printf 'FROM alpine\nARG RATHENA_REF=%s\nRUN git remote add origin https://github.com/rathena/rathena.git\n' "$P" > "$d/Dockerfile"
+  # changelog_line is stood in for above; here it says what it was asked to write.
+  changelog_line() { printf 'CHANGELOG %s: %s\n' "$2" "$3"; }
+  printf 'freshness\tstep\t2026-10-06T23:13:53Z ##[error]%s\n' \
+    "${2:-RATHENA_REF is 2 commits behind upstream master (pinned $P, head $H) — bump and rebuild}" > "$d/log"
+  CMP_FILES="$1"
+  gh() { jq -n --arg f "$CMP_FILES" '{status: "ahead", ahead_by: 2, files: [$f | split("\n")[] | select(length > 0) | {filename: .}]}'; }
+  NOTES=()
+  source_ref_refresh "$d" rathena-docker "$d/log"
+  printf 'changed=%s noted=%s\n' "$SRC_CHANGED" "$SRC_NOTED"
+  grep -o 'RATHENA_REF=[0-9a-f]*' "$d/Dockerfile"
+  printf '%s\n' "${NOTES[@]+"${NOTES[@]}"}"
+  rm -rf "$d"
+}
+out="$(srcfix $'db/re/item_db_equip.yml\ndb/re/item_group_db.yml')"
+case "$out" in *"changed=1"*) ok "two data-only commits move the pin" ;; *) no "a data-only move was not applied: $out" ;; esac
+case "$out" in *"RATHENA_REF=$H"*) ok "the Dockerfile names the new commit" ;; *) no "the Dockerfile was not moved: $out" ;; esac
+# shellcheck disable=SC2016 # the backticks are the changelog's Markdown, not a command
+case "$out" in *'CHANGELOG Changed: - **`rathena/rathena` moved from `e985006` to `d4b8e7b`.**'*) ok "and the changelog says from what to what" ;; *) no "no changelog line: $out" ;; esac
+out="$(srcfix $'db/re/item_db.yml\nsql-files/upgrades/upgrade_20261006.sql')"
+case "$out" in *"changed=0"*"RATHENA_REF=$P"*) ok "a move that carries SQL leaves the pin alone" ;; *) no "a SQL move was applied: $out" ;; esac
+case "$out" in *"upgrade_20261006.sql"*"needs a human"*) ok "and names the file a person has to apply" ;; *) no "the SQL file was not named: $out" ;; esac
+out="$(srcfix 'db/x.yml' 'RATHENA_REF matches the upstream master head')"
+case "$out" in *"changed=0 noted=0"*) ok "a green log is not read as a lag" ;; *) no "a log with no lag did something: $out" ;; esac
+out="$(srcfix 'db/x.yml' "RATHENA_REF is 2 commits behind upstream master (pinned $H, head $P)")"
+case "$out" in *"changed=0"*"does not pin"*) ok "a lag about a commit the Dockerfile does not pin is a person's" ;; *) no "a mismatched lag was applied: $out" ;; esac
+
 echo "== the log is read before the job names"
 # immich, 2026-09-25 11:01: the registry refused the three scans and the
 # deploy's pulls in one run; the deploy job's name matched first and the run

@@ -10,6 +10,16 @@ check or a job, a patch fixes one.
 ## [Unreleased]
 
 ### Added
+- **A template built from source moves its commit on its own when no SQL
+  moved.** rathena-docker pins `ARG RATHENA_REF=<sha>`, because rAthena has
+  no releases, only a rolling master. On 2026-10-06 master moved two commits,
+  both duplicate keys removed from item tables, and triage could only call it
+  "nothing was auto-fixable". It now compares the two commits upstream: with
+  no SQL file and no migration among the changed files, the pin moves and
+  rides the digest-refresh gate (rebuild, boot, then release or revert); with
+  one, the report names the file an existing database needs applied.
+  Four planted cases in `tests/test-triage.sh`.
+
 - **Every `update.sh` stops on an env file it cannot read, and conformance
   requires it.** The new-variable check read `.env` (or the `.tfvars`) with
   `2>/dev/null`. An env file a restore had copied back as root:root 0600 made

@@ -29,17 +29,13 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   review:
     name: Read the release notes against the template
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    permissions:
-      contents: read
-      # The OIDC token this job mints is what Anthropic exchanges; see the
-      # header. Nothing else here writes.
-      id-token: write
     steps:
       - name: Checkout fleet-ops
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

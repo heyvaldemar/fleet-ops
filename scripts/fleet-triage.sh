@@ -647,6 +647,59 @@ sweep_prepared_branches() {
 # green keeps it and cuts the release, red reverts it, cancelled leaves it for
 # the next run. Both shapes go through here - the gate is the same promise
 # whether the pin is an image digest or a provider constraint.
+# A TEMPLATE BUILT FROM SOURCE PINS A COMMIT, NOT AN IMAGE. rathena-docker
+# pins `ARG RATHENA_REF=<sha>` because rAthena has no releases, only a rolling
+# master, and its freshness job fails when master moves. Until 2026-10-07 this
+# script could only call that "nothing was auto-fixable", and two commits that
+# removed duplicate keys from an item table waited for a person. A move that
+# touches no SQL and no migration now rides the same gate as a digest refresh:
+# the deploy job rebuilds from the new commit and boots the stack, then the
+# release or the revert. One that does touch them stays a person's, because an
+# existing database needs the upgrade script applied and a rebuild cannot know.
+SOURCE_MIGRATION_RE='\.sql$|(^|/)(sql-files|migrations?|upgrades?)/'
+source_ref_refresh() {   # <dir> <repo> <freshness log file>; sets SRC_CHANGED and SRC_NOTED
+  local dir="$1" repo="$2" log="$3" line var pinned newref up cmp files touched n cw
+  SRC_CHANGED=0 SRC_NOTED=0
+  [ -f "$dir/Dockerfile" ] || return 0
+  line="$(grep -oE '[A-Z0-9_]+_REF is [0-9]+ commits? behind upstream [A-Za-z0-9._/-]+ \(pinned [0-9a-f]{40}, head [0-9a-f]{40}\)' "$log" | head -1 || true)"
+  [ -n "$line" ] || return 0
+  SRC_NOTED=1
+  var="${line%% *}"
+  pinned="$(sed -E 's/.*pinned ([0-9a-f]{40}).*/\1/' <<<"$line")"
+  newref="$(sed -E 's/.*head ([0-9a-f]{40}).*/\1/' <<<"$line")"
+  if ! grep -qx "ARG ${var}=${pinned}" "$dir/Dockerfile"; then
+    note "$repo: the freshness log says $var is $pinned, which the Dockerfile does not pin — needs a human"
+    return 0
+  fi
+  up="$(grep -oE 'https://github\.com/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+' "$dir/Dockerfile" | head -1 | sed -E 's#^https://github\.com/##; s#\.git$##' || true)"
+  if [ -z "$up" ]; then
+    note "$repo: $var has no GitHub source named in the Dockerfile to compare against — needs a human"
+    return 0
+  fi
+  cmp="$(gh api "repos/$up/compare/$pinned...$newref" 2>/dev/null || true)"
+  if [ -z "$cmp" ] || [ "$(jq -r '.status // empty' <<<"$cmp" 2>/dev/null)" != "ahead" ]; then
+    note "$repo: $up $pinned...$newref could not be compared, or is not a plain move forward — needs a human"
+    return 0
+  fi
+  # The compare API lists at most 300 files. A move that hits the cap may
+  # carry a migration the list does not show.
+  if [ "$(jq '.files | length' <<<"$cmp")" -ge 300 ]; then
+    note "$repo: $up moved further than the compare API can list — needs a human"
+    return 0
+  fi
+  n="$(jq -r '.ahead_by' <<<"$cmp")"; cw=commits; [ "$n" = 1 ] && cw=commit
+  files="$(jq -r '.files[].filename' <<<"$cmp")"
+  touched="$(grep -E "$SOURCE_MIGRATION_RE" <<<"$files" || true)"
+  if [ -n "$touched" ]; then
+    note "$repo: $up moved $n $cw and changed SQL or a migration ($(head -3 <<<"$touched" | tr '\n' ' ' | sed 's/ $//')) — an existing database needs it applied, needs a human"
+    return 0
+  fi
+  sed -E "s/^ARG ${var}=${pinned}\$/ARG ${var}=${newref}/" "$dir/Dockerfile" > "$dir/Dockerfile.new" && mv "$dir/Dockerfile.new" "$dir/Dockerfile"
+  changelog_line "$dir" "Changed" "- **\`$up\` moved from \`${pinned:0:7}\` to \`${newref:0:7}\`.** $n upstream $cw, none of them touching SQL or a migration, so an existing database needs no upgrade script. The deploy job rebuilt the server from the new commit and booted the stack before this landed."
+  note "$repo: $var — $up moved $n $cw ($pinned -> $newref), no SQL or migration touched"
+  SRC_CHANGED=1
+}
+
 push_and_defer() {
   local dir="$1" repo="$2" wf="$3" sha err
   err="$WORKDIR/push-$repo.err"
@@ -1224,7 +1277,7 @@ for repo in "${REPOS[@]}"; do
   # Pins are `${X_IMAGE_TAG:-repo:${X_IMAGE_VERSION:-tag@sha256:digest}}`
   # (or the older flat form); the sed loop below folds the inner default
   # so every pin reads as `${X_IMAGE_TAG:-repo:tag@sha256:digest}`.
-  drift_fixed=0 lag_seen=0 PREPARED_MAJOR=0 UNRESOLVED_TAG=0
+  drift_fixed=0 lag_seen=0 PREPARED_MAJOR=0 UNRESOLVED_TAG=0 SRC_CHANGED=0 SRC_NOTED=0
   while IFS= read -r pin; do
     var="${pin#\$\{}"; var="${var%%:-*}"
     def="${pin#*:-}"; def="${def%\}}"
@@ -1244,6 +1297,14 @@ for repo in "${REPOS[@]}"; do
       drift_fixed=1
     fi
   done < <(grep -h -oE '\$\{[A-Z0-9_]+_IMAGE_TAG:-.*' "${composes[@]}" | sed -E -e ':a' -e 's/(\$\{[A-Z0-9_]+_IMAGE_TAG:-[^{}]*)\$\{[A-Z0-9_]+:-([^{}]*)\}/\1\2/' -e 'ta' | sort -u)
+
+  if grep -qE '^ARG [A-Z0-9_]+_REF=[0-9a-f]{40}$' "$dir/Dockerfile" 2>/dev/null; then
+    srclog="$(mktemp)"
+    gh run view "$frid" --repo "$OWNER/$repo" --log > "$srclog" 2>/dev/null || true
+    source_ref_refresh "$dir" "$repo" "$srclog"
+    rm -f "$srclog"
+    if [ "$SRC_CHANGED" -eq 1 ]; then drift_fixed=1; fi
+  fi
 
   # A log with no lag line is the normal case, so the grep below is wrapped:
   # an empty match returns 1, and under pipefail that ended the whole triage
@@ -1382,7 +1443,7 @@ patch is never bumped automatically."
     # a wait, and it already says so one line above. Only the third case is a
     # person's to look at, and lumping the other two in with it is what made
     # this report count five decisions on a day it had three.
-    if [ "$PREPARED_MAJOR" -eq 1 ] || [ "$UNRESOLVED_TAG" -eq 1 ]; then
+    if [ "$PREPARED_MAJOR" -eq 1 ] || [ "$UNRESOLVED_TAG" -eq 1 ] || [ "$SRC_NOTED" -eq 1 ]; then
       :
     else
       note "$repo: freshness is red but nothing was auto-fixable — see the run log, needs a human"

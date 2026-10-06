@@ -23,6 +23,9 @@ on:
 
 permissions:
   contents: read
+  # To open the issue that carries the report. It lives in this repository,
+  # so the default token is the right one; the fleet PAT only reads pins.
+  issues: write
 
 concurrency:
   group: fleet-lifecycle
@@ -38,11 +41,6 @@ jobs:
     if: vars.FLEET_ROLE != 'house'
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    permissions:
-      contents: read
-      # To open the issue that carries the report. It lives in this repository,
-      # so the default token is the right one; the fleet PAT only reads pins.
-      issues: write
     steps:
       - name: Checkout fleet-ops
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
