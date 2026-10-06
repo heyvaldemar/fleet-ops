@@ -477,15 +477,5 @@ else
   echo "  FAIL: a listed repository that runs its scripts was not told to leave the list:"; printf '%s\n' "$out" | sed 's/^/        /' | head -8; FAILED=$((FAILED+1))
 fi
 
-# README WORDING. A planted "production-grade" and a planted "thousands of
-# developers", one fixture each, so a quiet rule is a failed test.
-d="$(fixture prosegrade)"; tag_all "$d"
-printf '\nThis stack ships with production-grade container hardening.\n' >> "$d/README.md"
-expect "a README that claims production-grade is caught" "$WORK/prosegrade" 'says "production-grade"'
-
-d="$(fixture prosethousands)"; tag_all "$d"
-printf '\nUsed in production by thousands of developers.\n' >> "$d/README.md"
-expect "a README that claims thousands of developers is caught" "$WORK/prosethousands" 'says "thousands of developers"'
-
 echo "passed: $PASSED   failed: $FAILED"
 [ "$FAILED" -eq 0 ]

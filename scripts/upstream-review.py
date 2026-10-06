@@ -436,6 +436,27 @@ def release_notes(source, frm, to, limit=60):
     return text[:60000], None
 
 
+# THE BASELINE. The notes read are the ones AFTER the pin, so a requirement
+# the pinned release already carried looks new. On 2026-10-06 Rocket.Chat
+# 8.9.0 listed "MongoDB: 8.0" under engine versions, the review called it a
+# mismatch against the template's MongoDB 7.0 and held the bump for a person.
+# 8.8.1, the release the template was already running on 7.0, carried the same
+# line, and the startup check that enforces it was byte-for-byte unchanged.
+# The release being moved FROM is read too, as a baseline and never as a
+# change.
+def from_release(source, frm, limit=12000):
+    n = normalise(frm)
+    for tag in dict.fromkeys((frm.split("@")[0], "v" + n, n, "release-" + n)):
+        try:
+            r = gh("repos/%s/releases/tags/%s" % (source, urllib.parse.quote(tag, safe="")))
+        except Exception:
+            continue
+        body = (r.get("body") or "").strip()
+        if body:
+            return "### %s (%s)\n%s" % (r.get("tag_name"), (r.get("published_at") or "")[:10], body[:limit])
+    return None
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--repo", required=True)
@@ -507,7 +528,12 @@ def main():
         "SAFE TO APPLY is not available when the notes name a version of a companion service - a database, a "
         "cache, a search engine - that the compose file does not pin, whatever else the release contains. "
         "That mismatch is the verdict, not a remark under it: an application running on an engine version its "
-        "own release notes do not list is the failure this review exists to stop.\n\n"
+        "own release notes do not list is the failure this review exists to stop. "
+        "A section headed THE RELEASE THE TEMPLATE RUNS NOW holds the notes of the version being moved FROM, "
+        "given only as a baseline. A requirement it already states is not a change in this upgrade: the "
+        "template already runs against it and its deploy job boots that way. Name such a requirement under "
+        "Data and dependencies as already true at the current version, and do not let it decide the verdict; "
+        "the rule above is for a requirement this range introduces or raises.\n\n"
         "### Breaking changes\n- ... (or: none found in the notes)\n\n"
         "### Variables\n- renamed, removed or newly required variables, with the compose or .env.example line they affect (or: none)\n\n"
         "### Data and dependencies\n- database version requirements, irreversible migrations, removed defaults, changed ports or paths (or: none)\n\n"
@@ -519,6 +545,9 @@ def main():
         user += "=== UPSTREAM RELEASE NOTES ===\n" + notes + "\n\n"
     else:
         user += "=== UPSTREAM RELEASE NOTES ===\n(not available: %s)\n\n" % problem
+    baseline = from_release(source, a.frm) if source and notes else None
+    if baseline:
+        user += "=== THE RELEASE THE TEMPLATE RUNS NOW (%s, a baseline, not a change) ===\n%s\n\n" % (a.frm, baseline)
     doc_name, doc_body, doc_len = (None, None, 0)
     if source:
         doc_name, doc_body, doc_len = upgrade_doc(source, a.to)
@@ -538,6 +567,7 @@ def main():
         "image_diff": images_differ,
         "verdict": verdict.group(1).strip() if verdict else "",
         "upgrade_doc": doc_name or "",
+        "baseline_read": bool(baseline),
         "model": MODEL, "input_tokens": msg.usage.input_tokens, "output_tokens": msg.usage.output_tokens,
     }
     open(a.out, "w", encoding="utf-8").write(text + "\n")

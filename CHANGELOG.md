@@ -35,6 +35,16 @@ check or a job, a patch fixes one.
   sections for the portable ones; everything judged local is a number.
 
 ### Fixed
+- **The upstream review reads the release a template already runs, as a
+  baseline.** On 2026-10-06 the review of Rocket.Chat 8.8.1 to 8.9.0 read
+  `MongoDB: 8.0` under the new engine versions, called it a mismatch with
+  the template's MongoDB 7.0, and triage held the bump for a person. The
+  8.8.1 notes carried the same line, the template had been running 8.8.1 on
+  7.0, and the startup check that enforces the version was byte-for-byte
+  unchanged: it exits only below 7.0. The review had only been shown the
+  notes after the pin. It now also gets the pinned release's own notes, and
+  a requirement that release already stated cannot decide the verdict.
+  `tests/test-review-baseline.sh` covers the lookup and reads 8.8.1 live.
 - **A run lookup that GitHub did not answer is no longer "CI never answered".** On 2026-10-05 kf2's digest refresh, green one minute after its push, was reported as unjudged after 16.8 hours, escalated to a person and dropped from the pending ledger, so its release was never cut: the lookup's own failure had been swallowed into an empty result. A failed lookup is retried once and, if GitHub still says nothing, the row is kept with no verdict for the next run. The planted test with a `gh` that refuses every call fails on the old code exactly as production did.
 - **Every review source is proven by tag, and "GitHub did not answer" is no longer "absent".** `scripts/verify-mapping.sh` accepts a mapping only when the repository exists under exactly that name and carries the pinned version as a tag, and exits 0 proven, 1 disproven, 2 no verdict. `tests/test-review-sources.sh` runs it on all 66 mappings against `PROVEN_AT`, the version that proved each, and shows it a missing repository, a redirect to another project, a missing tag, a good mapping and a refused credential. Proving them found four mappings that pointed at packaging repositories with no version tags (postgres, wordpress, xwiki, the Project Zomboid image), which the review had been reading as "no releases found"; they moved to NO_NOTES with where the notes actually live, and Nextcloud now reads nextcloud/server instead of nextcloud/docker.
 - **Publishing refuses to revert a change made on the public copy.** Dependabot and its automerge work on the public side; the export is the private tree, so the next publish silently undid each bump and Dependabot reopened it a week later. On 2026-10-03 #9 (upload-artifact v7.0.1, upload-sarif v4.38.2) was merged there while the private copy still carried v5.0.0 and v4.38.1. `publish-public.sh` now asks, for every path it would change, who changed it last on the public side, and stops on anyone but the publisher, naming the path. The two pins are ported here.

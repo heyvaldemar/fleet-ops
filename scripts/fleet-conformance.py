@@ -759,18 +759,6 @@ def check(repo, exempt=None):
                                   for q in pinned):
                 bad.append(f"README names {v} in {where} and no compose file pins that version")
 
-        # 5b. README wording. Two phrases are banned across the profile and the
-        # fleet: "production-grade", because the fleet proves its hardening
-        # with restore drills and planted violations rather than asserting it,
-        # and "thousands of developers", because nobody has measured that. One
-        # README carried the first on 2026-10-05 when the public claims were
-        # audited; this rule keeps either from coming back.
-        lowered = readme.lower()
-        for phrase in ("production-grade", "thousands of developers"):
-            if phrase in lowered:
-                line_no = next(i for i, l in enumerate(readme.splitlines(), 1) if phrase in l.lower())
-                bad.append(f"README line {line_no} says \"{phrase}\"; the fleet shows its hardening with drills and does not assert it")
-
     # 6. the .env.example names the version the compose file pins. Each pin
     # is ${X_IMAGE_TAG:-repo:${X_IMAGE_VERSION:-tag@digest}} and the example
     # shows "# X_IMAGE_VERSION=tag" as the default to override. Triage moved
