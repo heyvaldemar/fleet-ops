@@ -52,6 +52,16 @@ check or a job, a patch fixes one.
   and a timeout written as a literal.
 
 ### Changed
+- **Every `pip install` in the workflows is pinned by hash, and Dependabot
+  moves the pin.** The three scheduled jobs that call the model installed
+  `anthropic>=0.80 --upgrade`, and verify.yml installed pyflakes and pyyaml by
+  name: five lines that took whatever PyPI served that morning, which OpenSSF
+  Scorecard listed one by one under Pinned-Dependencies. They now install
+  `requirements.txt`, compiled from `requirements.in` with a hash for every
+  file, under `--require-hashes`. A `pip` Dependabot entry recompiles the lock
+  weekly, and verify.yml installs it on the pull request, so a bump is proven
+  before the auto-merge may take it.
+
 - **Triage moves `.env.example` with the pin.** The commented `X_IMAGE_VERSION=` default now follows every version bump and every prepared major, the way the README already did. Conformance reports an example that names a version the compose file no longer pins; on 2026-09-30 fifty-four such lines across forty-two templates were found and fixed by hand.
 
 - **The weekly sweep of the house writes down only what could become a
