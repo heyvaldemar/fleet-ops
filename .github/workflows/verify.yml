@@ -40,8 +40,11 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Undefined names, unused imports
+        # pyflakes comes from requirements.txt, pinned by hash like everything
+        # else pip installs here; the version that reads the scripts is the
+        # one the lock names, not whatever PyPI served this morning.
         run: |
-          python3 -m pip install --quiet pyflakes
+          python3 -m pip install --quiet --require-hashes -r requirements.txt
           python3 -m pyflakes scripts/*.py
 
       - name: ShellCheck
@@ -86,7 +89,9 @@ jobs:
           # split-freshness.py compares workflows as data, so the suite that
           # proves it needs a YAML parser; installed rather than assumed, since
           # a test that skips when its library is missing is a test that passes.
-          python3 -m pip install --quiet pyyaml
+          # From the same hashed lock the scheduled workflows install, so a
+          # Dependabot bump to it is proven here before the auto-merge sees it.
+          python3 -m pip install --quiet --require-hashes -r requirements.txt
           chmod +x tests/*.sh
           fail=0
           for t in tests/*.sh; do

@@ -61,7 +61,11 @@ jobs:
           if [ -f tests/test-lab-sweep.sh ]; then chmod +x tests/test-lab-sweep.sh; ./tests/test-lab-sweep.sh; else echo "no lab sweep in this copy"; fi
 
       - name: Install the SDK
-        run: python3 -m pip install --quiet --upgrade "anthropic>=0.80"
+        # Pinned by hash from requirements.txt (compiled from requirements.in),
+        # and pip refuses a file whose hash does not match. Dependabot raises
+        # the pin; before 2026-10-06 this was `anthropic>=0.80 --upgrade` and
+        # every run took whatever PyPI served that morning.
+        run: python3 -m pip install --quiet --require-hashes -r requirements.txt
 
       - name: What the OIDC token says about this run (claims only, never the token)
         # The federation rule matches on these. When an exchange is denied,
