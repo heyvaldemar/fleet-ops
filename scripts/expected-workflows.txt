@@ -24,3 +24,4 @@ fleet-scout.yml
 token-check.yml
 scorecard.yml
 release-assets.yml
+codeql.yml

@@ -39,11 +39,6 @@ on:
 
 permissions:
   contents: read
-  # The findings go out as an issue, not as a red run. GitHub's Actions failure
-  # emails were switched off on 2026-09-14 — eighteen of every twenty were "a
-  # robot will fix this in forty minutes" — so a red run here would reach
-  # nobody. An issue does.
-  issues: write
 
 concurrency:
   group: fleet-heartbeat
@@ -57,6 +52,10 @@ jobs:
     permissions:
       contents: read
       actions: read
+      # The findings go out as an issue, not as a red run. GitHub's Actions
+      # failure emails were switched off on 2026-09-14 — eighteen of every
+      # twenty were "a robot will fix this in forty minutes" — so a red run
+      # here would reach nobody. An issue does.
       issues: write
     steps:
       - name: Checkout repository

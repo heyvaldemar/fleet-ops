@@ -24,13 +24,16 @@ trap 'rm -rf "$WORKDIR"' EXIT
 
 project_id() {
   # The site answers with a list; an empty list is "never registered".
-  local enc
+  local enc body
   enc="$(python3 -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "https://github.com/$OWNER/$1")"
-  curl -fsSL -A "fleet-ops (heyvaldemar.com)" -H "Accept: application/json" \
-    "https://www.bestpractices.dev/projects.json?url=$enc" 2>/dev/null \
-    | python3 -c 'import json,sys
+  # Fetched into a variable and parsed from there, not piped: the answer is
+  # data, and a pipe from curl into an interpreter reads as download-then-run
+  # to OpenSSF Scorecard whatever the interpreter is given.
+  body="$(curl -fsSL -A "fleet-ops (heyvaldemar.com)" -H "Accept: application/json" \
+    "https://www.bestpractices.dev/projects.json?url=$enc" 2>/dev/null)"
+  python3 -c 'import json,sys
 d=json.load(sys.stdin)
-print(d[0]["id"] if isinstance(d,list) and d and isinstance(d[0].get("id"),int) else "")'
+print(d[0]["id"] if isinstance(d,list) and d and isinstance(d[0].get("id"),int) else "")' <<<"$body"
 }
 
 REPOS=()
