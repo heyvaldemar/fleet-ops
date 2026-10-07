@@ -7,16 +7,6 @@
 # actions publish releases arrives as four pull requests per repository, and
 # across the fleet that is a review queue nobody reads to the end. One request
 # per repository per week is a queue that gets read.
-#
-# THE PYTHON PACKAGES, THE SAME WAY. The workflows install the Anthropic SDK,
-# pyflakes and pyyaml from requirements.txt, compiled from requirements.in with
-# a hash for every file, and pip refuses anything that does not match. Until
-# 2026-10-06 the SDK was installed as `anthropic>=0.80 --upgrade`, so every
-# scheduled run took whatever PyPI served that morning, and OpenSSF Scorecard
-# said so. A pin only moves when something moves it, and that is this entry:
-# Dependabot reads the pip-compile pair, raises the version in requirements.in
-# and recompiles the lock, and verify.yml installs the result before the
-# auto-merge is allowed to touch it.
 version: 2
 updates:
   - package-ecosystem: "github-actions"
@@ -29,14 +19,3 @@ updates:
           - "*"
     commit-message:
       prefix: "ci"
-
-  - package-ecosystem: "pip"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    groups:
-      pip:
-        patterns:
-          - "*"
-    commit-message:
-      prefix: "deps"

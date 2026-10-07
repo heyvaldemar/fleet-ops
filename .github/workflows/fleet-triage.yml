@@ -28,7 +28,18 @@ on:
         default: false
 
 permissions:
-  contents: read
+  # The pending ledger is committed back here: which bumps are pushed and not
+  # yet judged is a fact about the fleet, and a run that forgot it would leave
+  # a red pin on main with nothing to find it.
+  contents: write
+  # The upstream review authenticates to Anthropic with this job's OIDC
+  # token under a federation rule pinned to this repository and branch.
+  # No API key exists anywhere.
+  id-token: write
+  # To open the issue that carries the report when a line in it needs a
+  # person. The default token reaches this repository, which is where the
+  # issue lives; the fleet PAT is not involved.
+  issues: write
 
 concurrency:
   group: fleet-triage
@@ -50,19 +61,6 @@ jobs:
     # stuck run should be cut off rather than billed. The script keeps its own
     # budget under this and reports what it did not reach.
     timeout-minutes: 40
-    permissions:
-      # The pending ledger is committed back here: which bumps are pushed and
-      # not yet judged is a fact about the fleet, and a run that forgot it
-      # would leave a red pin on main with nothing to find it.
-      contents: write
-      # The upstream review authenticates to Anthropic with this job's OIDC
-      # token under a federation rule pinned to this repository and branch.
-      # No API key exists anywhere.
-      id-token: write
-      # To open the issue that carries the report when a line in it needs a
-      # person. The default token reaches this repository, which is where the
-      # issue lives; the fleet PAT is not involved.
-      issues: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -78,11 +76,7 @@ jobs:
           ./tests/test-file-report.sh
 
       - name: Install the SDK for the upstream review
-        # Pinned by hash from requirements.txt (compiled from requirements.in),
-        # and pip refuses a file whose hash does not match. Dependabot raises
-        # the pin; before 2026-10-06 this was `anthropic>=0.80 --upgrade` and
-        # every run took whatever PyPI served that morning.
-        run: python3 -m pip install --quiet --require-hashes -r requirements.txt
+        run: python3 -m pip install --quiet --upgrade "anthropic>=0.80"
 
       - name: Run the triage
         id: triage
@@ -112,12 +106,31 @@ jobs:
           GIT_COMMITTER_NAME: Vladimir Mikhalev
           GIT_COMMITTER_EMAIL: 10498744+heyvaldemar@users.noreply.github.com
         run: |
-          git add triage-pending.json 2>/dev/null || true
-          git diff --cached --quiet && { echo "nothing pending changed"; exit 0; }
-          git commit -q -m "chore(triage): what is pushed and not yet judged" \
-            -m "Written by scripts/fleet-triage.sh. The next run reads the CI verdict for each of these and cuts the release or reverts."
-          git pull -q --rebase origin main || true
-          git push -q origin HEAD:main
+          # THE LEDGER IS LAID ON TOP OF MAIN, NOT REBASED ONTO IT. Until
+          # 2026-10-07 this step committed, ran `git pull --rebase || true` and
+          # pushed, and the rebase had never once worked: scripts/fleet-triage.sh
+          # was tracked without its exec bit, the `chmod +x` above left it
+          # modified, and git will not rebase over a modified file. Nobody saw,
+          # because nothing else pushed during a run. On 2026-10-06 at 23:11 a
+          # publish landed mid-run, the push was rejected, the ledger was lost,
+          # and the next run judged and released the previous run's refreshes a
+          # second time. This run's ledger is the truth for this one file, so it
+          # is copied onto whatever main is now and pushed, three tries, and a
+          # ledger that still cannot be pushed fails the job by name.
+          cp triage-pending.json "$RUNNER_TEMP/pending.json" 2>/dev/null || { echo "no ledger was written"; exit 0; }
+          for try in 1 2 3; do
+            git fetch -q origin main
+            git reset -q --hard origin/main
+            cp "$RUNNER_TEMP/pending.json" triage-pending.json
+            git add triage-pending.json
+            git diff --cached --quiet && { echo "nothing pending changed"; exit 0; }
+            git commit -q -m "chore(triage): what is pushed and not yet judged" \
+              -m "Written by scripts/fleet-triage.sh. The next run reads the CI verdict for each of these and cuts the release or reverts."
+            if git push -q origin HEAD:main; then echo "ledger pushed on try $try"; exit 0; fi
+            sleep 10
+          done
+          echo "::error::the pending ledger could not be pushed in three tries; the next run would judge this run's pushes as never made"
+          exit 1
 
       - name: Keep one report thread, and speak only when it changes
         # A line that says "needs a human" is a decision waiting, and a

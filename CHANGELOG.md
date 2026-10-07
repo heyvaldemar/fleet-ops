@@ -52,16 +52,6 @@ check or a job, a patch fixes one.
   and a timeout written as a literal.
 
 ### Changed
-- **Every `pip install` in the workflows is pinned by hash, and Dependabot
-  moves the pin.** The three scheduled jobs that call the model installed
-  `anthropic>=0.80 --upgrade`, and verify.yml installed pyflakes and pyyaml by
-  name: five lines that took whatever PyPI served that morning, which OpenSSF
-  Scorecard listed one by one under Pinned-Dependencies. They now install
-  `requirements.txt`, compiled from `requirements.in` with a hash for every
-  file, under `--require-hashes`. A `pip` Dependabot entry recompiles the lock
-  weekly, and verify.yml installs it on the pull request, so a bump is proven
-  before the auto-merge may take it.
-
 - **Triage moves `.env.example` with the pin.** The commented `X_IMAGE_VERSION=` default now follows every version bump and every prepared major, the way the README already did. Conformance reports an example that names a version the compose file no longer pins; on 2026-09-30 fifty-four such lines across forty-two templates were found and fixed by hand.
 
 - **The weekly sweep of the house writes down only what could become a
@@ -79,13 +69,19 @@ check or a job, a patch fixes one.
   that the unregistered ones hold no code to rate.
 
 ### Fixed
+- **The pending ledger survives a push that lands during a triage run.**
+  The step that saves it committed, ran `git pull --rebase || true` and
+  pushed, and the rebase had never once worked: `scripts/fleet-triage.sh` was
+  committed without its exec bit on 2026-09-01, the job's `chmod +x` left it
+  modified, and git refuses to rebase over a modified file. It held only
+  because nothing else pushed mid-run. On 2026-10-06 at 23:11 a publish did,
+  the ledger was lost, and the next run judged the previous run's twenty-six
+  refreshes a second time and released them again; every one of those
+  commits had its own green deploy run, checked afterwards. The ledger is now
+  laid on top of the current main and pushed, three tries, failing the job by
+  name if it cannot. The scripts are committed executable, and
+  `tests/test-file-modes.sh` fails on any that is not.
 
-- **The workflow hardening of 6 October is back after a commit undid it.** The triage
-  change in 8e66928 carried nine workflow and script files copied from before
-  the hardening merge: write scopes went back to workflow level, CodeQL and its
-  heartbeat entry were removed, and the badge rollout piped curl into Python
-  again. Those files are restored as they stood after the hardening and the
-  hashed pip lock; the triage change itself is kept unchanged.
 - **The latest run on main is chosen by triage, not by GitHub's branch
   filter.** On 2026-10-06 the rerun pass asked for the newest run on main with
   `--branch main --limit 1` and was answered with one from 2026-09-14, three

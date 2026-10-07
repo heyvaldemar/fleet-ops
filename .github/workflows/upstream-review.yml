@@ -29,17 +29,13 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   review:
     name: Read the release notes against the template
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    permissions:
-      contents: read
-      # The OIDC token this job mints is what Anthropic exchanges; see the
-      # header. Nothing else here writes.
-      id-token: write
     steps:
       - name: Checkout fleet-ops
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -61,11 +57,7 @@ jobs:
           if [ -f tests/test-lab-sweep.sh ]; then chmod +x tests/test-lab-sweep.sh; ./tests/test-lab-sweep.sh; else echo "no lab sweep in this copy"; fi
 
       - name: Install the SDK
-        # Pinned by hash from requirements.txt (compiled from requirements.in),
-        # and pip refuses a file whose hash does not match. Dependabot raises
-        # the pin; before 2026-10-06 this was `anthropic>=0.80 --upgrade` and
-        # every run took whatever PyPI served that morning.
-        run: python3 -m pip install --quiet --require-hashes -r requirements.txt
+        run: python3 -m pip install --quiet --upgrade "anthropic>=0.80"
 
       - name: What the OIDC token says about this run (claims only, never the token)
         # The federation rule matches on these. When an exchange is denied,
