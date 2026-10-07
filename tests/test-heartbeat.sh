@@ -511,6 +511,42 @@ asked = []
 hb.last_fired("o/r", 1, lambda age: age <= 24 * 2 + 2)
 check("the same age for a daily schedule goes on to the filters", len(asked) > 1, True)
 
+# 2026-10-07: two sweeps in a row ended on one HTTP 500 that GitHub answered
+# correctly minutes later. A 5xx is asked again; a 4xx is an answer.
+import subprocess as _sp
+_fs = importlib.util.spec_from_file_location("hb_fresh", "scripts/fleet-heartbeat.py")
+hbf = importlib.util.module_from_spec(_fs)
+_fs.loader.exec_module(hbf)              # the real gh(), not the stand-ins above
+_real_co, _real_sleep = hbf.subprocess.check_output, hbf.time.sleep
+hbf.time.sleep = lambda s: None
+def flaky(codes):
+    seen = []
+    def co(cmd, stderr=None):
+        seen.append(cmd)
+        code = codes[len(seen) - 1] if len(seen) <= len(codes) else 200
+        if code != 200:
+            raise _sp.CalledProcessError(1, cmd, output=b"", stderr=("gh: Server Error (HTTP %d)" % code).encode())
+        return b'{"ok": true}'
+    return co, seen
+co, seen = flaky([500])
+hbf.subprocess.check_output = co
+check("a 500 is asked again and the answer used", (hbf.gh("x"), len(seen)), ({"ok": True}, 2))
+co, seen = flaky([404])
+hbf.subprocess.check_output = co
+try:
+    hbf.gh("x"); ended = None
+except SystemExit as e:
+    ended = str(e)
+check("a 404 is an answer, not retried", (len(seen), "HTTP 404" in (ended or "")), (1, True))
+co, seen = flaky([502, 502, 502])
+hbf.subprocess.check_output = co
+try:
+    hbf.gh("x"); ended = None
+except SystemExit as e:
+    ended = str(e)
+check("three server errors still end it, saying which", (len(seen), "HTTP 502" in (ended or "")), (3, True))
+hbf.subprocess.check_output, hbf.time.sleep = _real_co, _real_sleep
+
 # The same stale filter, deciding whether this repository's own workflows
 # are red: last week's failure must not read as the current state when the
 # plain list holds a newer success.

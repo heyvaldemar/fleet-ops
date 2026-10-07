@@ -169,12 +169,26 @@ def report(findings):
     return len(blocking)
 
 
+# A SERVER ERROR IS ASKED AGAIN BEFORE IT ENDS THE SWEEP. On 2026-10-07 two
+# sweeps in a row ended on one request, a check-runs read for one commit that
+# GitHub answered with HTTP 500 and answered correctly minutes later. Ninety-
+# four repositories went unreported for one transient answer. A 5xx, or a
+# connection that did not complete, is asked twice more after a pause; a 4xx
+# is an answer and is not.
+RETRY_PAUSES = (3, 10)
+
+
 def gh(path):
-    try:
-        return json.loads(subprocess.check_output(["gh", "api", path], stderr=subprocess.PIPE))
-    except subprocess.CalledProcessError as e:
-        lines = (e.stderr or b"").decode("utf-8", "replace").strip().splitlines()
-        sys.exit("cannot read %s: %s" % (path, lines[0] if lines else "gh api failed"))
+    for pause in RETRY_PAUSES + (None,):
+        try:
+            return json.loads(subprocess.check_output(["gh", "api", path], stderr=subprocess.PIPE))
+        except subprocess.CalledProcessError as e:
+            lines = (e.stderr or b"").decode("utf-8", "replace").strip().splitlines()
+            said = lines[0] if lines else "gh api failed"
+            transient = re.search(r"HTTP 5\d\d|connection (reset|refused)|timeout|EOF", " ".join(lines), re.I)
+            if pause is None or not transient:
+                sys.exit("cannot read %s: %s" % (path, said))
+            time.sleep(pause)
 
 
 def gh_exists(path):
@@ -480,7 +494,7 @@ def runs_of(repo, ident, event, branch=None, n=10):
     q = "event=%s" % event + ("&branch=%s" % branch if branch else "")
     filtered = gh("repos/%s/actions/workflows/%s/runs?%s&per_page=%d" % (repo, ident, q, n))["workflow_runs"]
     try:
-        plain = gh("repos/%s/actions/workflows/%s/runs?per_page=100" % (repo, ident))["workflow_runs"]
+        plain = gh("repos/%s/actions/workflows/%s/runs?per_page=30" % (repo, ident))["workflow_runs"]
     # gh() exits on a failed call, and SystemExit is not an Exception: a plain
     # list that could not be read must cost this answer, not the whole sweep.
     except (Exception, SystemExit):
@@ -498,7 +512,7 @@ def runs_of(repo, ident, event, branch=None, n=10):
 
 
 def unfiltered_schedule(repo, ident):
-    """The newest scheduled run among the workflow's latest hundred, asked
+    """The newest scheduled run among the workflow's latest twenty, asked
     WITHOUT the event filter and picked out here.
 
     Both questions above go through GitHub's event=schedule filter, and on
@@ -513,7 +527,12 @@ def unfiltered_schedule(repo, ident):
     newer, so it can remove a false alarm and never invent one.
     """
     try:
-        runs = gh("repos/%s/actions/workflows/%s/runs?per_page=100" % (repo, ident))["workflow_runs"]
+        # TWENTY, NOT A HUNDRED. A hundred runs is 1.6 MB and three and a half
+        # seconds per workflow; across some 330 of them that alone was the
+        # nineteen minutes the sweep spent on 2026-10-07. Twenty is 0.3 MB in
+        # a second, and a daily schedule's latest run is inside it; a weekly
+        # one crowded out by pushes falls through to the filtered questions.
+        runs = gh("repos/%s/actions/workflows/%s/runs?per_page=20" % (repo, ident))["workflow_runs"]
     except (Exception, SystemExit):
         return None
     sched = [when(r) for r in runs if r.get("event") == "schedule"]

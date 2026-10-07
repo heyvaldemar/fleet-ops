@@ -53,7 +53,11 @@ jobs:
   heartbeat:
     name: Are the scheduled jobs still running
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Thirty, not twenty. The sweep of the fleet took fifteen to seventeen
+    # minutes by October 2026 and twenty left no room: on 2026-10-07 it ran a
+    # few seconds over and the job was cancelled in the middle of reporting.
+    # This repository is public, so the minutes are not metered.
+    timeout-minutes: 30
     permissions:
       contents: read
       actions: read

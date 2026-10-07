@@ -82,7 +82,15 @@ check or a job, a patch fixes one.
   nearly everywhere the sweep outgrew its twenty minutes and reported
   nothing, which is why the order matters. A plain list that cannot be read
   costs that one answer, not the sweep. The checks of this repository's own
-  scheduled and push workflows merge the two lists by run id.
+  scheduled and push workflows merge the two lists by run id. The plain list
+  is asked for twenty runs, not a hundred: a hundred is 1.6 MB and three and a
+  half seconds per workflow, which across some 330 workflows was the nineteen
+  minutes the second attempt took. And a server error no longer ends the
+  sweep: two runs in a row died on one HTTP 500 for a single commit's
+  check-runs that GitHub answered correctly minutes later, so a 5xx is asked
+  twice more after a pause while a 4xx stays an answer. The job's limit is
+  thirty minutes, up from twenty that a fifteen-to-seventeen-minute sweep had
+  already outgrown.
 
 - **A tag announced an hour ago is a wait, not a decision.** On 2026-10-07
   Ghost tagged 6.69.0 on GitHub one minute after the triage run started, the
