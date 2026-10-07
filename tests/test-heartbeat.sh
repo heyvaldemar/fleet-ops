@@ -444,15 +444,28 @@ got = hb.last_fired("o/r", 1)
 check("a schedule that really stopped is still old",
       (now - got).total_seconds() / 3600 > 100, True)
 
-# The second ask costs a request, so it is only made when it could change the
-# answer. A fresh windowed result must not trigger it.
+# Every ask costs a request, and the sweep has twenty minutes for ninety-four
+# repositories. A fresh scheduled run in the plain list answers in one; with
+# none there, a fresh windowed result is not confirmed again.
 asked = []
 def counting(path):
     asked.append(path)
+    if "event=" not in path:
+        return {"workflow_runs": [{"created_at": ago(2), "event": "schedule"}]}
     return runs_at(fresh) if "created=" in path else runs_at(ago(1))
 hb.gh = counting
 hb.last_fired("o/r", 1)
-check("a fresh answer is not confirmed twice", len(asked), 1)
+check("a fresh scheduled run in the plain list is one request", len(asked), 1)
+
+asked = []
+def counting2(path):
+    asked.append(path)
+    if "event=" not in path:
+        return {"workflow_runs": [{"created_at": ago(1), "event": "push"}]}
+    return runs_at(fresh) if "created=" in path else runs_at(ago(1))
+hb.gh = counting2
+hb.last_fired("o/r", 1)
+check("without one, a fresh window is not confirmed twice", len(asked), 2)
 
 # 2026-10-07 14:27: both event=schedule asks were stale, the windowed one at
 # the 4th and the unwindowed one, an hour later, at July, while the plain list
@@ -482,6 +495,21 @@ hb.gh = three([], [], [{"created_at": ago(2), "event": "schedule"}])
 got = hb.last_fired("o/r", 1)
 check("an empty window is answered by the plain list as well",
       got is not None and abs((now - got).total_seconds() / 3600 - 2) < 0.2, True)
+
+# A weekly schedule's newest run is days old by design. Inside its own
+# period it is settled by the plain list alone, not sent on to the filters.
+asked = []
+def weekly(path):
+    asked.append(path)
+    if "event=" not in path:
+        return {"workflow_runs": [{"created_at": ago(100), "event": "schedule"}]}
+    return runs_at(ago(100))
+hb.gh = weekly
+got = hb.last_fired("o/r", 1, lambda age: age <= 7 * 24 * 2 + 2)
+check("a weekly run inside its period is one request", len(asked), 1)
+asked = []
+hb.last_fired("o/r", 1, lambda age: age <= 24 * 2 + 2)
+check("the same age for a daily schedule goes on to the filters", len(asked) > 1, True)
 
 # The same stale filter, deciding whether this repository's own workflows
 # are red: last week's failure must not read as the current state when the
@@ -789,7 +817,7 @@ hb5.stuck_dependabot = lambda owner, repos, now, stats=None: []
 hb5.unverified_heads = lambda owner, repos, now: []
 hb5.missing_standard_files = lambda *a: []
 hb5.gh_exists = lambda path: True
-hb5.last_fired = lambda full, ident: {2: now5 - _dt5.timedelta(hours=80), 3: now5 - _dt5.timedelta(hours=5)}.get(ident)
+hb5.last_fired = lambda full, ident, settled=None: {2: now5 - _dt5.timedelta(hours=80), 3: now5 - _dt5.timedelta(hours=5)}.get(ident)
 hb5.declared_period = lambda full, path: 24.0
 found5, n5, checked5, disabled5, _ = hb5.fleet("o", 2.0, now5)
 check("a disabled schedule in a private repository is a finding",

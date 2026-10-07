@@ -74,10 +74,15 @@ check or a job, a patch fixes one.
   for 74 hours; it had fired ninety minutes earlier. Both of its questions
   went through GitHub's `event=schedule` filter, and that filter was the stale
   part: asked again it answered with a run 339 hours old, while the plain list
-  of the workflow's runs was current. The plain list is now a third answer,
-  picked over here, and the newest of the three wins, so it can only remove a
-  false alarm. The checks of this repository's own scheduled and push
-  workflows merge the two lists the same way.
+  of the workflow's runs was current. The plain list is now asked first: a
+  scheduled run in it inside the workflow's own period settles the question
+  in one request, and only an older one goes on to the filtered questions,
+  where the newest answer of all still wins. The first version of this fix
+  asked the plain list third, on top of the other two; with the filter stale
+  nearly everywhere the sweep outgrew its twenty minutes and reported
+  nothing, which is why the order matters. A plain list that cannot be read
+  costs that one answer, not the sweep. The checks of this repository's own
+  scheduled and push workflows merge the two lists by run id.
 
 - **A tag announced an hour ago is a wait, not a decision.** On 2026-10-07
   Ghost tagged 6.69.0 on GitHub one minute after the triage run started, the

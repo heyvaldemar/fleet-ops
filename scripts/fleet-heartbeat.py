@@ -384,7 +384,7 @@ def scheduled_workflows(root):
 CONFIRM_AFTER_HOURS = 30
 
 
-def last_fired(repo, ident):
+def last_fired(repo, ident, settled=None):
     """When a workflow last FIRED on its schedule, whatever came of it.
 
     The first version asked for successful runs only, which made a job that
@@ -396,7 +396,25 @@ def last_fired(repo, ident):
 
     By numeric id, not by file name: GitHub also lists workflows it manages
     itself, whose "path" is not a file in the repository at all.
+
+    `settled(age_hours)`, when given, says whether an age is inside the
+    workflow's own period, so that a weekly schedule's five-day-old run is
+    taken from the plain list as readily as a daily one's.
     """
+    # THE PLAIN LIST FIRST, AND USUALLY ALONE. The filtered questions below
+    # are the ones that go stale (see unfiltered_schedule). On 2026-10-07 the
+    # event filter was stale across the fleet, nearly every workflow went on
+    # to be confirmed, and with the plain list added as a third ask the sweep
+    # outgrew its twenty minutes and reported nothing at all. A scheduled run
+    # in the plain list younger than the confirm threshold proves the schedule
+    # fires, in one request; only an answer older than that, or none, goes on
+    # to the filtered questions, and the newest of everything still wins.
+    plain = unfiltered_schedule(repo, ident)
+    if plain:
+        age = (datetime.datetime.now(datetime.timezone.utc) - plain).total_seconds() / 3600
+        if age <= CONFIRM_AFTER_HOURS or (settled is not None and settled(age)):
+            return plain
+
     # ASKED BY DATE, NOT BY POSITION, AND NOT BY SORTING WHAT COMES BACK.
     #
     # Sorting ten records fixes an order that arrived wrong. It cannot fix a
@@ -436,10 +454,7 @@ def last_fired(repo, ident):
                                     % (repo, ident))["workflow_runs"])
             if again:
                 newest = max(newest, when(again[0]))
-            plain = unfiltered_schedule(repo, ident)
-            if plain:
-                newest = max(newest, plain)
-        return newest
+        return max(newest, plain) if plain else newest
     # Nothing inside the window at all. That is either a workflow with no
     # schedule, or one that stopped more than thirty days ago, and those are
     # different answers: the first must stay silent, the second must not. Ask
@@ -448,7 +463,6 @@ def last_fired(repo, ident):
     ever = newest_first(gh("repos/%s/actions/workflows/%s/runs?event=schedule&per_page=100"
                            % (repo, ident))["workflow_runs"])
     found = [when(ever[0])] if ever else []
-    plain = unfiltered_schedule(repo, ident)
     if plain:
         found.append(plain)
     return max(found) if found else None
@@ -467,7 +481,9 @@ def runs_of(repo, ident, event, branch=None, n=10):
     filtered = gh("repos/%s/actions/workflows/%s/runs?%s&per_page=%d" % (repo, ident, q, n))["workflow_runs"]
     try:
         plain = gh("repos/%s/actions/workflows/%s/runs?per_page=100" % (repo, ident))["workflow_runs"]
-    except Exception:
+    # gh() exits on a failed call, and SystemExit is not an Exception: a plain
+    # list that could not be read must cost this answer, not the whole sweep.
+    except (Exception, SystemExit):
         plain = []
     picked = [r for r in plain if r.get("event") == event
               and (branch is None or r.get("head_branch") == branch)]
@@ -498,7 +514,7 @@ def unfiltered_schedule(repo, ident):
     """
     try:
         runs = gh("repos/%s/actions/workflows/%s/runs?per_page=100" % (repo, ident))["workflow_runs"]
-    except Exception:
+    except (Exception, SystemExit):
         return None
     sched = [when(r) for r in runs if r.get("event") == "schedule"]
     return max(sched) if sched else None
@@ -872,13 +888,23 @@ def stuck_dependabot(owner, repos, now, hours=24, stats=None):
 
 def schedule_late(full, wf, now, tolerance):
     """(finding or None, 1 if a schedule was judged else 0) for one workflow."""
-    fired = last_fired(full, wf["id"])
+    # The period costs a request, so it is read once, and only for a run
+    # older than a day: the same reads this function always made.
+    memo = {}
+    def period_of():
+        if "p" not in memo:
+            memo["p"] = declared_period(full, wf["path"])
+        return memo["p"]
+    def settled(age):
+        p = period_of()
+        return p is not None and age <= p * tolerance + 2
+    fired = last_fired(full, wf["id"], settled)
     if fired is None:
         return None, 0                        # no schedule, or one that has never fired
     age = (now - fired).total_seconds() / 3600
     if age <= 24:
         return None, 1                        # inside a day: no schedule here is that fast
-    period = declared_period(full, wf["path"])
+    period = period_of()
     if period is None:
         return None, 0                        # scheduled runs but no cron now: descheduled on purpose
     if age > period * tolerance + 2:
@@ -1280,7 +1306,7 @@ def main():
             findings.append("%s is %s: it is not running, and it has no failing run to show for it" % (name, meta["state"]))
             rows.append((name, period, meta["state"], "—"))
             continue
-        fired = last_fired(a.repo, meta["id"])
+        fired = last_fired(a.repo, meta["id"], lambda age, allowed=allowed: age <= allowed)
         if fired is None:
             # Never fired on its schedule. New is fine; old is not, and the age
             # of the file is what tells them apart.
