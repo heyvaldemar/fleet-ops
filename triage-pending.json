@@ -1,194 +1,26 @@
 [
   {
-    "repo": "audiobookshelf-traefik-letsencrypt-docker-compose",
-    "sha": "c33f921601ae126abc9533bf124c4483d8ce5b15",
+    "repo": "ghost-traefik-letsencrypt-docker-compose",
+    "sha": "bdcb0bffe0a25eea5cb4c1eabc2cf3d1e02fec73",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-07T14:05:00Z"
-  },
-  {
-    "repo": "beszel-traefik-letsencrypt-docker-compose",
-    "sha": "ae2c03a5f723b69c3d69081465544cd0079ee484",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-07T14:05:17Z"
-  },
-  {
-    "repo": "bitbucket-traefik-letsencrypt-docker-compose",
-    "sha": "e53d77164aa4c801706cfe735fe0100a079c3ad5",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-07T14:05:28Z",
-    "review": "\n## Upstream changes 10.5.0 -> 10.5.1\n\n**Verdict:** NEEDS ATTENTION \u2014 no release notes could be read, so breaking changes in Bitbucket's own code cannot be ruled out; the compose file still correctly pins PostgreSQL 17, so there is no companion-version mismatch.\n\n### Breaking changes\n- none found in the notes \u2014 the notes were not available at all. Atlassian's release notes for Bitbucket are published on their own site, not as GitHub release notes, and no copy was supplied for this review. Do not read this as \"no breaking changes exist\"; it means this review has no source to check them against.\n\n### Variables\n- none found in the notes. Compare manually against the `.env.example` / compose `environment:` blocks if Atlassian's own release page mentions new or renamed JVM/setup/JDBC variables \u2014 none of the current ones (`JDBC_*`, `SETUP_*`, `SERVER_*`, `JVM_*`) are flagged by anything read here.\n\n### Data and dependencies\n- none found in the notes \u2014 in particular no statement here about a required PostgreSQL version change. The compose file pins `postgres:17@sha256:...`, which the images themselves do not contradict.\n\n### Before applying\nSince the notes are missing, treat this as an unverified upgrade and check by hand before moving the pin from `10.5.0` to `10.5.1`:\n- Read Atlassian's actual Bitbucket 10.5.1 release notes and the Bitbucket Upgrade Guide at confluence/bitbucket's own documentation site (not GitHub) for this specific version jump, specifically looking for forced database migrations, Java version requirements, or deprecated config keys.\n- Take a database backup and a data-directory backup before upgrading (the `backups` service in this compose file does this automatically on its schedule \u2014 confirm a recent one exists, or trigger one manually).\n- Check Bitbucket's supported-platforms page for 10.5.1 to confirm PostgreSQL 17 is still supported (nothing here says otherwise, but it was not confirmed from notes either).\n- After pulling the new image, watch the `bitbucket` container's startup logs for any forced reindex or migration step before declaring it healthy.\n\n### Notes read\n- No release notes were available for this review (source marked \"none\" / \"not available: Atlassian publishes release notes on its own site, not on GitHub\"). Only the compose file, `.env.example`, and the image-diff summary were read.\n"
-  },
-  {
-    "repo": "chatops-privilege-wall",
-    "sha": "95ece669f6d6af42e98809fa79d9daa712896bca",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-07T14:05:37Z"
-  },
-  {
-    "repo": "dashy-traefik-letsencrypt-docker-compose",
-    "sha": "bee7d6e8031c0e7b5ccfa03e5a852aa083cb5481",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-07T14:06:04Z",
-    "review": "\n## Upstream changes 4.7.17 -> 4.7.19\n\n**Verdict:** SAFE TO APPLY \u2014 no breaking changes, no new/renamed variables, and the image configurations are confirmed identical in every behaviour-affecting field.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none. The commits are translation fixes (German/Italian strings) and three transitive npm dependency bumps (`proxy-addr` 2.0.7\u21922.0.8, `source-map-js` 1.2.1\u21921.2.2, `postcss-selector-parser` 7.1.4\u21927.1.6), none of which touch database/cache/search engine requirements, ports, paths, or defaults.\n\n### Before applying\n- none required. Routine update.\n\n### Notes read\n- Commits between 4.7.17 and 4.7.19 via the GitHub compare API (Lissy93/dashy); no dedicated release notes exist for these tags, so the commit list is the full record. No UPGRADING/BREAKING_CHANGES/CHANGELOG section was supplied for this range.\n"
-  },
-  {
-    "repo": "dify-traefik-letsencrypt-docker-compose",
-    "sha": "403bc4f604a8da06151033fe1afe5a658e4a9694",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-07T14:06:28Z"
-  },
-  {
-    "repo": "forgejo-traefik-letsencrypt-docker-compose",
-    "sha": "157c89934cc45085fc090ba26ad957d4630da616",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-07T14:06:43Z"
-  },
-  {
-    "repo": "gaseous-server-using-docker-compose",
-    "sha": "b9fea9af14abb220857679dc81b263e72ae5fe8f",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-07T14:06:53Z"
-  },
-  {
-    "repo": "gitlab-traefik-letsencrypt-docker-compose",
-    "sha": "4440089530236acec5a40ec77910e4ec340b24d3",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-07T14:07:13Z"
-  },
-  {
-    "repo": "glpi-traefik-letsencrypt-docker-compose",
-    "sha": "ddf9ab5177a4f9c3c628be2fe02877a14b82b279",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-07T14:07:22Z"
-  },
-  {
-    "repo": "grafana-traefik-letsencrypt-docker-compose",
-    "sha": "64e0a7149d12f258377b8ae5ce2bd8425aad73c9",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-07T14:07:33Z"
+    "pushed_at": "2026-10-07T23:46:53Z",
+    "review": "\n## Upstream changes 6.68.0 -> 6.69.0\n\n**Verdict:** SAFE TO APPLY \u2014 notes list only features and bug fixes, and the registry shows no change in container config beyond the version label.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none \u2014 no variable renamed, removed, or newly required\n\n### Data and dependencies\n- none found in the notes. The registry diff shows only `GHOST_VERSION` changing from '6.68.0' to '6.69.0'; no user, entrypoint, command, port, volume, healthcheck or environment difference is reported between the two images.\n\n### Before applying\n- No manual migration or config edit required. Normal good practice applies: take the routine database/data backup (already automated by the `backups` service) before the image pull, then update `GHOST_IMAGE_VERSION` (or the pinned digest in the compose file's `x-images` block) and redeploy.\n\n### Notes read\n- v6.69.0 (TryGhost/Ghost, 2026-10-07)\n- v6.68.0 (TryGhost/Ghost, 2026-10-06) \u2014 read as baseline only, not as part of this upgrade's changes\n"
   },
   {
     "repo": "homeassistant-traefik-letsencrypt-docker-compose",
-    "sha": "989b7cebce9f69eb1fd208f724865e6e334b0e66",
+    "sha": "f15922c00589aee170875160403d804e7a0348f9",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-07T14:07:41Z"
-  },
-  {
-    "repo": "homebox-traefik-letsencrypt-docker-compose",
-    "sha": "77fb39e8119a13b8fe0bd986c63f1d36ea63238c",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-07T14:07:49Z"
-  },
-  {
-    "repo": "homepage-traefik-letsencrypt-docker-compose",
-    "sha": "d11af6852c4ff18035d3c3f84bb5a70eb62ecd3d",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-07T14:08:01Z"
+    "pushed_at": "2026-10-07T23:47:16Z",
+    "review": "\n## Upstream changes 2026.9.4 -> 2026.10.0\n\n**Verdict:** SAFE TO APPLY \u2014 no breaking changes, no new dependency version requirements, and the image config (user, entrypoint, ports, volumes, healthcheck, environment) is unchanged.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none \u2014 no renamed, removed, or newly required variables in the compose file or `.env.example`\n\n### Data and dependencies\n- none. The notes mention a PostgreSQL-related fix \u2014 `\"Fix PostgreSQL prerelease version detection in recorder (@DragonWork - #183146)\"` \u2014 but this is a detection-logic fix for the optional recorder integration, not a version requirement, and this template does not use PostgreSQL (SQLite via the `backups` service). No companion-service version is named as a requirement.\n- Various bumped Python library dependencies (uiprotect, wled, tesla-fleet-api, aiohttp, etc.) are internal to the Home Assistant image and not separately pinned by the compose file, so they carry nothing for the host to act on.\n\n### Before applying\n- None required beyond routine practice: the `backups` service already takes a consistent SQLite snapshot on its normal interval, so no manual backup step is introduced by this range.\n- Update the digest/tag pin in `x-images` (compose file) from `2026.9.4@sha256:...` to the `2026.10.0` image and digest once published, as with any routine version bump.\n\n### Notes read\n- 2026.10.0, and its pre-releases 2026.10.0b0 through 2026.10.0b7 (home-assistant/core), covering the full range from 2026.9.4.\n- Baseline-only: 2026.9.4 release notes, read for context per the instructions, not counted as a change in this range.\n- No UPGRADING, BREAKING_CHANGES, or CHANGELOG section was supplied for this range; none was found to read.\n"
   },
   {
     "repo": "immich-traefik-letsencrypt-docker-compose",
-    "sha": "082106bbfa935c9c6d082f9979194fc0bebb5e74",
+    "sha": "95cf12651a3ffc16b9871bc0d2bea8db8d4d442e",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-07T14:08:13Z"
-  },
-  {
-    "repo": "mssql-server-traefik-letsencrypt-docker-compose",
-    "sha": "843387974b5e43325beadce17fa8f7025f0c3b10",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-07T14:08:35Z"
-  },
-  {
-    "repo": "navidrome-traefik-letsencrypt-docker-compose",
-    "sha": "50aa963fe67d88d7ccfc02c5d3a84de4ccbfc45f",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-07T14:08:45Z"
-  },
-  {
-    "repo": "ollama-traefik-letsencrypt-docker-compose",
-    "sha": "1525c3fe28773b9121d7144767ac324d30f30b02",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-07T14:09:19Z",
-    "review": "\n## Upstream changes 0.35.1 -> 0.40.0\n\n**Verdict:** SAFE TO APPLY \u2014 the only intervening release note (v0.40.0) describes new model support on Apple Silicon/MLX, which does not apply to this container deployment, and the image configurations themselves are unchanged.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none \u2014 no variable additions, renames or removals are mentioned in the v0.40.0 notes, and `OLLAMA_INSTALL_MODELS` / `OLLAMA_IMAGE_VERSION` in the compose file and `.env.example` are unaffected\n\n### Data and dependencies\n- none. The v0.40.0 notes only cover: *\"on Apple Silicon devices, model architectures supported by the MLX runtime will automatically run on MLX\"* and list new/updated models (gemma4, qwen3.6, qwen3.5, Nimble, tev1, clef, clef-flash, embeddinggemma-2). This host runs a Linux container, so the MLX runtime path does not apply. No database, cache, or search-engine version requirement is named, and the compose file pins no companion data service for Ollama itself (Open WebUI and Traefik are unaffected by this image's release notes).\n- The baseline release (0.35.1) already documents decision-model support (`Clef`, `/v1/systemone`) and the `CAPABILITY` Modelfile field \u2014 these are pre-existing behaviour at the version the template currently runs, not something this upgrade introduces.\n\n### Before applying\n- No manual migration, config edit, or backup is required beyond routine good practice before any image bump.\n- Confirm no automation or Modelfiles in use rely on CPU/GPU-only model selection behaviour that the new MLX auto-routing could change on Apple Silicon hosts \u2014 not applicable if this deployment runs on Linux/x86 or Linux/ARM without MLX.\n\n### Notes read\n- v0.40.0 (2026-09-25) \u2014 the only entry in the supplied upstream notes between the two versions.\n- v0.35.1 (2026-09-29) \u2014 supplied as baseline only, not treated as part of this upgrade's changes.\n- No UPGRADING, BREAKING_CHANGES or CHANGELOG section was supplied for this range; none could be read beyond the release notes given.\n"
-  },
-  {
-    "repo": "otrs-traefik-letsencrypt-docker-compose",
-    "sha": "10fe38476ede58130cb4588b9a1bbbe716acd987",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-07T14:09:29Z"
-  },
-  {
-    "repo": "portainer-traefik-letsencrypt-docker-compose",
-    "sha": "81393e20ff41294924dd0063f8f6625182c87707",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-07T14:09:39Z"
-  },
-  {
-    "repo": "rocketchat-traefik-letsencrypt-docker-compose",
-    "sha": "db798efe99da31df5ce82b16cd8c4a9b2da8a362",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-07T14:09:51Z"
-  },
-  {
-    "repo": "romm-traefik-letsencrypt-docker-compose",
-    "sha": "8e9235ea46811633219f0e324f657a2ba64bd4fe",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-07T14:10:01Z"
-  },
-  {
-    "repo": "sftp-traefik-letsencrypt-docker-compose",
-    "sha": "65d5b74201f5a39444953d518f43b9a83d3e302e",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-07T14:10:10Z"
-  },
-  {
-    "repo": "sonarqube-traefik-letsencrypt-docker-compose",
-    "sha": "2e3371fc282fe7d25ab556ae4890b96289112bd0",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-07T14:10:21Z"
-  },
-  {
-    "repo": "uptime-kuma-traefik-letsencrypt-docker-compose",
-    "sha": "42bfd101379e955dd913c0095fadc46b70b6fa8f",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-07T14:10:33Z"
-  },
-  {
-    "repo": "webrcade-traefik-letsencrypt-docker-compose",
-    "sha": "5a240301b85606d32a9759b762e999306f365f94",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-07T14:10:42Z"
-  },
-  {
-    "repo": "wikijs-traefik-letsencrypt-docker-compose",
-    "sha": "2a5d528c6db3bcc22474165a4148fbc12c59b34d",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-07T14:10:52Z"
+    "pushed_at": "2026-10-07T23:47:50Z",
+    "review": "\n## Upstream changes v3.2.4 -> v3.3.0\n\n**Verdict:** NEEDS ATTENTION \u2014 no breaking changes in the notes, no companion-service version is raised, but the release only pays off if an opt-in machine-learning environment variable is added, and the ML container's cache paths have moved underneath this compose file's existing volume mount.\n\n### Breaking changes\n- none found in the notes. The RC disclaimers warn generically (\"may contain bugs or breaking changes\") but no specific breaking change is named for the server or machine-learning containers across rc.0, rc.1, rc.2 or the final notes.\n\n### Variables\n- New, opt-in: `MACHINE_LEARNING_MODEL_REVISION=v2` \u2014 \"Opt-in to the new machine learning models by adding the following environment variable to the machine learning container: `MACHINE_LEARNING_MODEL_REVISION=v2`\". Not set anywhere in the compose file or `.env.example`; without it the container runs the old models and none of the v3.3 ML performance/accuracy work applies. Not required \u2014 \"This setting will be the default in a later release\" \u2014 but every gain described under \"Machine learning performance and accuracy improvements\" depends on it.\n- No variables are renamed or removed in the notes.\n\n### Data and dependencies\n- WHAT THE IMAGES THEMSELVES DIFFER IN shows three new cache-directory environment variables baked into the image: `AMD_COMGR_CACHE_DIR` (`/cache/jit/comgr`), `CUDA_CACHE_PATH` (`/cache/jit/cuda`), `NEO_CACHE_DIR` (`/cache/jit/neo`). The compose file mounts only `immich-model-cache:/cache` as a whole, so these subpaths land inside the volume already mounted \u2014 no action needed, but worth knowing the volume now holds JIT caches for GPU backends in addition to models, which affects its growth on GPU-enabled hosts.\n- `LANG` (`C.UTF-8`) and `LD_PRELOAD` (`/usr/lib/libmimalloc.so.2`) are removed from the image's own environment. Neither is set or referenced in the compose file or `.env.example`, so nothing here needs editing, but if `libmimalloc` was relied on indirectly (e.g. for allocator behavior under load) that no longer applies.\n- `GPG_KEY` and Python patch version (3.11.15 -> 3.13.15) changed; both are image-internal build details, not something the compose file touches.\n- No companion-service version is named or raised by the notes \u2014 server and machine-learning move together per this template's own rule, and postgres/redis/traefik pins are untouched by anything in the notes. This does not downgrade the verdict to DO NOT APPLY, but it is also not a clearance: the notes simply say nothing about postgres/redis compatibility at v3.3, same as at baseline.\n- No irreversible migrations, no changed default ports or paths are named in the notes themselves.\n\n### Before applying\n- Add `MACHINE_LEARNING_MODEL_REVISION=v2` to the `immich-machine-learning` service's `environment:` block (or via a new `.env` variable wired into the compose file) to get the performance/accuracy improvements this release is actually about; without it the upgrade is a no-op for machine learning.\n- Take the routine backup: the RC disclaimers all repeat \"make sure you have a backup of your database and library before upgrading to this version,\" and the `backups` service in this compose file already does this nightly \u2014 confirm a recent dump exists in `immich-database-backups` before pulling.\n- No manual migration command is named in the notes. Immich's server handles schema migrations on boot per its usual pattern (unchanged from baseline).\n- After applying, expect the first model load under `MACHINE_LEARNING_MODEL_REVISION=v2` to take longer than usual as new model files download into `immich-model-cache` \u2014 not a hang.\n\n### Notes read\n- v3.3.0, v3.3.0-rc.2, v3.3.0-rc.1, v3.3.0-rc.0 (the full range from v3.2.4 to v3.3.0)\n- v3.2.4 read as baseline only, per instructions \u2014 its memory-leak fix is already live in the deployed template and is not a change introduced by this upgrade.\n\n## Upstream changes v3.2.4 -> v3.3.0\n\n**Verdict:** NEEDS ATTENTION \u2014 no breaking changes in the notes, no companion-service version is raised, but the release only pays off if an opt-in machine-learning environment variable is added, and the ML container's cache paths have moved underneath this compose file's existing volume mount.\n\n### Breaking changes\n- none found in the notes. The RC disclaimers warn generically (\"may contain bugs or breaking changes\") but no specific breaking change is named for the server or machine-learning containers across rc.0, rc.1, rc.2 or the final notes.\n\n### Variables\n- New, opt-in: `MACHINE_LEARNING_MODEL_REVISION=v2` \u2014 \"Opt-in to the new machine learning models by adding the following environment variable to the machine learning container: `MACHINE_LEARNING_MODEL_REVISION=v2`\". Not set anywhere in the compose file or `.env.example`; without it the container runs the old models and none of the v3.3 ML performance/accuracy work applies. Not required \u2014 \"This setting will be the default in a later release\" \u2014 but every gain described under \"Machine learning performance and accuracy improvements\" depends on it.\n- No variables are renamed or removed in the notes.\n\n### Data and dependencies\n- WHAT THE IMAGES THEMSELVES DIFFER IN shows three new cache-directory environment variables baked into the image: `AMD_COMGR_CACHE_DIR` (`/cache/jit/comgr`), `CUDA_CACHE_PATH` (`/cache/jit/cuda`), `NEO_CACHE_DIR` (`/cache/jit/neo`). The compose file mounts only `immich-model-cache:/cache` as a whole, so these subpaths land inside the volume already mounted \u2014 no action needed, but worth knowing the volume now holds JIT caches for GPU backends in addition to models, which affects its growth on GPU-enabled hosts.\n- `LANG` (`C.UTF-8`) and `LD_PRELOAD` (`/usr/lib/libmimalloc.so.2`) are removed from the image's own environment. Neither is set or referenced in the compose file or `.env.example`, so nothing here needs editing, but if `libmimalloc` was relied on indirectly (e.g. for allocator behavior under load) that no longer applies.\n- `GPG_KEY` and Python patch version (3.11.15 -> 3.13.15) changed; both are image-internal build details, not something the compose file touches.\n- No companion-service version is named or raised by the notes \u2014 server and machine-learning move together per this template's own rule, and postgres/redis/traefik pins are untouched by anything in the notes. This does not downgrade the verdict to DO NOT APPLY, but it is also not a clearance: the notes simply say nothing about postgres/redis compatibility at v3.3, same as at baseline.\n- No irreversible migrations, no changed default ports or paths are named in the notes themselves.\n\n### Before applying\n- Add `MACHINE_LEARNING_MODEL_REVISION=v2` to the `immich-machine-learning` service's `environment:` block (or via a new `.env` variable wired into the compose file) to get the performance/accuracy improvements this release is actually about; without it the upgrade is a no-op for machine learning.\n- Take the routine backup: the RC disclaimers all repeat \"make sure you have a backup of your database and library before upgrading to this version,\" and the `backups` service in this compose file already does this nightly \u2014 confirm a recent dump exists in `immich-database-backups` before pulling.\n- No manual migration command is named in the notes. Immich's server handles schema migrations on boot per its usual pattern (unchanged from baseline).\n- After applying, expect the first model load under `MACHINE_LEARNING_MODEL_REVISION=v2` to take longer than usual as new model files download into `immich-model-cache` \u2014 not a hang.\n\n### Notes read\n- v3.3.0, v3.3.0-rc.2, v3.3.0-rc.1, v3.3.0-rc.0 (the full range from v3.2.4 to v3.3.0)\n- v3.2.4 read as baseline only, per instructions \u2014 its memory-leak fix is already live in the deployed template and is not a change introduced by this upgrade.\n"
   }
 ]
