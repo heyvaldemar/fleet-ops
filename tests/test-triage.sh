@@ -314,6 +314,28 @@ case "$out" in *"changed=0 noted=0"*) ok "a green log is not read as a lag" ;; *
 out="$(srcfix 'db/x.yml' "RATHENA_REF is 2 commits behind upstream master (pinned $H, head $P)")"
 case "$out" in *"changed=0"*"does not pin"*) ok "a lag about a commit the Dockerfile does not pin is a person's" ;; *) no "a mismatched lag was applied: $out" ;; esac
 
+echo "== a tag announced an hour ago is a wait, not a decision"
+# 2026-10-07: Ghost tagged 6.69.0 one minute after the run started, the image
+# was hours from Docker Hub, and the line said "needs a human" regardless.
+unpub() {            # unpub <hours since the release, or "none"> -> the note
+  local when
+  if [ "$1" = none ]; then gh() { return 1; }; else
+    when="$(python3 -c 'import datetime,sys;print((datetime.datetime.now(datetime.timezone.utc)-datetime.timedelta(hours=int(sys.argv[1]))).strftime("%Y-%m-%dT%H:%M:%SZ"))' "$1")"
+    eval "gh() { echo '$when'; }"
+  fi
+  NOTES=()
+  unpublished_note ghost-template "ghost:6.69.0" "6.69.0"
+  printf '%s\n' "${NOTES[@]}"
+}
+out="$(unpub 0)"
+case "$out" in *"a wait"*) ok "announced this hour: a wait" ;; *) no "a fresh tag was not called a wait: $out" ;; esac
+case "$out" in *"needs a human"*) no "a fresh tag still asks a person" ;; *) ok "and no person is asked" ;; esac
+out="$(unpub 100)"
+case "$out" in *"(100h ago)"*"needs a human"*) ok "announced four days ago and still missing: a person is told, with the age" ;; *) no "a stale tag was not escalated: $out" ;; esac
+out="$(unpub none)"
+case "$out" in *"needs a human"*) ok "an age that cannot be read is told, never assumed fresh" ;; *) no "an unreadable age was taken as a wait: $out" ;; esac
+same "an image with no known source has no age" "" "$(announced_hours some/unknown-image 1.0)"
+
 echo "== the log is read before the job names"
 # immich, 2026-09-25 11:01: the registry refused the three scans and the
 # deploy's pulls in one run; the deploy job's name matched first and the run

@@ -700,6 +700,53 @@ source_ref_refresh() {   # <dir> <repo> <freshness log file>; sets SRC_CHANGED a
   SRC_CHANGED=1
 }
 
+# AN UNPUBLISHED TAG IS USUALLY A WAIT, NOT A DECISION. On 2026-10-07 Ghost
+# tagged 6.69.0 on GitHub at 13:58:59, one minute after this run started, and
+# the official image was hours from Docker Hub. The line said "needs a human"
+# regardless, so a routine wait opened a decision issue and an email. The age
+# of the announcement now decides: under three days it is a wait; older, or
+# when the age cannot be read, a person is told, because a tag that never
+# appears leaves the repository red for good.
+UNPUBLISHED_PATIENCE_H=72
+TRIAGE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+announced_hours() {   # announced_hours <image without tag> <version>: whole hours, or nothing
+  local image="$1" v="$2" src t pub=""
+  src="$(python3 - "$TRIAGE_DIR/upstream-review.py" "$image" <<'PY' 2>/dev/null || true
+import ast, io, re, sys
+s = io.open(sys.argv[1], encoding="utf-8").read()
+b = s.split("SOURCES = ", 1)[1]
+depth = 0
+for i, c in enumerate(b):
+    if c == "{":
+        depth += 1
+    elif c == "}":
+        depth -= 1
+        if depth == 0:
+            b = b[:i + 1]
+            break
+print(ast.literal_eval(b).get(re.sub(r"^docker\.io/(library/)?", "", sys.argv[2]), ""))
+PY
+)"
+  [ -n "$src" ] || return 0
+  for t in "v${v#v}" "${v#v}"; do
+    pub="$(gh api "repos/$src/releases/tags/$t" --jq '.published_at // empty' 2>/dev/null || true)"
+    [ -n "$pub" ] && break
+  done
+  [ -n "$pub" ] || return 0
+  python3 -c 'import datetime, sys
+t = datetime.datetime.strptime(sys.argv[1], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
+print(int((datetime.datetime.now(datetime.timezone.utc) - t).total_seconds() // 3600))' "$pub"
+}
+unpublished_note() {  # unpublished_note <repo> <new ref> <new version>
+  local repo="$1" newref="$2" newv="$3" age
+  age="$(announced_hours "${newref%:*}" "$newv")"
+  if [ -n "$age" ] && [ "$age" -lt "$UNPUBLISHED_PATIENCE_H" ]; then
+    note "$repo: $newref was announced upstream ${age}h ago and its image is not published yet — a wait, retried next run"
+  else
+    note "$repo: $newref is announced upstream${age:+ (${age}h ago)} but not published yet — skipped, retried next run; if it never appears the freshness check stays red — needs a human"
+  fi
+}
+
 push_and_defer() {
   local dir="$1" repo="$2" wf="$3" sha err
   err="$WORKDIR/push-$repo.err"
@@ -1351,7 +1398,7 @@ for repo in "${REPOS[@]}"; do
         # is not nothing either: a tag that never appears leaves this
         # repository red forever, so it is said once, plainly, instead of twice
         # as itself and again as "nothing was auto-fixable".
-        note "$repo: $newref is announced upstream but not published yet — skipped, retried next run; if it never appears the freshness check stays red — needs a human"
+        unpublished_note "$repo" "$newref" "$newv"
         UNRESOLVED_TAG=1
         continue
       fi

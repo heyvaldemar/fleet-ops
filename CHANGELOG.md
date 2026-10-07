@@ -69,6 +69,14 @@ check or a job, a patch fixes one.
   that the unregistered ones hold no code to rate.
 
 ### Fixed
+- **A tag announced an hour ago is a wait, not a decision.** On 2026-10-07
+  Ghost tagged 6.69.0 on GitHub one minute after the triage run started, the
+  official image was hours from Docker Hub, and the report said "needs a
+  human" regardless, which opened a decision issue for a routine wait. The
+  age of the upstream release now decides: under 72 hours the line says it is
+  a wait; older, or when the age cannot be read, a person is told, with the
+  age, because a tag that never appears leaves the repository red for good.
+
 - **The pending ledger survives a push that lands during a triage run.**
   The step that saves it committed, ran `git pull --rebase || true` and
   pushed, and the rebase had never once worked: `scripts/fleet-triage.sh` was
