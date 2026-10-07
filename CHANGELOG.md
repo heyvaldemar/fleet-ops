@@ -69,6 +69,16 @@ check or a job, a patch fixes one.
   that the unregistered ones hold no code to rate.
 
 ### Fixed
+- **The heartbeat asks a second index before it calls a schedule stopped.**
+  On 2026-10-07 at 14:27 it reported keycloak's daily verification as silent
+  for 74 hours; it had fired ninety minutes earlier. Both of its questions
+  went through GitHub's `event=schedule` filter, and that filter was the stale
+  part: asked again it answered with a run 339 hours old, while the plain list
+  of the workflow's runs was current. The plain list is now a third answer,
+  picked over here, and the newest of the three wins, so it can only remove a
+  false alarm. The checks of this repository's own scheduled and push
+  workflows merge the two lists the same way.
+
 - **A tag announced an hour ago is a wait, not a decision.** On 2026-10-07
   Ghost tagged 6.69.0 on GitHub one minute after the triage run started, the
   official image was hours from Docker Hub, and the report said "needs a

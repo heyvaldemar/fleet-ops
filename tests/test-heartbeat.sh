@@ -454,6 +454,55 @@ hb.gh = counting
 hb.last_fired("o/r", 1)
 check("a fresh answer is not confirmed twice", len(asked), 1)
 
+# 2026-10-07 14:27: both event=schedule asks were stale, the windowed one at
+# the 4th and the unwindowed one, an hour later, at July, while the plain list
+# of the workflow's runs held a scheduled run from ninety minutes before.
+def three(windowed, by_event, plain):
+    def g(path):
+        if "created=" in path:
+            return runs_at(*windowed)
+        if "event=" in path:
+            return runs_at(*by_event)
+        return {"workflow_runs": plain}
+    return g
+
+hb.gh = three([ago(74)], [ago(2000)], [{"created_at": ago(1), "event": "push"},
+                                       {"created_at": ago(1.5), "event": "schedule"},
+                                       {"created_at": ago(74), "event": "schedule"}])
+got = hb.last_fired("o/r", 1)
+check("a stale event filter is corrected by the plain list",
+      abs((now - got).total_seconds() / 3600 - 1.5) < 0.2, True)
+
+hb.gh = three([ago(74)], [ago(74)], [{"created_at": ago(1), "event": "push"}])
+got = hb.last_fired("o/r", 1)
+check("a fresh push is not taken for a fired schedule",
+      abs((now - got).total_seconds() / 3600 - 74) < 0.2, True)
+
+hb.gh = three([], [], [{"created_at": ago(2), "event": "schedule"}])
+got = hb.last_fired("o/r", 1)
+check("an empty window is answered by the plain list as well",
+      got is not None and abs((now - got).total_seconds() / 3600 - 2) < 0.2, True)
+
+# The same stale filter, deciding whether this repository's own workflows
+# are red: last week's failure must not read as the current state when the
+# plain list holds a newer success.
+def two(filtered, plain):
+    def g(path):
+        return {"workflow_runs": filtered if "event=" in path else plain}
+    return g
+
+hb.gh = two([{"id": 1, "created_at": ago(150), "event": "schedule", "conclusion": "failure"}],
+            [{"id": 2, "created_at": ago(3), "event": "schedule", "conclusion": "success"},
+             {"id": 1, "created_at": ago(150), "event": "schedule", "conclusion": "failure"}])
+runs = hb.runs_of("o/r", 1, "schedule")
+check("the newest run from either list is the latest", (runs[0]["id"], runs[0]["conclusion"]), (2, "success"))
+check("and a run both lists hold is counted once", len(runs), 2)
+
+hb.gh = two([], [{"id": 5, "created_at": ago(1), "event": "push", "head_branch": "dependabot/x", "conclusion": "failure"},
+                 {"id": 4, "created_at": ago(2), "event": "push", "head_branch": "main", "conclusion": "success"}])
+runs = hb.runs_of("o/r", 1, "push", branch="main", n=1)
+check("a push on another branch is not main's state", [r["id"] for r in runs], [4])
+
 print()
 print("=== the listing that decides what gets checked at all ===")
 # Two Dependabot pull requests sat on heyvaldemar-com, the live website, for

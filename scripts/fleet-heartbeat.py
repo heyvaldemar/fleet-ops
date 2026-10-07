@@ -436,6 +436,9 @@ def last_fired(repo, ident):
                                     % (repo, ident))["workflow_runs"])
             if again:
                 newest = max(newest, when(again[0]))
+            plain = unfiltered_schedule(repo, ident)
+            if plain:
+                newest = max(newest, plain)
         return newest
     # Nothing inside the window at all. That is either a workflow with no
     # schedule, or one that stopped more than thirty days ago, and those are
@@ -444,7 +447,61 @@ def last_fired(repo, ident):
     # old, so an imprecise answer here cannot invent an alarm, only confirm one.
     ever = newest_first(gh("repos/%s/actions/workflows/%s/runs?event=schedule&per_page=100"
                            % (repo, ident))["workflow_runs"])
-    return when(ever[0]) if ever else None
+    found = [when(ever[0])] if ever else []
+    plain = unfiltered_schedule(repo, ident)
+    if plain:
+        found.append(plain)
+    return max(found) if found else None
+
+
+def runs_of(repo, ident, event, branch=None, n=10):
+    """A workflow's runs for one event (and branch), newest first, from two
+    indexes: GitHub's filtered list and the plain list picked over here.
+
+    The filtered list is the one that goes stale (see unfiltered_schedule): a
+    latest run that is really three days old reads as the latest, and a red
+    one from last week reads as the current state. Merged by run id with the
+    plain list, a newer run in either is the answer.
+    """
+    q = "event=%s" % event + ("&branch=%s" % branch if branch else "")
+    filtered = gh("repos/%s/actions/workflows/%s/runs?%s&per_page=%d" % (repo, ident, q, n))["workflow_runs"]
+    try:
+        plain = gh("repos/%s/actions/workflows/%s/runs?per_page=100" % (repo, ident))["workflow_runs"]
+    except Exception:
+        plain = []
+    picked = [r for r in plain if r.get("event") == event
+              and (branch is None or r.get("head_branch") == branch)]
+    seen, out = set(), []
+    for r in newest_first(filtered + picked):
+        key = r.get("id") or r.get("created_at")
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(r)
+    return out
+
+
+def unfiltered_schedule(repo, ident):
+    """The newest scheduled run among the workflow's latest hundred, asked
+    WITHOUT the event filter and picked out here.
+
+    Both questions above go through GitHub's event=schedule filter, and on
+    2026-10-07 at 14:27 that filter was the stale part: it answered for
+    keycloak's deployment-verification.yml with a run from the 4th while runs
+    from the 5th, 6th and 7th sat in the same list, the last ninety minutes
+    old, and the report said a daily schedule had been silent for 74 hours.
+    The same filter, asked again an hour later, answered with a run from
+    July. The unfiltered list was current both times, as the unfiltered list
+    was when triage's branch filter went stale the day before. A third answer
+    from a different index; like the second, it can only ever make a run
+    newer, so it can remove a false alarm and never invent one.
+    """
+    try:
+        runs = gh("repos/%s/actions/workflows/%s/runs?per_page=100" % (repo, ident))["workflow_runs"]
+    except Exception:
+        return None
+    sched = [when(r) for r in runs if r.get("event") == "schedule"]
+    return max(sched) if sched else None
 
 
 def when(run):
@@ -1055,8 +1112,7 @@ def failing_here(repo, tolerance, now):
         meta = states.get(name)
         if not meta or meta["state"] != "active":
             continue
-        runs = newest_first(gh("repos/%s/actions/workflows/%s/runs?event=schedule&per_page=10"
-                               % (repo, meta["id"]))["workflow_runs"])
+        runs = runs_of(repo, meta["id"], "schedule")
         if not runs:
             continue
         latest = runs[0]
@@ -1110,8 +1166,7 @@ def red_on_main(repo, root="."):
         meta = states.get(name)
         if not meta or meta["state"] != "active" or name in scheduled:
             continue
-        runs = newest_first(gh("repos/%s/actions/workflows/%s/runs?event=push&branch=main&per_page=1"
-                               % (repo, meta["id"]))["workflow_runs"])
+        runs = runs_of(repo, meta["id"], "push", branch="main", n=1)
         if not runs or runs[0].get("conclusion") in (None, "success", "cancelled", "skipped"):
             rows.append((name, "ok", "on push"))
             continue
