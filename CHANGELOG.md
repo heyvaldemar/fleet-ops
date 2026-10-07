@@ -79,6 +79,13 @@ check or a job, a patch fixes one.
   that the unregistered ones hold no code to rate.
 
 ### Fixed
+
+- **The workflow hardening of 6 October is back after a commit undid it.** The triage
+  change in 8e66928 carried nine workflow and script files copied from before
+  the hardening merge: write scopes went back to workflow level, CodeQL and its
+  heartbeat entry were removed, and the badge rollout piped curl into Python
+  again. Those files are restored as they stood after the hardening and the
+  hashed pip lock; the triage change itself is kept unchanged.
 - **The latest run on main is chosen by triage, not by GitHub's branch
   filter.** On 2026-10-06 the rerun pass asked for the newest run on main with
   `--branch main --limit 1` and was answered with one from 2026-09-14, three
