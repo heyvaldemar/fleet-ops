@@ -1,146 +1,109 @@
 [
   {
     "repo": "affine-traefik-letsencrypt-docker-compose",
-    "sha": "eada023f21f57d895f8f5f67f72bd693f91aea76",
+    "sha": "be7b839ba6fea662a0de95c39b10d36f5613b678",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-08T14:06:37Z"
+    "pushed_at": "2026-10-08T23:57:05Z"
   },
   {
     "repo": "authelia-traefik-letsencrypt-docker-compose",
-    "sha": "0b53f95e927546e8f7786b740208809f00b54d6e",
+    "sha": "2c7fc596068a2abce88900cec2ad9e29dc223d12",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-08T14:06:54Z"
+    "pushed_at": "2026-10-08T23:57:25Z"
   },
   {
     "repo": "confluence-traefik-letsencrypt-docker-compose",
-    "sha": "076ca26ff3bb5ade58ba99a11c56f543012c224d",
+    "sha": "980ec6ef8dc5bc0b220cb2ba8285da64bc0d959a",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-08T14:07:05Z"
+    "pushed_at": "2026-10-08T23:57:39Z"
   },
   {
     "repo": "docmost-traefik-letsencrypt-docker-compose",
-    "sha": "b29013bfb85e19aea336be327ea341d5c9f9085f",
+    "sha": "183fa18aa4648783e724e05ecdead8777b215262",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-08T14:07:16Z"
+    "pushed_at": "2026-10-08T23:57:54Z"
   },
   {
     "repo": "gitea-traefik-letsencrypt-docker-compose",
-    "sha": "c3b2f5e851160138f8b0bcb9efb94412c725bb31",
+    "sha": "b4f248f06268afe89d316c51f43c584593ac7569",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-08T14:07:26Z"
+    "pushed_at": "2026-10-08T23:58:08Z"
   },
   {
     "repo": "jira-traefik-letsencrypt-docker-compose",
-    "sha": "0fa20aa66de56b4a141787cae0e5c72d83727cab",
+    "sha": "62d2215ae911fbc2d15d340a51b2b54b59ff79ca",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-08T14:07:41Z"
+    "pushed_at": "2026-10-08T23:58:27Z"
   },
   {
     "repo": "joomla-traefik-letsencrypt-docker-compose",
-    "sha": "0ee85554fb2203fcb3fa4ba6cf5a0f1750a092af",
+    "sha": "51519a1382c01817a789974f16cf73926443f7ec",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-08T14:07:48Z"
+    "pushed_at": "2026-10-08T23:58:36Z"
   },
   {
     "repo": "keycloak-traefik-letsencrypt-docker-compose",
-    "sha": "c8f5aa5b85a433303681d01f8008cc2cad90b02b",
+    "sha": "e406c3928fd40dfe950bf217bc9315c42f15a2ad",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-08T14:07:53Z"
+    "pushed_at": "2026-10-08T23:58:44Z"
   },
   {
     "repo": "mattermost-traefik-letsencrypt-docker-compose",
-    "sha": "54b77158987ed8148f00f3a978f54f06bee59bf0",
+    "sha": "d9873fe48358b9dc9893084004220595f8d8e99d",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-08T14:08:02Z"
+    "pushed_at": "2026-10-08T23:58:57Z"
   },
   {
     "repo": "nextcloud-onlyoffice-traefik-letsencrypt-docker-compose",
-    "sha": "5f0c998748aa77b4ee40c56c9a2b63ca76515536",
+    "sha": "c4fd93368331b48912090499dfb28292a7617370",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-08T14:08:16Z"
+    "pushed_at": "2026-10-08T23:59:17Z"
   },
   {
     "repo": "nextcloud-traefik-letsencrypt-docker-compose",
-    "sha": "45fb39804a0580dc4b16c7baa339a35225801acb",
+    "sha": "b9892b64e016c7cfce3b05cf13b78076181802c9",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-08T14:08:23Z"
+    "pushed_at": "2026-10-08T23:59:27Z"
   },
   {
     "repo": "ollama-traefik-letsencrypt-docker-compose",
-    "sha": "5d45626e4db01e6bcec6128cbe0901ae64061e87",
+    "sha": "f7a7aaf3f468834354b866fa68ecf632a37868b5",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-08T14:08:57Z",
+    "pushed_at": "2026-10-08T23:59:35Z",
     "review": "\n## Upstream changes 0.40.0 -> 0.40.1\n\n**Verdict:** SAFE TO APPLY \u2014 the release is a small bug-fix/maintenance update, the images are confirmed identical in every field that changes container behaviour, and no companion-service version requirement is introduced.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none. No database, cache, or companion-service version requirement is named in these notes.\n- \"WHAT THE IMAGES THEMSELVES DIFFER IN\" confirms `User`, `Entrypoint`, `Cmd`, `WorkingDir`, `ExposedPorts`, `Volumes`, `Healthcheck` and environment are all identical between 0.40.0 and 0.40.1, so the compose file's entrypoint override (`/usr/bin/bash /entrypoint.sh`), volumes, and healthcheck (`ollama --version`) remain valid as-is.\n\n### Before applying\n- No manual steps required. Bump `OLLAMA_IMAGE_VERSION` (or the pinned digest in the compose file's `x-images` block) to 0.40.1 and redeploy.\n- Routine good practice only: confirm the `ollama-data` volume is covered by your normal backup process before any image bump, since this template has no automatic rollback path.\n\n### Notes read\n- v0.40.1 (2026-10-07) release notes \u2014 read in full, used for the verdict and change list.\n- v0.40.0 (2026-09-25) release notes \u2014 read as the stated baseline only; its MLX/model-support content is already in effect at the running version and is not treated as a change introduced by this upgrade.\n- No UPGRADING, BREAKING_CHANGES, or CHANGELOG section was supplied for this range.\n"
   },
   {
     "repo": "outline-keycloak-traefik-letsencrypt-docker-compose",
-    "sha": "13d7d2ca81a47f3728294ac74327d520ba9c786a",
+    "sha": "f9e4327862eda2d6e384121d3e14a469ca3004a9",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-08T14:09:07Z"
+    "pushed_at": "2026-10-08T23:59:51Z"
   },
   {
     "repo": "owncloud-traefik-letsencrypt-docker-compose",
-    "sha": "06c912c0c4c0acdff0f2835612aa0a4cc3ca6fc3",
+    "sha": "6b7e8af45d4dbc7bf29bf1c901ceba51560f122f",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-08T14:09:13Z"
+    "pushed_at": "2026-10-09T00:00:01Z"
   },
   {
     "repo": "portainer-traefik-letsencrypt-docker-compose",
-    "sha": "ceff118e23752d249053ec3a1d4953d1016b86ae",
+    "sha": "b32b90b0ffcb8263a30a88a4337d4d133b7a9dc2",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-08T14:09:34Z",
+    "pushed_at": "2026-10-09T00:00:20Z",
     "review": "\n## Upstream changes 2.45.1 -> 2.45.2\n\n**Verdict:** SAFE TO APPLY \u2014 only security fixes, bug fixes and a minor UI feature; no breaking changes, no variable changes, no companion-service version requirement introduced.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none \u2014 no new, renamed or removed variables in the compose file or `.env.example`\n\n### Data and dependencies\n- none \u2014 the notes name no companion-service (database, cache, search engine) version requirement for this range, and the compose file pins no such service for Portainer besides the image itself\n- The security fix \"Fixed a bypass of the 'Hide bind mounts for non-administrators' setting\" affects non-admin users deploying Compose stacks that reference files outside the stack directory via configs/secrets/env_file, or that use `include` \u2014 this is a tightening of existing behaviour, not a migration\n- The Kubernetes TLS-verification fix (\"Fixed in-cluster HTTPS connections to the Kubernetes API server skipping TLS certificate verification\") only applies to Kubernetes environments, not relevant to this Docker-only compose template\n\n### Before applying\n- none required beyond the template's normal routine (the `backups` service already takes a consistent copy of the data directory on its own schedule \u2014 no manual pre-upgrade backup command is mandated by these notes)\n\n### Notes read\n- 2.45.2 (release notes, target version)\n- 2.45.1 (release notes, baseline \u2014 the version currently pinned in the compose file's `x-images` block, `PORTAINER_IMAGE_VERSION=2.45.1` default)\n"
-  },
-  {
-    "repo": "wordpress-traefik-letsencrypt-docker-compose",
-    "sha": "d82723afa42bfc8ccb75851a77aadcb83161a432",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-08T14:10:05Z",
-    "review": "\n## Upstream changes 7.1.2 -> 7.1.3\n\n**Verdict:** NEEDS ATTENTION \u2014 no release notes exist for this packaging repo, so the content of the change can't be verified by reading; treat it as unread rather than safe.\n\nNo release-notes text was provided and none exists upstream in a form this review can read: the docker-library/wordpress repository packages WordPress but does not write its own per-tag release notes (*\"WordPress publishes release notes on wordpress.org; docker-library/wordpress is the packaging and tags no versions\"*). The image-config diff confirms the container's own interface (user, entrypoint, cmd, ports, volumes, healthcheck, environment) is unchanged between 7.1.2 and 7.1.3, so nothing structural moved. What cannot be confirmed from here is whether 7.1.3 carries a WordPress core point release with security fixes, a database schema touch, or a plugin/theme compatibility change \u2014 that detail lives on wordpress.org, not in this packaging repo.\n\n### Breaking changes\n- none found in the notes \u2014 none exist for this image to report from\n\n### Variables\n- none \u2014 compose and .env.example are unaffected; no new, renamed, or removed variables\n\n### Data and dependencies\n- none stated in notes (none to read). Already true at 7.1.2, not introduced by this range: MariaDB is pinned at `11.4@sha256:...` in the compose file's `x-images` block, and WordPress's own installer/admin-account flow runs on first visit rather than via environment variables (*\"The site title and admin account are created in the WordPress web installer on first visit \u2014 the official image does not accept them via environment\"*) \u2014 unchanged baseline, not a new requirement of 7.1.2 -> 7.1.3.\n\n### Before applying\n- Take a database and `wordpress-data` volume backup before pulling (the `backups` service in this compose file does both; confirm a recent successful run under `wordpress-database-backups` / `wordpress-data-backups`).\n- Check wordpress.org's own release notes for 7.1.3 by hand before rolling out \u2014 specifically whether it is a security release, since that changes urgency.\n- After pulling, visit the site once and confirm it loads and admin login still works; check `wp-admin` for any forced plugin/theme compatibility warnings.\n- No manual migration command is implied by anything available here.\n\n### Notes read\n- None. docker-library/wordpress tags carry no per-version release notes; WordPress's own release notes for 7.1.3 (wordpress.org) were not supplied and were not read. Check them by hand before trusting this as routine.\n"
-  },
-  {
-    "repo": "xwiki-traefik-letsencrypt-docker-compose",
-    "sha": "4f5b4e9384c6b600d177b9a9e54c1b3f5b568e83",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-08T14:10:11Z"
-  },
-  {
-    "repo": "zabbix-docker-compose",
-    "sha": "fac4b2990e7c62a5b9ebb782ba4ee4f6608db44e",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-08T14:10:18Z"
-  },
-  {
-    "repo": "zabbix-traefik-letsencrypt-docker-compose",
-    "sha": "a2751f8b71a093709d4224e639b54b22199a537d",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-08T14:10:25Z"
-  },
-  {
-    "repo": "zammad-traefik-letsencrypt-docker-compose",
-    "sha": "a900d997fe5802539e663b6623afa828f83ab046",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-08T14:10:48Z",
-    "review": "\n## Upstream changes 7.2.1 -> 7.2.2\n\n**Verdict:** SAFE TO APPLY \u2014 this is a maintenance release of bug fixes only; the images are confirmed identical in user, entrypoint, command, ports, volumes, healthcheck and environment, and the BREAKING_CHANGES.md entries that apply (\"7.2\" section and the \"Upcoming releases\" section) describe requirements already in force at 7.2.1, not changes introduced by this range.\n\n### Breaking changes\n- none found in the notes for this range. The 23 commits between 7.2.1 and 7.2.2 are bug fixes (postmaster filter save, drag & drop scoping, captcha autofill, tab limit handling, package precompile, Zendesk import, Microsoft Graph linking) and test/maintenance items, none of which the commit log describes as changing externally visible behaviour, API contracts, or config requirements.\n\n### Variables\n- none. No variable renames, removals, or new requirements appear in the 7.2.2 commit list, and the compose file / .env.example need no edits for this range.\n\n### Data and dependencies\n- none introduced by this range. The Elasticsearch 8.15 minimum (\"Elasticsearch 8.15 up to, but not including, 10\") and the Knowledge Base `publication_state` reindex note both belong to the **7.2** BREAKING_CHANGES section, i.e. they took effect moving into 7.2.x, and the template's pinned `elasticsearch 8.19.20` already satisfies that floor \u2014 this is a pre-existing fact of the current deployment, not something this 7.2.1\u21927.2.2 upgrade changes.\n\n### Before applying\n- No manual migration or config edit is required for this range. Standard practice still applies: take a database/volume backup before pulling, per the template's own `backup` service, and watch the scheduler/railsserver logs after restart as with any image bump.\n\n### Notes read\n- Commit comparison between tags `7.2.1` and `7.2.2` in `zammad/zammad` (no dedicated GitHub release notes exist for either tag, so the compare-API commit list was used as the record, per the note in the upstream section header).\n- `BREAKING_CHANGES.md` from `zammad/zammad`, read down through the \"7.2\" section (covering the 7.1\u21927.2 jump) as baseline context; nothing in \"Upcoming releases\" or \"7.2\" is new to the 7.2.1\u21927.2.2 range itself.\n"
   }
 ]
