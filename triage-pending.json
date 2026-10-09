@@ -1,236 +1,25 @@
 [
   {
-    "repo": "audiobookshelf-traefik-letsencrypt-docker-compose",
-    "sha": "f31fce4c571420fd7f7a9d4667b34910fe0d1a8f",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T13:53:50Z"
-  },
-  {
-    "repo": "beszel-traefik-letsencrypt-docker-compose",
-    "sha": "5f207f6c04f009818a45c34bf48381d676d7373a",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T13:54:06Z"
-  },
-  {
-    "repo": "bitbucket-traefik-letsencrypt-docker-compose",
-    "sha": "215c19394cb893ce399b7144dcb28214d14dca64",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T13:54:17Z"
-  },
-  {
-    "repo": "chatops-privilege-wall",
-    "sha": "b3b5df40a65c36ab23284a5e1840feb2dcafcd98",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T13:54:28Z"
-  },
-  {
     "repo": "dashy-traefik-letsencrypt-docker-compose",
-    "sha": "83712e9e17719c5749cdeb4e84d009d5ba8143c5",
+    "sha": "48c9a646fb75374ac2308587161682b87210eb3f",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-09T13:55:22Z",
-    "review": "\n## Upstream changes 4.7.19 -> 4.7.21\n\n**Verdict:** SAFE TO APPLY \u2014 the commit log between these tags contains only translation fixes, and the image configurations are confirmed identical in every behaviour-relevant field.\n\n### Breaking changes\n- none found in the notes. The only commits are: \"feat(i18n): add Kiswahili translation\", \"fix(i18n): refine Kiswahili wording\", \"fix(i18n): complete Turkish APOD translation\", plus two version-bump commits and two merge commits.\n\n### Variables\n- none. No variable additions, renames or removals are mentioned, and the image config diff (user/entrypoint/cmd/ports/volumes/healthcheck/environment) is identical between the two versions.\n\n### Data and dependencies\n- none. No database, cache or companion-service version requirement is named in these notes, and nothing in the compose file needs reconciling against them.\n\n### Before applying\n- No backup, migration or config edit is required by this range. Ordinary good practice applies: pull the new digest, restart the `dashy` container, confirm the healthcheck passes.\n\n### Notes read\n- Compare commits between tags `4.7.19` and `4.7.21` on `Lissy93/dashy`, via the GitHub compare API (7 commits). No GitHub Release notes exist for either tag, so the commit list is the full record read for this range.\n"
-  },
-  {
-    "repo": "dify-traefik-letsencrypt-docker-compose",
-    "sha": "6db701af340ce286c59b8f2db3ddd5770050c51e",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T13:55:46Z"
-  },
-  {
-    "repo": "dozzle-traefik-letsencrypt-docker-compose",
-    "sha": "eddafb109256ae800147e67a629570579c44fdca",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T13:56:02Z"
-  },
-  {
-    "repo": "forgejo-traefik-letsencrypt-docker-compose",
-    "sha": "10bad0efe7e14a9f5f313f7818ad062971dbd550",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T13:56:13Z"
+    "pushed_at": "2026-10-09T23:32:41Z",
+    "review": "\n## Upstream changes 4.7.19 -> 4.7.21\n\n**Verdict:** SAFE TO APPLY \u2014 the commit log between these tags contains only translation fixes, and the image configurations are confirmed identical in every behaviour-relevant field.\n\n### Breaking changes\n- none found in the notes. The only commits are: \"feat(i18n): add Kiswahili translation\", \"fix(i18n): refine Kiswahili wording\", \"fix(i18n): complete Turkish APOD translation\", plus two version-bump commits and two merge commits.\n\n### Variables\n- none. No variable additions, renames or removals are mentioned, and the image config diff (user/entrypoint/cmd/ports/volumes/healthcheck/environment) is identical between the two versions.\n\n### Data and dependencies\n- none. No database, cache or companion-service version requirement is named in these notes, and nothing in the compose file needs reconciling against them.\n\n### Before applying\n- No backup, migration or config edit is required by this range. Ordinary good practice applies: pull the new digest, restart the `dashy` container, confirm the healthcheck passes.\n\n### Notes read\n- Compare commits between tags `4.7.19` and `4.7.21` on `Lissy93/dashy`, via the GitHub compare API (7 commits). No GitHub Release notes exist for either tag, so the commit list is the full record read for this range.\n\n## Upstream changes 4.7.21 -> 4.8.0\n\n**Verdict:** SAFE TO APPLY \u2014 no breaking changes in the covered range, and the image configurations are confirmed identical where it matters.\n\n### Breaking changes\n- none found in the notes for the 4.7.21 -> 4.8.0 range (covers 4.8.0 only; 4.7.21 is a patch of the 4.7.0 line already running). The 4.8.0 notes consist entirely of new widget features, bug fixes, localization and dependency bumps. No \"\ud83d\udca5 Changes which might impact you\" section is present in 4.8.0, unlike 4.5.0.\n\n### Variables\n- none. No variable renames, removals or new requirements appear in the 4.8.0 notes. `.env.example` and the compose file need no edits for this upgrade.\n\n### Data and dependencies\n- none introduced or raised by this range. (For context only, not part of this verdict: the 4.5.0 notes \u2014 already in effect at 4.7.21 \u2014 state \"Dashy now expects Node 24 LTS or newer (24.11.0+)\" and that the official image \"no longer builds nativity for 32-bit ARM/v7 architectures\"; these are pre-existing facts of the currently-running version, not changes introduced by this upgrade.)\n- No companion services (database, cache, search engine) are referenced by Dashy or named in these notes, so the \"pinned companion version\" rule does not apply here. Traefik is unaffected by this image's release notes.\n\n### Before applying\n- None required beyond the normal pull/restart. No config migration, no manual steps, no backup specifically called for by these notes.\n- As routine good practice before any upgrade: back up `./config.yml` (mounted at `/app/user-data/conf.yml`), since this is the only persisted state for this container.\n\n### Notes read\n- 4.8.0 (full notes, target version)\n- 4.7.0 (intermediate, read for completeness \u2014 no breaking changes section)\n- 4.6.0 (intermediate \u2014 no breaking changes section)\n- 4.5.0 (intermediate \u2014 contains the \"\ud83d\udca5 Changes which might impact you\" section, used only as baseline context since it predates 4.7.21, the currently-running version)\n- 4.4.0, 4.3.0 and earlier were skimmed but are outside the relevant range and contain nothing additive to this verdict.\n"
   },
   {
     "repo": "game-server-wireguard-relay-docker-compose",
-    "sha": "a26ca7863c19b0d0fa90bf812f41edff4aa2d34c",
+    "sha": "908aafee834f4e8c417c84ce17799945bd6d9a59",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-09T13:56:21Z"
-  },
-  {
-    "repo": "gaseous-server-using-docker-compose",
-    "sha": "1bf582cb823183ef2694be2737e756f2020f0ccb",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T13:56:29Z"
-  },
-  {
-    "repo": "ghost-traefik-letsencrypt-docker-compose",
-    "sha": "921b1daba3a888450bc92dad9cd98aba29a780a1",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T13:56:39Z"
-  },
-  {
-    "repo": "gitlab-traefik-letsencrypt-docker-compose",
-    "sha": "ac590aaa832fca81d672580c8615f4e35f6338bb",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T13:56:51Z"
-  },
-  {
-    "repo": "glpi-traefik-letsencrypt-docker-compose",
-    "sha": "4e13cc44e616a2a86b9d363514d080049c0950dd",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T13:57:00Z"
-  },
-  {
-    "repo": "grafana-traefik-letsencrypt-docker-compose",
-    "sha": "0592dcbe7c0907806a62df8f9b96be9f3f5a6332",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T13:57:10Z"
-  },
-  {
-    "repo": "homeassistant-traefik-letsencrypt-docker-compose",
-    "sha": "ce6780f53bc5d596c653e9349ba849c74206a15d",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T13:57:18Z"
-  },
-  {
-    "repo": "homebox-traefik-letsencrypt-docker-compose",
-    "sha": "08fd6e885e664a0137a5045cd2b29a83f0d7fe48",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T13:57:26Z"
-  },
-  {
-    "repo": "homepage-traefik-letsencrypt-docker-compose",
-    "sha": "4d205799852c49cac0cf8df2fc7a5727d3257575",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T13:57:37Z"
-  },
-  {
-    "repo": "immich-traefik-letsencrypt-docker-compose",
-    "sha": "4a571db4c91e29d1672e323fba6e58675299f5a0",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T13:58:15Z",
-    "review": "\n## Upstream changes v3.3.0 -> v3.3.1\n\n**Verdict:** SAFE TO APPLY \u2014 a patch release of bug fixes and small enhancements, no breaking changes, no variable or dependency changes.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none. No renamed, removed or newly required variables. Note that `MACHINE_LEARNING_MODEL_REVISION` was introduced in v3.3.0 (the baseline), documented further in v3.3.1 only via `docs: Add MACHINE_LEARNING_MODEL_REVISION variable to docs` \u2014 this is a documentation-only change, not a new requirement in this range.\n\n### Data and dependencies\n- none introduced by this range. (Already true at baseline v3.3.0, not part of this upgrade: `MACHINE_LEARNING_MODEL_REVISION=v2` is an opt-in setting for optimized ML models, stated as \"This setting will be the default in a later release\" \u2014 still opt-in at v3.3.1.)\n- The registry confirms the image pair moves together cleanly: both `IMMICH_SOURCE_REF`/`IMMICH_BUILD_IMAGE` go from v3.3.0 to v3.3.1 with no other structural differences (user, entrypoint, ports, volumes, healthcheck, environment all unchanged per the registry diff).\n- No companion-service version requirement is named in the v3.3.1 notes, so the Postgres/Redis pins in the compose file are not implicated.\n\n### Before applying\n- None required beyond the template's standard pin bump: update `IMMICH_SERVER_IMAGE_VERSION` and `IMMICH_ML_IMAGE_VERSION` together to `v3.3.1` (or pull the updated compose file), per the compose file's own rule that \"the server and the machine-learning image are one release split across two containers... both version variables carry the same version and move together.\"\n- No backup or manual migration step is called for by the notes.\n\n### Notes read\n- v3.3.1 (release notes, full text provided)\n- v3.3.0 (baseline release, read for context only, per instructions)\n\n## Upstream changes v3.3.0 -> v3.3.1\n\n**Verdict:** SAFE TO APPLY \u2014 a patch release of bug fixes and small enhancements, no breaking changes, no variable or dependency changes.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none. No renamed, removed or newly required variables. Note that `MACHINE_LEARNING_MODEL_REVISION` was introduced in v3.3.0 (the baseline), documented further in v3.3.1 only via `docs: Add MACHINE_LEARNING_MODEL_REVISION variable to docs` \u2014 this is a documentation-only change, not a new requirement in this range.\n\n### Data and dependencies\n- none introduced by this range. (Already true at baseline v3.3.0, not part of this upgrade: `MACHINE_LEARNING_MODEL_REVISION=v2` is an opt-in setting for optimized ML models, stated as \"This setting will be the default in a later release\" \u2014 still opt-in at v3.3.1.)\n- The registry confirms the image pair moves together cleanly: both `IMMICH_SOURCE_REF`/`IMMICH_BUILD_IMAGE` go from v3.3.0 to v3.3.1 with no other structural differences (user, entrypoint, ports, volumes, healthcheck, environment all unchanged per the registry diff).\n- No companion-service version requirement is named in the v3.3.1 notes, so the Postgres/Redis pins in the compose file are not implicated.\n\n### Before applying\n- None required beyond the template's standard pin bump: update `IMMICH_SERVER_IMAGE_VERSION` and `IMMICH_ML_IMAGE_VERSION` together to `v3.3.1` (or pull the updated compose file), per the compose file's own rule that \"the server and the machine-learning image are one release split across two containers... both version variables carry the same version and move together.\"\n- No backup or manual migration step is called for by the notes.\n\n### Notes read\n- v3.3.1 (release notes, full text provided)\n- v3.3.0 (baseline release, read for context only, per instructions)\n"
-  },
-  {
-    "repo": "jellyfin-traefik-letsencrypt-docker-compose",
-    "sha": "958dc700ff02cc5206730c06abfa5c6c3c3b927f",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T13:58:28Z"
-  },
-  {
-    "repo": "mailu-traefik-letsencrypt-docker-compose",
-    "sha": "262c8d20970d61bfb41a66b4e2d44a2cd04c9a3b",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T13:58:58Z"
-  },
-  {
-    "repo": "mssql-server-traefik-letsencrypt-docker-compose",
-    "sha": "b029072e7bed0586f975c85b84664e61311e5f6a",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T13:59:15Z"
-  },
-  {
-    "repo": "navidrome-traefik-letsencrypt-docker-compose",
-    "sha": "7bc9e5aafbf010e37b98665edb7c8558b3cec4c6",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T13:59:24Z"
-  },
-  {
-    "repo": "ollama-traefik-letsencrypt-docker-compose",
-    "sha": "5f274348c766e8f3e0c8ed3dc978258edfc13a4e",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T13:59:56Z",
-    "review": "\n## Upstream changes 0.40.0 -> 0.40.1\n\n**Verdict:** SAFE TO APPLY \u2014 the release is a small bug-fix/maintenance update, the images are confirmed identical in every field that changes container behaviour, and no companion-service version requirement is introduced.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none. No database, cache, or companion-service version requirement is named in these notes.\n- \"WHAT THE IMAGES THEMSELVES DIFFER IN\" confirms `User`, `Entrypoint`, `Cmd`, `WorkingDir`, `ExposedPorts`, `Volumes`, `Healthcheck` and environment are all identical between 0.40.0 and 0.40.1, so the compose file's entrypoint override (`/usr/bin/bash /entrypoint.sh`), volumes, and healthcheck (`ollama --version`) remain valid as-is.\n\n### Before applying\n- No manual steps required. Bump `OLLAMA_IMAGE_VERSION` (or the pinned digest in the compose file's `x-images` block) to 0.40.1 and redeploy.\n- Routine good practice only: confirm the `ollama-data` volume is covered by your normal backup process before any image bump, since this template has no automatic rollback path.\n\n### Notes read\n- v0.40.1 (2026-10-07) release notes \u2014 read in full, used for the verdict and change list.\n- v0.40.0 (2026-09-25) release notes \u2014 read as the stated baseline only; its MLX/model-support content is already in effect at the running version and is not treated as a change introduced by this upgrade.\n- No UPGRADING, BREAKING_CHANGES, or CHANGELOG section was supplied for this range.\n\n## Upstream changes 0.40.1 -> 0.40.2\n\n**Verdict:** SAFE TO APPLY \u2014 the notes describe a one-time background model upgrade and minor CLI fixes; the image configuration itself is unchanged in every field that affects deployment.\n\n### Breaking changes\n- none found in the notes. The model-upgrade process is described as transparent to the user (\"Models downloaded with earlier versions of Ollama are upgraded in the background the first time you run them\"), not a compatibility break.\n\n### Variables\n- none\n\n### Data and dependencies\n- Disk usage will grow temporarily: \"To make downgrading safe, Ollama keeps the original copy as a backup, so upgraded models are temporarily kept on disk.\" This applies per-model, the first time each existing model is run after the upgrade. The `ollama-data` volume should have headroom for roughly double the size of whichever models get re-run.\n- Downgrade path is time-limited: \"If you later downgrade to a version older than 0.40, you'll need to re-pull those models.\" This only matters if a rollback below 0.40 is later attempted; it does not block this 0.40.1 \u2192 0.40.2 move.\n- No companion service (database, cache, search engine) version is named anywhere in these notes, so the no-SAFE-TO-APPLY rule for an unpinned dependency does not apply here.\n\n### Before applying\n- None required before applying. Optionally, after the upgrade, once models have been re-run and upgraded, the operator can reclaim disk space with the cleanup command given in the notes (requires `jq` inside or alongside the container):\n  ```\n  curl -s localhost:11434/api/tags | jq -r '.models[].name' | while read -r m; do\n    curl -s localhost:11434/api/show -d \"{\\\"model\\\":\\\"$m\\\"}\" | jq -r \\\n      'select(any(.manifests[]?; .runner == \"llamacpp\")) | .manifests[] | select(.runner == \"ggml\") | .digest'\n  done | sort -u | xargs -n1 ollama rm\n  ```\n  Do not run this if a downgrade below 0.40 is still possible, since it deletes the backups needed for that path.\n\n### Notes read\n- v0.40.2 (2026-10-08) \u2014 the version being moved to\n- v0.40.1 (2026-10-07) \u2014 the baseline currently running, read only to confirm no carried-over requirement applies\n"
-  },
-  {
-    "repo": "otrs-traefik-letsencrypt-docker-compose",
-    "sha": "c529f7bdb9ea06e18100a1e6c9f6163b7d68a472",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T14:00:08Z"
-  },
-  {
-    "repo": "rocketchat-traefik-letsencrypt-docker-compose",
-    "sha": "d70a30914fd3c01daa6b1c055bfa82f5d852256c",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T14:00:25Z"
-  },
-  {
-    "repo": "romm-traefik-letsencrypt-docker-compose",
-    "sha": "0538acc590be38aaf2225ff8ace2311ae45bdfdd",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T14:00:36Z"
-  },
-  {
-    "repo": "seafile-traefik-letsencrypt-docker-compose",
-    "sha": "56cff4a8cf25d36e9f2ea639aafc2c285b234850",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T14:00:48Z"
-  },
-  {
-    "repo": "sftp-traefik-letsencrypt-docker-compose",
-    "sha": "0bc06ab95e8864fddad7cae24a37d77ad8bd92d4",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T14:00:57Z"
-  },
-  {
-    "repo": "sonarqube-traefik-letsencrypt-docker-compose",
-    "sha": "83316843d95d4b725351a020acc06051e064c9cf",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T14:01:08Z"
+    "pushed_at": "2026-10-09T23:32:53Z"
   },
   {
     "repo": "uptime-kuma-traefik-letsencrypt-docker-compose",
-    "sha": "b3e5d325856e3964f74f605f63a07903a79e56ee",
+    "sha": "1c3dd83e3a61bea0fb412c9743568d52f81c5edd",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-09T14:01:20Z"
-  },
-  {
-    "repo": "vaultwarden-traefik-letsencrypt-docker-compose",
-    "sha": "7d44fc02bc48ca5305686955ddf1960fe74812a3",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T14:01:29Z"
-  },
-  {
-    "repo": "webrcade-traefik-letsencrypt-docker-compose",
-    "sha": "4a3e520de15a0c48bdee49eca6b170f1e349db94",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T14:01:37Z"
-  },
-  {
-    "repo": "wikijs-traefik-letsencrypt-docker-compose",
-    "sha": "e4f3cd87a26b5c25407480d396af9a762016ab1e",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-09T14:01:47Z"
+    "pushed_at": "2026-10-09T23:34:02Z",
+    "review": "\n## Upstream changes 2.5.5 -> 2.5.6\n\n**Verdict:** SAFE TO APPLY \u2014 a bug fix and a dependency update, no config, companion-version, or image-level differences found.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- The notes mention no companion service (database, cache, search engine) version requirement. The compose file pins no such dependency for this image either, so there is nothing to check against.\n- \"#7858 chore: Update dependencies\" is listed under security fixes but no specific library, minimum engine, or runtime requirement is named \u2014 nothing actionable for the deployed host.\n\n### Before applying\n- None required by the notes. Optional general hygiene: bump `UPTIME_KUMA_IMAGE_VERSION` in `.env` (or let the compose default move) to `2.5.6`, and confirm the new digest once published upstream, since the compose file pins by tag+sha256.\n\n### Notes read\n- Release notes for 2.5.6 (2026-10-09) and the baseline 2.5.5 (2026-09-16) notes from louislam/uptime-kuma, as given above.\n"
   }
 ]
