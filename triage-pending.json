@@ -1,25 +1,23 @@
 [
   {
-    "repo": "dashy-traefik-letsencrypt-docker-compose",
-    "sha": "48c9a646fb75374ac2308587161682b87210eb3f",
+    "repo": "keycloak-traefik-letsencrypt-docker-compose",
+    "sha": "c0283e0a24e5d65c6d78cdae42eb20f27a1293a7",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-09T23:32:41Z",
-    "review": "\n## Upstream changes 4.7.19 -> 4.7.21\n\n**Verdict:** SAFE TO APPLY \u2014 the commit log between these tags contains only translation fixes, and the image configurations are confirmed identical in every behaviour-relevant field.\n\n### Breaking changes\n- none found in the notes. The only commits are: \"feat(i18n): add Kiswahili translation\", \"fix(i18n): refine Kiswahili wording\", \"fix(i18n): complete Turkish APOD translation\", plus two version-bump commits and two merge commits.\n\n### Variables\n- none. No variable additions, renames or removals are mentioned, and the image config diff (user/entrypoint/cmd/ports/volumes/healthcheck/environment) is identical between the two versions.\n\n### Data and dependencies\n- none. No database, cache or companion-service version requirement is named in these notes, and nothing in the compose file needs reconciling against them.\n\n### Before applying\n- No backup, migration or config edit is required by this range. Ordinary good practice applies: pull the new digest, restart the `dashy` container, confirm the healthcheck passes.\n\n### Notes read\n- Compare commits between tags `4.7.19` and `4.7.21` on `Lissy93/dashy`, via the GitHub compare API (7 commits). No GitHub Release notes exist for either tag, so the commit list is the full record read for this range.\n\n## Upstream changes 4.7.21 -> 4.8.0\n\n**Verdict:** SAFE TO APPLY \u2014 no breaking changes in the covered range, and the image configurations are confirmed identical where it matters.\n\n### Breaking changes\n- none found in the notes for the 4.7.21 -> 4.8.0 range (covers 4.8.0 only; 4.7.21 is a patch of the 4.7.0 line already running). The 4.8.0 notes consist entirely of new widget features, bug fixes, localization and dependency bumps. No \"\ud83d\udca5 Changes which might impact you\" section is present in 4.8.0, unlike 4.5.0.\n\n### Variables\n- none. No variable renames, removals or new requirements appear in the 4.8.0 notes. `.env.example` and the compose file need no edits for this upgrade.\n\n### Data and dependencies\n- none introduced or raised by this range. (For context only, not part of this verdict: the 4.5.0 notes \u2014 already in effect at 4.7.21 \u2014 state \"Dashy now expects Node 24 LTS or newer (24.11.0+)\" and that the official image \"no longer builds nativity for 32-bit ARM/v7 architectures\"; these are pre-existing facts of the currently-running version, not changes introduced by this upgrade.)\n- No companion services (database, cache, search engine) are referenced by Dashy or named in these notes, so the \"pinned companion version\" rule does not apply here. Traefik is unaffected by this image's release notes.\n\n### Before applying\n- None required beyond the normal pull/restart. No config migration, no manual steps, no backup specifically called for by these notes.\n- As routine good practice before any upgrade: back up `./config.yml` (mounted at `/app/user-data/conf.yml`), since this is the only persisted state for this container.\n\n### Notes read\n- 4.8.0 (full notes, target version)\n- 4.7.0 (intermediate, read for completeness \u2014 no breaking changes section)\n- 4.6.0 (intermediate \u2014 no breaking changes section)\n- 4.5.0 (intermediate \u2014 contains the \"\ud83d\udca5 Changes which might impact you\" section, used only as baseline context since it predates 4.7.21, the currently-running version)\n- 4.4.0, 4.3.0 and earlier were skimmed but are outside the relevant range and contain nothing additive to this verdict.\n"
+    "pushed_at": "2026-10-10T13:08:52Z"
   },
   {
-    "repo": "game-server-wireguard-relay-docker-compose",
-    "sha": "908aafee834f4e8c417c84ce17799945bd6d9a59",
+    "repo": "kf2-server-docker-compose",
+    "sha": "db8bbfeb83ea0d535bda5833d6f2520229fdc6cd",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-09T23:32:53Z"
+    "pushed_at": "2026-10-10T13:08:58Z"
   },
   {
-    "repo": "uptime-kuma-traefik-letsencrypt-docker-compose",
-    "sha": "1c3dd83e3a61bea0fb412c9743568d52f81c5edd",
+    "repo": "outline-keycloak-traefik-letsencrypt-docker-compose",
+    "sha": "636cbac999b3854f6c0c9e7fe53e75e84e6887af",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-09T23:34:02Z",
-    "review": "\n## Upstream changes 2.5.5 -> 2.5.6\n\n**Verdict:** SAFE TO APPLY \u2014 a bug fix and a dependency update, no config, companion-version, or image-level differences found.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- The notes mention no companion service (database, cache, search engine) version requirement. The compose file pins no such dependency for this image either, so there is nothing to check against.\n- \"#7858 chore: Update dependencies\" is listed under security fixes but no specific library, minimum engine, or runtime requirement is named \u2014 nothing actionable for the deployed host.\n\n### Before applying\n- None required by the notes. Optional general hygiene: bump `UPTIME_KUMA_IMAGE_VERSION` in `.env` (or let the compose default move) to `2.5.6`, and confirm the new digest once published upstream, since the compose file pins by tag+sha256.\n\n### Notes read\n- Release notes for 2.5.6 (2026-10-09) and the baseline 2.5.5 (2026-09-16) notes from louislam/uptime-kuma, as given above.\n"
+    "pushed_at": "2026-10-10T13:09:31Z"
   }
 ]
