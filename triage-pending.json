@@ -1,23 +1,10 @@
 [
   {
-    "repo": "keycloak-traefik-letsencrypt-docker-compose",
-    "sha": "c0283e0a24e5d65c6d78cdae42eb20f27a1293a7",
+    "repo": "confluence-traefik-letsencrypt-docker-compose",
+    "sha": "c89edf3ee2161db6201bb708429bccd7d7da9c10",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-10T13:08:52Z"
-  },
-  {
-    "repo": "kf2-server-docker-compose",
-    "sha": "db8bbfeb83ea0d535bda5833d6f2520229fdc6cd",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-10T13:08:58Z"
-  },
-  {
-    "repo": "outline-keycloak-traefik-letsencrypt-docker-compose",
-    "sha": "636cbac999b3854f6c0c9e7fe53e75e84e6887af",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-10T13:09:31Z"
+    "pushed_at": "2026-10-10T22:53:47Z",
+    "review": "\n## Upstream changes 10.2.19 -> 11.0.0\n\n**Verdict:** NEEDS ATTENTION \u2014 this is a Confluence major version jump with no release notes available to this review, and the image itself confirms a Java runtime change (jdk-21 \u2192 jdk-25) that the compose file does not account for.\n\nAtlassian's own release notes were not retrievable (GitHub does not host them for this image, and no notes text was provided). A Confluence major-version bump of this kind historically carries minimum requirements changes (database version, Java, supported browsers) and sometimes irreversible data-migration steps. None of that can be confirmed or denied here, so it cannot be called safe.\n\n### Breaking changes\n- Not available in the notes \u2014 none were provided (\"Release-notes source: none\"). No breaking change can be confirmed or ruled out from the release text itself.\n\n### Variables\n- none identified from compose/.env.example \u2014 no variable in the compose file or `.env.example` is renamed, removed, or newly required by this image bump. `CONFLUENCE_IMAGE_VERSION` default moves from `10.2.19` to `11.0.0` only if the compose file's pin is updated; the `.env.example` comment still shows `CONFLUENCE_IMAGE_VERSION=10.2.19` as the illustrative default and will need updating for consistency, but this is documentation, not a functional variable change.\n\n### Data and dependencies\n- WHAT THE IMAGES THEMSELVES DIFFER IN shows: `JAVA_VERSION`: `'jdk-21.0.12.1+1' -> 'jdk-25.0.4.1+1'`. This is a major Java runtime jump (21 \u2192 25) bundled inside the image, not something the compose file configures directly \u2014 but it is a real behavioral-surface change (GC defaults, deprecated-API removal, JVM flag compatibility) that the deployed host cannot inspect from outside the container.\n- The compose file pins PostgreSQL at `postgres:16` (`x-images.postgres`). Confluence 11.0.0's own supported-database requirements are not stated anywhere in the material given \u2014 no release notes, no UPGRADING/BREAKING_CHANGES section was supplied for this range. Since this review has no text confirming PostgreSQL 16 is still supported at Confluence 11.0.0, this is exactly the unresolved mismatch the verdict rule calls out: an application moving to a major version whose own notes (unavailable here) cannot be checked against the pinned engine version.\n- No UPGRADING, BREAKING_CHANGES or CHANGELOG section was supplied for this range, so nothing about irreversible migrations can be reported either way.\n\n### Before applying\n- Take a full backup first: database dump and `confluence-data` volume (the `backups` service in this compose file does both; confirm a recent successful run exists before touching the pin).\n- Manually check Atlassian's official Confluence 11.0.0 upgrade notes and supported-platforms page before pinning this version \u2014 specifically: supported PostgreSQL versions, supported Java version (confirm jdk-25 bundled in the image is sufficient, since this is a bundled change your deploy does not control), and any flagged data migration steps for the 10.2.x \u2192 11.0.0 jump.\n- After reviewing those, update the `CONFLUENCE_IMAGE_VERSION` default in the compose `x-images` block (and the matching comment in `.env.example`) to `11.0.0` with its correct digest, rather than relying on the floating tag.\n- Test the upgrade against a staging copy of the production database before applying to the live host, given the lack of available release notes.\n\n### Notes read\n- None. Release-notes source was declared \"none\" (Atlassian does not publish Confluence release notes on GitHub, and no notes text was supplied for 10.2.19 or 11.0.0). The only factual basis for this review is the registry-reported image diff (`CONFLUENCE_VERSION`, `JAVA_VERSION`) and the compose/.env.example files as given. The official Atlassian Confluence upgrade/release notes for this range should be checked by hand before proceeding.\n"
   }
 ]
