@@ -78,10 +78,11 @@ print()
 print("=== the two gaps the Actions mail used to cover ===")
 # Triage walks -docker-compose, -docker and -terraform. Everything else has no
 # report of its own, so a red run there reaches nobody now.
-check("a template repository is triage's to report",  bool(hb.TRIAGED.search("zammad-traefik-letsencrypt-docker-compose")), True)
-check("so is a terraform pipeline",                   bool(hb.TRIAGED.search("amazon-rds-pipeline-terraform")), True)
-check("an operations tool is nobody's",               bool(hb.TRIAGED.search("deadman-switch")), False)
-check("and neither is the profile repository",        bool(hb.TRIAGED.search("heyvaldemar")), False)
+check("a template repository is triage's to report",  hb.fleet_kind.triaged("zammad-traefik-letsencrypt-docker-compose"), True)
+check("so is a terraform pipeline",                   hb.fleet_kind.triaged("amazon-rds-pipeline-terraform"), True)
+check("an operations tool is nobody's",               hb.fleet_kind.triaged("deadman-switch"), False)
+check("and neither is the profile repository",        hb.fleet_kind.triaged("heyvaldemar"), False)
+check("a Kubernetes platform is not triaged, so its red runs are reported here", hb.fleet_kind.triaged("aws-eks-reference-platform"), False)
 
 # A pull request nobody merged. Three repositories have no automerge workflow
 # at all, so theirs wait for a human who is no longer being told.

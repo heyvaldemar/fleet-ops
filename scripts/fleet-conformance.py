@@ -26,6 +26,9 @@ DESIGN RULES, each of which cost something to learn:
 """
 import base64, json, os, re, subprocess, sys, urllib.error, urllib.request
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import fleet_kind  # noqa: E402  (the one place fleet repositories are classified)
+
 OWNER = os.environ.get("FLEET_OWNER", "heyvaldemar")
 LOCAL = os.environ.get("FLEET_LOCAL_DIR")  # test mode: read from disk instead
 TOKEN = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
@@ -35,10 +38,6 @@ NOT_APPLICABLE = ["__not-a-compose-template__"]
 STATEFUL = re.compile(r"image:.*?\b(postgres|mysql|mariadb|mongo|redis|valkey)\b", re.I)
 SKIP_SVC = re.compile(r"backup", re.I)
 
-# Fleet stacks whose names do not end in -docker-compose or -docker. The filter
-# below is a name rule, so a repository named for what it does rather than for
-# how it is deployed is never checked, and nothing fails to say so.
-EXTRA_FLEET_REPOS = ("chatops-privilege-wall",)
 
 
 def api(path):
@@ -119,6 +118,18 @@ class Repo:
                 return None
             raise
         return base64.b64decode(d["content"]).decode("utf-8", "replace")
+
+    def tree(self):
+        """Every file path in the repository, recursively."""
+        if LOCAL:
+            root = os.path.join(LOCAL, self.name)
+            out = []
+            for d, dirs, files in os.walk(root):
+                dirs[:] = [x for x in dirs if x != ".git"]
+                out += [os.path.relpath(os.path.join(d, f), root) for f in files]
+            return sorted(out)
+        data = api(f"repos/{OWNER}/{self.name}/git/trees/HEAD?recursive=1")
+        return sorted(e["path"] for e in data.get("tree", []) if e.get("type") == "blob")
 
     def tags(self):
         if LOCAL:
@@ -328,6 +339,177 @@ def unrun_restore_scripts(repo, names):
     return scripts, unrun, paths
 
 
+# --- Kubernetes repositories --------------------------------------------------
+#
+# The same standard, in the shape a Kubernetes platform takes: the checks run
+# on what Argo CD would apply, each is shown its violation, a kind cluster
+# proves the platform every day, and nothing claims more than CI proves. Each
+# rule below is broken on a copy of a real Kubernetes repository in
+# tests/test-conformance-kubernetes.sh before it is trusted.
+
+K8S_CHECKS = ("images", "kubeconform", "kube-linter", "pluto", "argocd", "policy-tests", "kyverno")
+RUNBOOKS = ("upgrade", "rollback", "restore", "incident")
+# A reference architecture describes; it does not claim. These need a person's
+# say-so in .github/claims-allowlist, one phrase per line with its reason.
+CLAIMS = re.compile(r"\b(in production at|used in production|runs in production|production[- ]proven|"
+                    r"battle[- ]tested|trusted by|certified)\b", re.I)
+CLOUD_LOGIN = re.compile(r"configure-aws-credentials|role-to-assume|azure/login|google-github-actions/auth")
+
+
+def claim_findings(repo, paths):
+    bad = []
+    allow = (repo.read(".github/claims-allowlist") or "").lower()
+    for path in paths:
+        for m in CLAIMS.finditer(repo.read(path) or ""):
+            if m.group(0).lower() not in allow:
+                bad.append(f"{path} claims \"{m.group(0)}\": not allowed unless listed in .github/claims-allowlist with a reason")
+                break
+    return bad
+
+
+def cloud_run_findings(workflows):
+    """A workflow that logs in to a cloud is a workflow that spends money."""
+    bad = []
+    for w, text in sorted(workflows.items()):
+        if not CLOUD_LOGIN.search(text):
+            continue
+        if re.search(r"secrets\.(AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY)|aws-access-key-id:", text):
+            bad.append(f"{w}: a cloud run with a stored access key instead of OIDC")
+        if not re.search(r"^\s+timeout-minutes:", text, re.M):
+            bad.append(f"{w}: a cloud run without a job timeout")
+        if "if: always()" not in text:
+            bad.append(f"{w}: a cloud run without a teardown that runs if: always()")
+        if not re.search(r"^concurrency:", text, re.M):
+            bad.append(f"{w}: a cloud run that two pushes could start twice (no concurrency group)")
+        if re.search(r"^\s+schedule:|^\s+push:|^\s+pull_request:", text, re.M):
+            bad.append(f"{w}: a cloud run that starts on its own; it must be workflow_dispatch only")
+    return bad
+
+
+def kubernetes_rules(repo, names):
+    bad = []
+    files_kind = fleet_kind.kind_from_files(names)
+    if files_kind != "kubernetes":
+        bad.append(f"named as a Kubernetes repository, but its files say {files_kind or 'nothing recognisable'}")
+
+    for f in ("LICENSE", "SECURITY.md"):
+        if f not in names:
+            bad.append(f"missing {f}")
+
+    validate = repo.read("scripts/validate.sh")
+    if validate is None:
+        bad.append("no scripts/validate.sh: the static checks have no single entry point")
+    else:
+        for c in K8S_CHECKS:
+            if f"check_{c.replace('-', '_')}()" not in validate:
+                bad.append(f"scripts/validate.sh has no {c} check")
+
+    plants = repo.read("tests/static/plants.tsv")
+    if plants is None:
+        bad.append("no tests/static/plants.tsv: no static check is ever shown a violation")
+    else:
+        planted = set()
+        for line in plants.splitlines():
+            fields = line.split("\t")
+            if line.strip() and not line.startswith("#") and len(fields) >= 4:
+                try:
+                    planted.add(json.loads(fields[3]))
+                except ValueError:
+                    bad.append("tests/static/plants.tsv has a line that is not JSON fields")
+        for c in K8S_CHECKS:
+            if c not in planted:
+                bad.append(f"no planted violation for the {c} check")
+
+    workflows = {w: repo.read(f".github/workflows/{w}") or "" for w in repo.workflows()}
+    every = "\n".join(workflows.values())
+    if "scripts/validate.sh" not in every:
+        bad.append("no workflow runs scripts/validate.sh")
+    if "tests/static/plant_violations.py" not in every:
+        bad.append("no workflow shows the static checks their planted violations")
+    e2e = [t for t in workflows.values() if "tests/e2e/run.sh" in t and "kind create cluster" in t]
+    if not e2e:
+        bad.append("no workflow runs tests/e2e/run.sh on a kind cluster")
+    else:
+        if not any(re.search(r"^\s+schedule:", t, re.M) for t in e2e):
+            bad.append("the kind e2e workflow has no schedule: nothing proves the platform daily")
+        if not any("upgrade-marker.sh check" in t for t in e2e):
+            bad.append("the kind e2e workflow has no upgrade drill from the previous release")
+    bad += cloud_run_findings(workflows)
+
+    if "terraform" in names:
+        tests = repo.names_in("terraform/tests")
+        if not any(n.endswith(".tftest.hcl") for n in tests):
+            bad.append("terraform/ has no terraform test")
+        if "plants.tsv" not in tests or not re.search(r"(working-directory: terraform[\s\S]*?|terraform/)tests/plant_violations\.py|python3 tests/plant_violations\.py", every):
+            bad.append("the Terraform test is never shown a violation in CI")
+
+    for f in repo.names_in("platform/appsets"):
+        text = repo.read(f"platform/appsets/{f}") or ""
+        for m in re.finditer(r"targetRevision:[ \t]*(.+?)[ \t]*$", text, re.M):
+            rev = m.group(1).strip("'\"")
+            if rev.startswith("{{"):
+                if "platform_revision" not in rev:
+                    bad.append(f"platform/appsets/{f}: a Git source at {rev}, not the cluster's platform_revision")
+            elif not re.fullmatch(r"v?\d+\.\d+\.\d+([-+][\w.]+)?", rev):
+                bad.append(f"platform/appsets/{f}: targetRevision {rev} is not one exact version")
+
+    tree = repo.tree()
+    for path in tree:
+        if path.startswith(("apps/", "manifests/")) and path.endswith((".yaml", ".yml")):
+            for line in (repo.read(path) or "").splitlines():
+                m = re.match(r"\s*-?\s*image:\s*(\S+)", line)
+                if m and "@sha256:" not in m.group(1):
+                    bad.append(f"{path}: image {m.group(1)} is not pinned by digest")
+
+    for path in tree:
+        if not (path.startswith("policies/") and path.count("/") == 1 and path.endswith(".yaml")):
+            continue
+        text = repo.read(path) or ""
+        if "kind: ValidatingPolicy" not in text:
+            continue
+        name = re.search(r"^  name:\s*(\S+)", text, re.M)
+        name = name.group(1) if name else path
+        if not re.search(r"validatingAdmissionPolicy:\s*\n\s+enabled:\s*true", text):
+            bad.append(f"policy {name} is enforced only through Kyverno's webhook; it must compile to a ValidatingAdmissionPolicy")
+        test = repo.read(f"policies/tests/{name}/kyverno-test.yaml") or ""
+        if "result: fail" not in test:
+            bad.append(f"policy {name} has no test that shows it a violation")
+
+    readme = repo.read("README.md") or ""
+    if "```mermaid" not in readme:
+        bad.append("README has no architecture diagram")
+    if not re.search(r"^#+ .*quickstart", readme, re.I | re.M):
+        bad.append("README has no quickstart")
+    if not re.search(r"^#+ .*cost", readme, re.I | re.M):
+        bad.append("README says nothing about what it costs")
+    if "make down" not in readme and "teardown" not in readme.lower():
+        bad.append("README does not say how to tear it down")
+    adrs = [n for n in repo.names_in("docs/decisions") if re.match(r"\d{4}-.*\.md$", n)]
+    if len(adrs) < 3:
+        bad.append(f"docs/decisions holds {len(adrs)} decision records; the standard asks for at least 3")
+    runbooks = repo.names_in("docs/runbooks")
+    for rb in RUNBOOKS:
+        if f"{rb}.md" not in runbooks:
+            bad.append(f"no {rb} runbook in docs/runbooks")
+
+    bad += claim_findings(repo, ["README.md"] + [f"docs/decisions/{n}" for n in adrs])
+    return bad
+
+
+def terraform_rules(repo, names):
+    """A chart installed by Terraform is a pin like any other. Its version sits
+    in a helm_release block, where no Dependabot ecosystem and no image check
+    looks: amazon-eks-cluster-pipeline-terraform held the EBS CSI chart at
+    2.18.0 while upstream reached 2.66.1 (found 2026-10-11)."""
+    bad = []
+    if not any(re.search(r'resource\s+"helm_release"', repo.read(n) or "") for n in names if n.endswith(".tf")):
+        return bad
+    workflows = {w: repo.read(f".github/workflows/{w}") or "" for w in repo.workflows()}
+    if not any("helm_release" in t and "index.yaml" in t for t in workflows.values()):
+        bad.append("installs charts with helm_release and no workflow compares their versions with the chart repository")
+    return bad
+
+
 def check(repo, exempt=None):
     """Returns a list of failures. An empty list means the repo conforms.
     Declared exemptions are appended to `exempt`, never to the failures."""
@@ -337,6 +519,12 @@ def check(repo, exempt=None):
     names = repo.listing()
     if not names:
         return ["repository listing is empty or unreadable"]
+
+    kind = fleet_kind.kind_of(repo.name)
+    if kind == "kubernetes":
+        return kubernetes_rules(repo, names) + workflow_claims(repo) + changelog_claims(repo)
+    if fleet_kind.kind_from_files(names) == "kubernetes":
+        return ["its files are a Kubernetes platform, but its name puts it outside the Kubernetes rules (scripts/fleet_kind.py)"]
 
     compose_name = next((n for n in names if n.endswith(".yml") and "compose" in n), None)
     if not compose_name:
@@ -351,6 +539,8 @@ def check(repo, exempt=None):
         # it had never tagged and never be asked about it, because the rule
         # that would have caught it sat behind a compose file it does not have.
         claims = changelog_claims(repo) + workflow_claims(repo)
+        if kind == "terraform":
+            claims += terraform_rules(repo, names)
         return claims if claims else NOT_APPLICABLE
     compose = repo.read(compose_name)
     if compose is None:

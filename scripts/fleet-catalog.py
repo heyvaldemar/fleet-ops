@@ -32,6 +32,9 @@ import re
 import subprocess
 import sys
 import tempfile
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import fleet_kind  # noqa: E402  (the one place fleet repositories are classified)
 import time
 import urllib.parse
 import urllib.request
@@ -113,6 +116,8 @@ GROUPS = [
      lambda n: n.endswith("-docker-compose") or n.endswith("-docker"), ["deployment-verification.yml", "retention-verification.yml", "publish.yml"]),
     ("Terraform pipelines on AWS", "Terraform pipelines on AWS",
      lambda n: n.endswith("-terraform"), ["terraform-verification.yml"]),
+    ("Kubernetes platforms", "Kubernetes platforms",
+     lambda n: fleet_kind.kind_of(n) in ("kubernetes", "helm"), ["kind-e2e.yml", "verification.yml"]),
     ("Operations tools and scripts", "operations tools and scripts",
      lambda n: True, ["tests.yml", "verification.yml"]),
 ]

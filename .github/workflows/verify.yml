@@ -76,6 +76,7 @@ jobs:
           # table of repository names can be checked at all. `gh` will not run
           # without a credential, and the job's own read-only token is enough.
           GH_TOKEN: ${{ github.token }}
+          K8S_READ_TOKEN: ${{ secrets.FLEET_READ_PAT }}
         run: |
           # test-conformance.sh breaks a conforming repository one rule at a
           # time, so it needs one to break. Its own workflow clones this;
@@ -83,6 +84,13 @@ jobs:
           # the first run of this job did.
           git clone --depth 1 https://github.com/${{ github.repository_owner }}/nextcloud-traefik-letsencrypt-docker-compose /tmp/reference
           git -C /tmp/reference fetch --depth 1 origin --tags
+          # The Kubernetes rules are broken on a copy of the Kubernetes
+          # platform and the helm_release rule on a Terraform pipeline that
+          # installs a chart. The platform stays private until its first
+          # release, so it is read with the fleet's read token.
+          GH_TOKEN="$K8S_READ_TOKEN" gh repo clone ${{ github.repository_owner }}/aws-eks-reference-platform /tmp/k8s-reference -- --depth 1 -q
+          git clone -q --depth 1 https://github.com/${{ github.repository_owner }}/amazon-eks-cluster-pipeline-terraform /tmp/tf-reference
+          git -C /tmp/tf-reference fetch -q --depth 1 origin --tags
           # split-freshness.py compares workflows as data, so the suite that
           # proves it needs a YAML parser; installed rather than assumed, since
           # a test that skips when its library is missing is a test that passes.
@@ -93,6 +101,7 @@ jobs:
             echo "== $t"
             case "$t" in
               */test-conformance.sh) "$t" /tmp/reference || fail=1 ;;
+              */test-conformance-kubernetes.sh) "$t" /tmp/k8s-reference /tmp/tf-reference || fail=1 ;;
               *) "$t" || fail=1 ;;
             esac
           done

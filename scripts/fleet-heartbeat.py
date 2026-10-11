@@ -585,8 +585,11 @@ def declared_period(repo, path):
     return max(period_hours(c) for c in crons) if crons else None
 
 
-# The repositories fleet triage walks. Anything else has no report of its own.
-TRIAGED = re.compile(r"(docker-compose|docker|-terraform)$")
+# The repositories fleet triage walks (scripts/fleet_kind.py decides). Anything
+# else, Kubernetes repositories included, has no report of its own, so a red
+# run there is reported here.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import fleet_kind  # noqa: E402
 
 
 def list_owned(include_private):
@@ -995,7 +998,7 @@ def fleet(owner, tolerance, now):
             # A RED RUN WHERE NOTHING ELSE LOOKS. Inside triage's list this is
             # the designed alarm and it has a report of its own; outside it,
             # with the Actions mail switched off, a failure reaches nobody.
-            if not TRIAGED.search(full.split("/")[-1]):
+            if not fleet_kind.triaged(full.split("/")[-1]):
                 runs = newest_first(gh("repos/%s/actions/workflows/%s/runs?per_page=5"
                                        % (full, wf["id"]))["workflow_runs"])
                 if runs and runs[0].get("conclusion") == "failure":

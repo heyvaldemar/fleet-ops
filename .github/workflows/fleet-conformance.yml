@@ -28,6 +28,9 @@ on:
     paths:
       - 'scripts/fleet-conformance.py'
       - 'tests/test-conformance.sh'
+      - 'tests/test-conformance-kubernetes.sh'
+      - 'tests/test-fleet-kind.sh'
+      - 'scripts/fleet_kind.py'
       - '.github/workflows/fleet-conformance.yml'
   workflow_dispatch:
 
@@ -54,11 +57,23 @@ jobs:
         # a conforming repository one rule at a time and fails if the rule
         # stays quiet, so a rule that rots into a no-op is caught here rather
         # than by a green report that checked nothing.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          K8S_READ_TOKEN: ${{ secrets.FLEET_READ_PAT }}
         run: |
           git clone --depth 1 https://github.com/${{ github.repository_owner }}/nextcloud-traefik-letsencrypt-docker-compose /tmp/reference
           git -C /tmp/reference fetch --depth 1 origin --tags
-          chmod +x tests/test-conformance.sh
+          # The Kubernetes rules are broken on a copy of the Kubernetes
+          # platform and the helm_release rule on a Terraform pipeline that
+          # installs a chart. The platform stays private until its first
+          # release, so it is read with the fleet's read token.
+          GH_TOKEN="$K8S_READ_TOKEN" gh repo clone ${{ github.repository_owner }}/aws-eks-reference-platform /tmp/k8s-reference -- --depth 1 -q
+          git clone -q --depth 1 https://github.com/${{ github.repository_owner }}/amazon-eks-cluster-pipeline-terraform /tmp/tf-reference
+          git -C /tmp/tf-reference fetch -q --depth 1 origin --tags
+          chmod +x tests/test-conformance.sh tests/test-conformance-kubernetes.sh tests/test-fleet-kind.sh
           ./tests/test-conformance.sh /tmp/reference
+          ./tests/test-conformance-kubernetes.sh /tmp/k8s-reference /tmp/tf-reference
+          ./tests/test-fleet-kind.sh
 
       - name: Check the fleet
         env:

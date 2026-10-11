@@ -70,15 +70,16 @@ section() { echo; echo "### $*" >> "$REPORT"; }
 # no report at all, because the listing never handed it to the loop. The
 # token decides what is visible; the listing must not narrow it further.
 REPOS=()
-# Fleet templates whose names do not end in -docker-compose, -docker or
-# -terraform. The filter below is a name rule, so a repository named for what
-# it does rather than for how it is deployed is never seen, and nothing fails
-# to say so: chatops-privilege-wall sat red with two drifted digests on
-# 2026-09-18 and no run had ever looked at it. fleet-conformance.py keeps the
-# same list for the same reason; both are name rules and both need the escape.
-EXTRA_FLEET_REPOS='chatops-privilege-wall'
+# WHICH REPOSITORIES ARE TRIAGED IS DECIDED IN scripts/fleet_kind.py, the one
+# place every fleet tool asks. It used to be a regular expression here and
+# another in each of four other scripts, plus a hand list of the names no
+# suffix describes (chatops-privilege-wall sat red with two drifted digests on
+# 2026-09-18 and no run had ever looked at it). Kubernetes and Helm
+# repositories are in the fleet but not triaged: the repairs below are for
+# compose pins and Terraform providers, and fleet-heartbeat reports any red
+# run of theirs instead.
 list_repos() {
-  while IFS= read -r _r; do REPOS+=("$_r"); done < <(gh api "user/repos?affiliation=owner&per_page=100" --paginate --jq '.[] | select(.archived|not) | .name' | grep -E "docker-compose\$|docker\$|-terraform\$|^(${EXTRA_FLEET_REPOS})\$" | sort)
+  while IFS= read -r _r; do REPOS+=("$_r"); done < <(gh api "user/repos?affiliation=owner&per_page=100" --paginate --jq '.[] | select(.archived|not) | .name' | python3 "$(dirname "${BASH_SOURCE[0]}")/fleet_kind.py" filter --triaged | cut -f1 | sort)
   if [ "${#REPOS[@]}" -eq 0 ]; then
     echo "::error::repository listing came back empty — token or API problem, refusing to report a false green"
     exit 1

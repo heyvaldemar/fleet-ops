@@ -20,6 +20,12 @@ releases.rocket.chat/<version>/info. Where that exists it is read directly,
 because a release that runs on a database the vendor still supports but the
 application does not is broken in a way no calendar shows.
 
+A third: the Kubernetes version a Terraform pipeline or a Kubernetes platform
+targets, against the amazon-eks calendar. EKS moves a cluster whose version
+leaves standard support to extended support, at six times the control plane's
+hourly price, unless it is pinned to standard support, in which case it is
+upgraded for you. Either way the date is one somebody has to plan for.
+
 Usage:
   fleet-lifecycle.py [--warn-days 180] [--report report.md] [--json out.json]
 """
@@ -32,6 +38,9 @@ import re
 import sys
 import urllib.error
 import urllib.request
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import fleet_kind  # noqa: E402
 
 OWNER = os.environ.get("FLEET_OWNER", "heyvaldemar")
 TOKEN = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN") or ""
@@ -201,6 +210,54 @@ def companion_verdict(repo, pins, findings):
                                                     "/".join(str(a) for a in allowed), spec["companion"], pinned)})
 
 
+def calendar_findings(repo, image, product, version, warn_days, findings):
+    """Append what the vendor's calendar says about one pinned version."""
+    entry = match_cycle(product, version)
+    if entry is None:
+        findings.append({"repo": repo, "kind": "calendar", "level": "unknown", "image": image,
+                         "text": "%s:%s is in no cycle the %s calendar lists — check by hand"
+                                 % (image, version, product)})
+        return
+    eol = entry.get("eol")
+    if eol in (True,):
+        findings.append({"repo": repo, "kind": "calendar", "level": "expired", "image": image,
+                         "text": "%s:%s (cycle %s) is out of support" % (image, version, entry["cycle"])})
+        return
+    if not isinstance(eol, str):
+        return  # eol false: supported, no date announced
+    when = datetime.date(*(int(x) for x in eol.split("-")))
+    days = (when - TODAY).days
+    if days < 0:
+        findings.append({"repo": repo, "kind": "calendar", "level": "expired", "image": image,
+                         "text": "%s:%s (cycle %s) went out of support on %s, %d days ago"
+                                 % (image, version, entry["cycle"], eol, -days)})
+    elif days <= warn_days:
+        findings.append({"repo": repo, "kind": "calendar", "level": "expiring", "image": image,
+                         "text": "%s:%s (cycle %s) goes out of support on %s, in %d days"
+                                 % (image, version, entry["cycle"], eol, days)})
+
+
+# Where a repository states the Kubernetes version it targets: the default of
+# a Terraform variable, or the version a platform validates its manifests for.
+EKS_VERSION_FILES = ("terraform/variables.tf", "00-variables.tf", "variables.tf", "scripts/validate.sh")
+EKS_VERSION = re.compile(
+    r'variable\s+"(?:kubernetes_version|eks_cluster_version|cluster_version)"\s*\{[^}]*?default\s*=\s*"(\d+\.\d+)"'
+    r'|^KUBE_VERSION=(\d+\.\d+)', re.S | re.M)
+
+
+def eks_versions(repo):
+    """Every Kubernetes minor the repository targets, from the files above."""
+    found = set()
+    for path in EKS_VERSION_FILES:
+        try:
+            text = gh("repos/%s/%s/contents/%s" % (OWNER, repo, path), raw=True)
+        except (urllib.error.URLError, OSError):
+            continue
+        for m in EKS_VERSION.finditer(text or ""):
+            found.add(m.group(1) or m.group(2))
+    return sorted(found)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--warn-days", type=int, default=180,
@@ -221,12 +278,19 @@ def main():
             if not batch:
                 break
             repos += [r["name"] for r in batch
-                      if not r["archived"] and re.search(r"(docker-compose|docker)$", r["name"])]
+                      if not r["archived"] and fleet_kind.kind_of(r["name"])]
             page += 1
         repos.sort()
 
     findings, checked = [], 0
     for repo in repos:
+        if fleet_kind.kind_of(repo) in ("terraform", "kubernetes"):
+            for version in eks_versions(repo):
+                checked += 1
+                calendar_findings(repo, "kubernetes", "amazon-eks", version, a.warn_days, findings)
+            continue
+        if fleet_kind.kind_of(repo) not in ("compose", "docker", None):
+            continue
         try:
             names = [f["name"] for f in gh("repos/%s/%s/contents" % (OWNER, repo))
                      if f["name"].endswith(".yml") and not f["name"].startswith(".")]
@@ -252,29 +316,7 @@ def main():
             if not product:
                 continue
             checked += 1
-            entry = match_cycle(product, version)
-            if entry is None:
-                findings.append({"repo": repo, "kind": "calendar", "level": "unknown", "image": image,
-                                 "text": "%s:%s is in no cycle the %s calendar lists — check by hand"
-                                         % (image, version, product)})
-                continue
-            eol = entry.get("eol")
-            if eol in (True,):
-                findings.append({"repo": repo, "kind": "calendar", "level": "expired", "image": image,
-                                 "text": "%s:%s (cycle %s) is out of support" % (image, version, entry["cycle"])})
-                continue
-            if not isinstance(eol, str):
-                continue  # eol false: supported, no date announced
-            when = datetime.date(*(int(x) for x in eol.split("-")))
-            days = (when - TODAY).days
-            if days < 0:
-                findings.append({"repo": repo, "kind": "calendar", "level": "expired", "image": image,
-                                 "text": "%s:%s (cycle %s) went out of support on %s, %d days ago"
-                                         % (image, version, entry["cycle"], eol, -days)})
-            elif days <= a.warn_days:
-                findings.append({"repo": repo, "kind": "calendar", "level": "expiring", "image": image,
-                                 "text": "%s:%s (cycle %s) goes out of support on %s, in %d days"
-                                         % (image, version, entry["cycle"], eol, days)})
+            calendar_findings(repo, image, product, version, a.warn_days, findings)
         companion_verdict(repo, pins, findings)
 
     held = waivers(a.waivers)
@@ -295,7 +337,7 @@ def main():
     findings.sort(key=lambda f: (order.get(f["level"], 3), f["repo"]))
 
     lines = ["## Fleet lifecycle — %s" % TODAY.isoformat(), "",
-             "%d pinned data stores across %d repositories, read against their vendors' own support calendars."
+             "%d pinned data stores and Kubernetes versions across %d repositories, read against their vendors' own support calendars."
              % (checked, len(repos)), ""]
     if not findings:
         lines.append("- every pinned data store is inside its supported window")
