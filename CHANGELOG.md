@@ -52,6 +52,13 @@ check or a job, a patch fixes one.
   and a timeout written as a literal.
 
 ### Changed
+- **fleet-lifecycle watches Confluence and Jira on their LTS lines.** On
+  2026-10-10 Confluence 11.0 arrived needing PostgreSQL 17 and a one-way
+  upgrade, and the template stayed on 10.2, Atlassian's Long Term Support
+  release; its freshness check now follows that line. Holding a line needs
+  someone to notice when it ends, so the end of 10.2 (2027-12-02) and of
+  Jira's 11.3 LTS (2027-12-03) are read from their vendor's calendar like
+  any data store's, and reported 180 days ahead.
 - **Triage moves `.env.example` with the pin.** The commented `X_IMAGE_VERSION=` default now follows every version bump and every prepared major, the way the README already did. Conformance reports an example that names a version the compose file no longer pins; on 2026-09-30 fifty-four such lines across forty-two templates were found and fixed by hand.
 
 - **The weekly sweep of the house writes down only what could become a

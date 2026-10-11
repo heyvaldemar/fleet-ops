@@ -39,8 +39,14 @@ TODAY = datetime.date.today()
 
 # Image name -> endoflife.date product. Only things with a real published
 # support calendar: a data store or the reverse proxy in front of it. An
-# application's own lifecycle is the upstream review's job, not this one.
+# application's own lifecycle is the upstream review's job, not this one,
+# with one exception: an application held on a Long Term Support line on
+# purpose. Confluence stays on 10.2 because 11.0 needs PostgreSQL 17 and is a
+# one-way upgrade (2026-10-10), and Jira sits on its 11.3 LTS line; for those
+# the end of the line is the reminder to move, so its date is watched here.
 PRODUCTS = {
+    "atlassian/confluence": "confluence",
+    "atlassian/jira-software": "jira-software",
     "postgres": "postgresql",
     "mysql": "mysql",
     "mariadb": "mariadb",
