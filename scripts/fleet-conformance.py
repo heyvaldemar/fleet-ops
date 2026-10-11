@@ -718,6 +718,15 @@ def check(repo, exempt=None):
             exempt.append("no upgrade drill, declared: " + m.group(1).strip())
         else:
             bad.append("the deploy job starts a fresh stack and never the previous release on the same volumes")
+    # An image's declared VOLUME that no mount covers is an anonymous volume:
+    # data the backups never see and a down/up replaces. GLPI's lived in one
+    # from 2026-08-31 to 2026-10-11 under a named volume mounted where the
+    # image never reads, with every check green. The deploy job inspects every
+    # container it starts for one; a workflow regenerated without that step
+    # would quietly stop asking.
+    if wf is not None and "Start up services using Docker Compose" in wf \
+            and "Every volume an image declares is one this stack names" not in wf:
+        bad.append("the deploy job never checks its containers for anonymous volumes")
 
     # 5. the README quotes the version the compose file pins. Triage moves a
     # pin and cuts a release; the "what success looks like" block keeps the

@@ -141,6 +141,14 @@ expect "a .gitignore that does not exclude .env is caught" "$WORK/gitignore" "do
 d="$(fixture workflow)";  rm -f "$d/.github/workflows/deployment-verification.yml"
 expect "a missing workflow is caught" "$WORK/workflow" "no Deployment Verification workflow"
 
+d="$(fixture anonvol)"
+python3 - "$d/.github/workflows/deployment-verification.yml" <<'PY'
+import re, sys
+p = sys.argv[1]; s = open(p).read()
+open(p, "w").write(re.sub(r"      - name: Every volume an image declares is one this stack names\n.*?(?=\n      - name:)", "", s, count=1, flags=re.S))
+PY
+expect "a deploy job that never looks for anonymous volumes is caught" "$WORK/anonvol" "never checks its containers for anonymous volumes"
+
 d="$(fixture updater)";   rm -f "$d/update.sh"
 expect "a missing update.sh is caught" "$WORK/updater" "no update.sh"
 

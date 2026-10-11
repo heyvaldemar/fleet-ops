@@ -10,6 +10,17 @@ check or a job, a patch fixes one.
 ## [Unreleased]
 
 ### Added
+- **Every template's deploy job looks for anonymous volumes, and conformance
+  requires it.** A `VOLUME` an image declares and no mount covers holds data
+  the backups never see and a `down`/`up` replaces. GLPI's config, encryption
+  key and uploads lived in one from 2026-08-31 to 2026-10-11, under a named
+  volume mounted at a path the image never reads, and its data archives were
+  empty with every check green. A fleet-wide read of every image's declared
+  volumes found GLPI the only one holding real data; twenty others are logs,
+  caches and the empty data directories of backup clients. The 56 templates
+  that boot in CI now inspect every container they start and fail on an
+  anonymous volume not listed, with the reason, in
+  `.github/anonymous-volumes`.
 - **A template built from source moves its commit on its own when no SQL
   moved.** rathena-docker pins `ARG RATHENA_REF=<sha>`, because rAthena has
   no releases, only a rolling master. On 2026-10-06 master moved two commits,
