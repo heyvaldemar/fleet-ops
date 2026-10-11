@@ -73,6 +73,22 @@ m.gh, asked = stand_in({})
 check("no release at all is no baseline, not an error", m.from_release("o/app", "9.9.9"), None)
 check("and each spelling is asked once", len(asked), len(set(asked)))
 
+# A pin to a line (Open WebUI's `0.11`) names no release; the newest release
+# inside the line is its baseline, and a pre-release or a later line is not.
+def lines(path):
+    if "/releases/tags/" in path:
+        raise urllib.error.HTTPError(path, 404, "Not Found", None, None)
+    return [{"tag_name": "v0.12.0", "published_at": "2026-10-10T00:00:00Z", "body": "twelve"},
+            {"tag_name": "v0.11.3", "published_at": "2026-09-30T00:00:00Z", "body": "eleven three"},
+            {"tag_name": "v0.11.4-rc1", "published_at": "2026-10-01T00:00:00Z", "body": "rc", "prerelease": True},
+            {"tag_name": "v0.11.2", "published_at": "2026-09-20T00:00:00Z", "body": "eleven two"}]
+m.gh = lines
+out = m.from_release("open-webui/open-webui", "0.11")
+check("a line pin takes the newest release inside its line", out is not None and "eleven three" in out, True)
+check("and says that is what it did", out is not None and "the newest release in the 0.11 line" in out, True)
+m.gh = lambda path: (_ for _ in ()).throw(urllib.error.HTTPError(path, 404, "Not Found", None, None)) if "/tags/" in path else []
+check("a line with no releases is no baseline", m.from_release("o/app", "0.11"), None)
+
 print()
 print("=== the review is told what the baseline is for ===")
 src = open("scripts/upstream-review.py", encoding="utf-8").read()

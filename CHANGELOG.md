@@ -76,6 +76,12 @@ check or a job, a patch fixes one.
   that the unregistered ones hold no code to rate.
 
 ### Fixed
+- **A pin to a release line gets its baseline too.** Open WebUI is pinned as
+  `0.11`, a tag the image carries for the newest 0.11.x, and no GitHub release
+  has that name, so on 2026-10-11 the move to 0.12.0 was reviewed with no
+  baseline at all. The newest stable release inside the line is now read
+  (v0.11.4 there), and the review is told that is what it got.
+
 - **The heartbeat asks a second index before it calls a schedule stopped.**
   On 2026-10-07 at 14:27 it reported keycloak's daily verification as silent
   for 74 hours; it had fired ninety minutes earlier. Both of its questions

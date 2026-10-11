@@ -454,6 +454,22 @@ def from_release(source, frm, limit=12000):
         body = (r.get("body") or "").strip()
         if body:
             return "### %s (%s)\n%s" % (r.get("tag_name"), (r.get("published_at") or "")[:10], body[:limit])
+    # A PIN TO A LINE, NOT A RELEASE. Open WebUI is pinned as `0.11`, a tag the
+    # image carries for the newest 0.11.x, and no GitHub release is named that,
+    # so on 2026-10-11 the move to 0.12.0 was reviewed with no baseline at all.
+    # The newest release inside the line is what such a pin runs.
+    if n.count(".") == 1:
+        try:
+            rels = gh("repos/%s/releases?per_page=100" % source)
+        except Exception:
+            return None
+        inside = [r for r in rels
+                  if normalise(re.sub(r"^(release-|v)", "", r.get("tag_name", ""))).startswith(n + ".")
+                  and not r.get("prerelease") and (r.get("body") or "").strip()]
+        if inside:
+            r = max(inside, key=lambda x: x.get("published_at") or "")
+            return "### %s (%s, the newest release in the %s line)\n%s" % (
+                r.get("tag_name"), (r.get("published_at") or "")[:10], n, (r.get("body") or "").strip()[:limit])
     return None
 
 
