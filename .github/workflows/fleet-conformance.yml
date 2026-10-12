@@ -51,29 +51,44 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Fetch the reference repositories
+        # Only git and gh run in this step; the read token never reaches a
+        # script from this repository. The Kubernetes rules are broken on a
+        # copy of the Kubernetes platform, the helm_release rule on a
+        # Terraform pipeline that installs a chart. The platform is private
+        # until its first release: anonymous first, then the read token,
+        # which has to be granted that repository until it is public.
+        env:
+          READ_TOKEN: ${{ secrets.FLEET_READ_PAT }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          git clone -q --depth 1 "https://github.com/$OWNER/nextcloud-traefik-letsencrypt-docker-compose" /tmp/reference
+          git -C /tmp/reference fetch -q --depth 1 origin --tags
+          git clone -q --depth 1 "https://github.com/$OWNER/amazon-eks-cluster-pipeline-terraform" /tmp/tf-reference
+          git -C /tmp/tf-reference fetch -q --depth 1 origin --tags
+          if ! GIT_TERMINAL_PROMPT=0 git clone -q --depth 1 "https://github.com/$OWNER/aws-eks-reference-platform" /tmp/k8s-reference 2>/dev/null; then
+            if [ -z "$READ_TOKEN" ] || ! GH_TOKEN="$READ_TOKEN" gh repo clone "$OWNER/aws-eks-reference-platform" /tmp/k8s-reference -- -q --depth 1; then
+              echo "aws-eks-reference-platform is private and the read token cannot see it" > /tmp/k8s-reference.unavailable
+              echo "::warning::the Kubernetes conformance rules were not exercised: $(cat /tmp/k8s-reference.unavailable)"
+            fi
+          fi
 
       - name: Prove the rules can still fail
         # A check that has never failed is not known to work. The suite breaks
         # a conforming repository one rule at a time and fails if the rule
         # stays quiet, so a rule that rots into a no-op is caught here rather
         # than by a green report that checked nothing.
-        env:
-          GH_TOKEN: ${{ github.token }}
-          K8S_READ_TOKEN: ${{ secrets.FLEET_READ_PAT }}
         run: |
-          git clone --depth 1 https://github.com/${{ github.repository_owner }}/nextcloud-traefik-letsencrypt-docker-compose /tmp/reference
-          git -C /tmp/reference fetch --depth 1 origin --tags
-          # The Kubernetes rules are broken on a copy of the Kubernetes
-          # platform and the helm_release rule on a Terraform pipeline that
-          # installs a chart. The platform stays private until its first
-          # release, so it is read with the read-only token, which has to be
-          # granted that repository until it is public.
-          GH_TOKEN="$K8S_READ_TOKEN" gh repo clone ${{ github.repository_owner }}/aws-eks-reference-platform /tmp/k8s-reference -- --depth 1 -q
-          git clone -q --depth 1 https://github.com/${{ github.repository_owner }}/amazon-eks-cluster-pipeline-terraform /tmp/tf-reference
-          git -C /tmp/tf-reference fetch -q --depth 1 origin --tags
           chmod +x tests/test-conformance.sh tests/test-conformance-kubernetes.sh tests/test-fleet-kind.sh
           ./tests/test-conformance.sh /tmp/reference
-          ./tests/test-conformance-kubernetes.sh /tmp/k8s-reference /tmp/tf-reference
+          if [ -e /tmp/k8s-reference.unavailable ]; then
+            echo "SKIPPED tests/test-conformance-kubernetes.sh: $(cat /tmp/k8s-reference.unavailable)" | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            ./tests/test-conformance-kubernetes.sh /tmp/k8s-reference /tmp/tf-reference
+          fi
           ./tests/test-fleet-kind.sh
 
       - name: Check the fleet
