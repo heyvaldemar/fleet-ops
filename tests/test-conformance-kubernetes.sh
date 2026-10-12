@@ -134,8 +134,20 @@ expect "a Terraform test never shown a violation is caught" "$WORK/tfplants" "th
 d="$(fixture range)"; edit "$d/platform/appsets/kyverno.yaml" 's/targetRevision: 3\.9\.1$/targetRevision: 3.9.*/'
 expect "a chart version range is caught" "$WORK/range" "targetRevision 3.9.* is not one exact version"
 
-d="$(fixture branch)"; edit "$d/platform/appsets/demo.yaml" "s/targetRevision: '{{ .metadata.annotations.platform_revision }}'/targetRevision: main/"
+# Whichever ApplicationSet carries a Git source: the file names change, the
+# rule does not.
+appset_with() { grep -l "$1" "$2"/platform/appsets/*.yaml | head -1; }
+d="$(fixture branch)"; edit "$(appset_with "targetRevision: '{{ .metadata.annotations.platform_revision }}'" "$d")" \
+  "s/targetRevision: '{{ .metadata.annotations.platform_revision }}'/targetRevision: main/"
 expect "a Git source on a branch is caught" "$WORK/branch" "targetRevision main is not one exact version"
+
+d="$(fixture generator)"
+if f="$(appset_with "revision: '{{ .metadata.annotations.platform_revision }}'" "$d")" && grep -q "^ *revision: '" "$f"; then
+  edit "$f" "s/^\( *\)revision: '{{ .metadata.annotations.platform_revision }}'/\1revision: HEAD/"
+  expect "a Git generator reading HEAD is caught" "$WORK/generator" "revision HEAD is not one exact version"
+else
+  echo "  note: the reference has no Git generator yet; its rule is exercised once it does"
+fi
 
 d="$(fixture digest)"; edit "$d/apps/demo/base/frontend.yaml" 's/@sha256:[0-9a-f]*//'
 expect "an authored image without a digest is caught" "$WORK/digest" "is not pinned by digest"

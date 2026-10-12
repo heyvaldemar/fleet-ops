@@ -445,13 +445,15 @@ def kubernetes_rules(repo, names):
 
     for f in repo.names_in("platform/appsets"):
         text = repo.read(f"platform/appsets/{f}") or ""
-        for m in re.finditer(r"targetRevision:[ \t]*(.+?)[ \t]*$", text, re.M):
-            rev = m.group(1).strip("'\"")
+        # targetRevision for sources, revision for a Git generator: both name
+        # the commit a cluster reads, and neither may be a branch.
+        for m in re.finditer(r"(targetRevision|\brevision):[ \t]*(.+?)[ \t]*$", text, re.M):
+            key, rev = m.group(1), m.group(2).strip("'\"")
             if rev.startswith("{{"):
                 if "platform_revision" not in rev:
                     bad.append(f"platform/appsets/{f}: a Git source at {rev}, not the cluster's platform_revision")
             elif not re.fullmatch(r"v?\d+\.\d+\.\d+([-+][\w.]+)?", rev):
-                bad.append(f"platform/appsets/{f}: targetRevision {rev} is not one exact version")
+                bad.append(f"platform/appsets/{f}: {key} {rev} is not one exact version")
 
     tree = repo.tree()
     for path in tree:
