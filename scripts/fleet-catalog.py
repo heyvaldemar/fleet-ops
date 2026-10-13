@@ -139,11 +139,17 @@ SPECIAL = {"cs2": "Counter-Strike 2", "cs2-classic": "CS2 classic maps", "tf2": 
            "unhealthy-watchdog": "unhealthy-watchdog"}
 
 
+# Words str.title() would turn into "Aws" and "Ai". The catalog showed
+# "Aws Eks Reference Platform" and "Amazon Rds" until 2026-10-13.
+ACRONYMS = {"aws": "AWS", "eks": "EKS", "ecs": "ECS", "rds": "RDS", "ai": "AI", "iis": "IIS", "api": "API",
+            "vpc": "VPC", "iam": "IAM", "kms": "KMS", "ec2": "EC2", "s3": "S3", "ci": "CI", "sql": "SQL"}
+
+
 def title(name):
     n = re.sub(r"-(traefik-letsencrypt-)?docker-compose$|-docker$|-pipeline-terraform$", "", name)
     if n not in ("minecraft-server", "mssql-server", "minecraft-server-proxy"):
         n = re.sub(r"-server$", "", n)
-    return SPECIAL.get(n, n.replace("-", " ").title())
+    return SPECIAL.get(n, " ".join(ACRONYMS.get(w, w.title()) for w in n.split("-")))
 
 
 def collect():
