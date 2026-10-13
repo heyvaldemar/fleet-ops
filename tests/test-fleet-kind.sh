@@ -28,7 +28,8 @@ chatops-privilege-wall compose
 aws-eks-reference-platform kubernetes
 kubernetes-portable-platform kubernetes
 kubernetes-ai-workload-sandbox kubernetes
-kubernetes-ai-agent-sandbox sandbox
+kubernetes-ai-agent-sandbox focused
+kubernetes-supply-chain-admission focused
 helm-charts helm
 heyvaldemar-com none
 deadman-switch none
@@ -43,7 +44,7 @@ python3 - "$ROOT/scripts" <<'PY'
 import sys; sys.path.insert(0, sys.argv[1]); import fleet_kind as k
 cases = {
     ("platform", "kind", "Makefile", "README.md"): "kubernetes",
-    ("kind", "manifests", "Makefile", "gvisor.lock"): "sandbox",
+    ("kind", "manifests", "Makefile", "gvisor.lock"): "focused",
     ("Chart.yaml", "values.yaml"): "helm",
     ("nextcloud-docker-compose.yml", ".env.example"): "compose",
     ("01-providers.tf", "README.md"): "terraform",

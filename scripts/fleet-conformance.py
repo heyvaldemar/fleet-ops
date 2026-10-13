@@ -491,8 +491,8 @@ def image_findings(repo, tree):
 def readme_findings(repo, runbooks):
     """What a reader needs before trusting it: a diagram, a way to run it and
     tear it down, its cost, the decisions behind it, and no claim CI cannot
-    back. A platform also owes its operators runbooks; a sandbox has no state
-    to restore."""
+    back. A platform also owes its operators runbooks; a focused repository
+    has no state to restore."""
     bad = []
     readme = repo.read("README.md") or ""
     if "```mermaid" not in readme:
@@ -515,20 +515,22 @@ def readme_findings(repo, runbooks):
     return bad
 
 
-# --- Agent sandboxes ----------------------------------------------------------
+# --- Focused Kubernetes repositories -------------------------------------------
 #
-# Kubernetes, but not a platform: no Argo CD, no Kyverno, no state to back up.
+# Kubernetes, but not a platform: one question answered on kind (what an
+# untrusted agent can reach; which images a cluster will run), no Argo CD and
+# no state to back up.
 # What stays from the standard: every static check it has is shown its
 # violation, a kind cluster proves it every day, every refusal it claims is a
 # planted manifest with the reason it must be refused for and a control that
 # must be admitted, and nothing claims more than CI proves. Each rule is
-# broken on a copy of the real sandbox in tests/test-conformance-sandbox.sh.
+# broken on a copy of the agent sandbox in tests/test-conformance-sandbox.sh.
 
-def sandbox_rules(repo, names):
+def focused_rules(repo, names):
     bad = []
     files_kind = fleet_kind.kind_from_files(names)
-    if files_kind != "sandbox":
-        bad.append(f"named as an agent sandbox, but its files say {files_kind or 'nothing recognisable'}")
+    if files_kind != "focused":
+        bad.append(f"named as a focused Kubernetes repository, but its files say {files_kind or 'nothing recognisable'}")
     for f in ("LICENSE", "SECURITY.md"):
         if f not in names:
             bad.append(f"missing {f}")
@@ -565,7 +567,7 @@ def sandbox_rules(repo, names):
     if not e2e:
         bad.append("no workflow runs tests/e2e/run.sh on a kind cluster")
     elif not any(re.search(r"^\s+schedule:", t, re.M) for t in e2e):
-        bad.append("the e2e workflow has no schedule: nothing proves the sandbox daily")
+        bad.append("the e2e workflow has no schedule: nothing proves it daily")
     bad += cloud_run_findings(workflows)
 
     expects = [(n, re.search(r"^# expect: (.+)$", repo.read(f"tests/e2e/plants/{n}") or "", re.M))
@@ -612,10 +614,10 @@ def check(repo, exempt=None):
         return kubernetes_rules(repo, names) + workflow_claims(repo) + changelog_claims(repo)
     if fleet_kind.kind_from_files(names) == "kubernetes":
         return ["its files are a Kubernetes platform, but its name puts it outside the Kubernetes rules (scripts/fleet_kind.py)"]
-    if kind == "sandbox":
-        return sandbox_rules(repo, names) + workflow_claims(repo) + changelog_claims(repo)
-    if fleet_kind.kind_from_files(names) == "sandbox":
-        return ["its files are an agent sandbox, but its name puts it outside the sandbox rules (scripts/fleet_kind.py)"]
+    if kind == "focused":
+        return focused_rules(repo, names) + workflow_claims(repo) + changelog_claims(repo)
+    if fleet_kind.kind_from_files(names) == "focused":
+        return ["its files are a focused Kubernetes repository, but its name puts it outside those rules (scripts/fleet_kind.py)"]
 
     compose_name = next((n for n in names if n.endswith(".yml") and "compose" in n), None)
     if not compose_name:

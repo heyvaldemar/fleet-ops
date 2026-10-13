@@ -1,5 +1,6 @@
 #!/bin/bash
-# Every agent-sandbox rule in fleet-conformance.py, shown a real violation.
+# Every rule for focused Kubernetes repositories in fleet-conformance.py,
+# shown a real violation on a copy of the agent sandbox.
 #
 # Same method as test-conformance-kubernetes.sh: a conforming copy of the real
 # sandbox must come back clean, and each copy broken in one rule's way must
@@ -54,7 +55,7 @@ expect_clean() {     # expect_clean <name> <parent>
 
 edit() { local f="$1"; shift; sed -i.bak "$@" "$f" && rm -f "$f.bak"; }
 
-echo "=== fleet conformance, agent sandbox rules: does every rule fire? ==="
+echo "=== fleet conformance, focused Kubernetes rules: does every rule fire? ==="
 echo "sandbox reference: $REF"
 echo
 
@@ -62,7 +63,7 @@ fixture control >/dev/null
 expect_clean "an untouched sandbox copy is reported as conforming" "$WORK/control"
 
 d="$(fixture files)"; rm -rf "$d/manifests"
-expect "a sandbox whose files say otherwise is caught" "$WORK/files" "named as an agent sandbox, but its files say"
+expect "a sandbox whose files say otherwise is caught" "$WORK/files" "named as a focused Kubernetes repository, but its files say"
 
 d="$(fixture security)"; rm -f "$d/SECURITY.md"
 expect "a missing SECURITY.md is caught" "$WORK/security" "missing SECURITY.md"

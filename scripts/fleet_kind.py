@@ -9,7 +9,7 @@ days on 2026-09-18 because its name matched none of them.
 
     kind_of("nextcloud-traefik-letsencrypt-docker-compose")  -> "compose"
     kind_of("aws-eks-reference-platform")                    -> "kubernetes"
-    kind_of("kubernetes-ai-agent-sandbox")                   -> "sandbox"
+    kind_of("kubernetes-ai-agent-sandbox")                   -> "focused"
     kind_of("deadman-switch")                                -> None (not a fleet repository)
 
 The decision is by name, because every caller has a list of names and only
@@ -31,9 +31,11 @@ import sys
 NAMED = {
     "chatops-privilege-wall": "compose",
     "aws-eks-reference-platform": "kubernetes",
-    # Kubernetes, but not a platform: one question (what an untrusted agent
-    # can reach) answered on kind, with rules of its own in conformance.
-    "kubernetes-ai-agent-sandbox": "sandbox",
+    # Kubernetes, but not a platform: each answers one question on kind
+    # (what an untrusted agent can reach; which images a cluster will run),
+    # with rules of its own in conformance.
+    "kubernetes-ai-agent-sandbox": "focused",
+    "kubernetes-supply-chain-admission": "focused",
     "helm-charts": "helm",
 }
 
@@ -56,7 +58,7 @@ WORKFLOW = {
     "docker": ("Deployment Verification", "deployment-verification.yml"),
     "terraform": ("Terraform Verification", "terraform-verification.yml"),
     "kubernetes": ("kind e2e", "kind-e2e.yml"),
-    "sandbox": ("Sandbox e2e", "e2e.yml"),
+    "focused": ("e2e", "e2e.yml"),
     "helm": ("Verification", "verification.yml"),
 }
 
@@ -82,7 +84,7 @@ def kind_from_files(names):
     if {"platform", "kind"} <= names or ("kustomization.yaml" in names and "Makefile" in names):
         return "kubernetes"
     if {"kind", "manifests"} <= names:
-        return "sandbox"
+        return "focused"
     if any(n.endswith((".yml", ".yaml")) and "compose" in n for n in names):
         return "compose"
     if any(n.endswith(".tf") for n in names):
