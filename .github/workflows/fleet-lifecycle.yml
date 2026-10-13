@@ -22,10 +22,8 @@ on:
         default: "180"
 
 permissions:
+  # Read-only for the whole file; the job below names what it writes.
   contents: read
-  # To open the issue that carries the report. It lives in this repository,
-  # so the default token is the right one; the fleet PAT only reads pins.
-  issues: write
 
 concurrency:
   group: fleet-lifecycle
@@ -33,6 +31,11 @@ concurrency:
 
 jobs:
   lifecycle:
+    permissions:
+      contents: read
+      # To open the issue that carries the report. It lives in this repository,
+      # so the default token is the right one; the fleet PAT only reads pins.
+      issues: write
     name: Read every pinned data store against its vendor's calendar
     # THE HOUSE COPY DOES NOT ACT. The fleet runs from the public copy of
     # this repository; the private one keeps the two jobs about the home

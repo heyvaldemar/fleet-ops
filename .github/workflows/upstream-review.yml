@@ -28,11 +28,14 @@ on:
         default: ""
 
 permissions:
+  # Read-only for the whole file; the job below names what it writes.
   contents: read
-  id-token: write
 
 jobs:
   review:
+    permissions:
+      contents: read
+      id-token: write
     name: Read the release notes against the template
     runs-on: ubuntu-latest
     timeout-minutes: 10

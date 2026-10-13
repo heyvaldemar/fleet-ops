@@ -35,12 +35,15 @@ on:
   workflow_dispatch:
 
 permissions:
+  # Read-only for the whole file; the job below names what it writes.
   contents: read
-  # To start Fleet Triage when the scheduler dropped it.
-  actions: write
 
 jobs:
   conformance:
+    permissions:
+      contents: read
+      # To start Fleet Triage when the scheduler dropped it.
+      actions: write
     name: Every template against the standard
     # THE HOUSE COPY DOES NOT ACT. The fleet runs from the public copy of
     # this repository; the private one keeps the two jobs about the home

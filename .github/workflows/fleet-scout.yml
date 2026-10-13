@@ -21,9 +21,8 @@ on:
         default: "3"
 
 permissions:
+  # Read-only for the whole file; the job below names what it writes.
   contents: read
-  issues: write
-  id-token: write
 
 concurrency:
   group: fleet-scout
@@ -31,6 +30,10 @@ concurrency:
 
 jobs:
   scout:
+    permissions:
+      contents: read
+      issues: write
+      id-token: write
     name: Propose what is worth adding
     # THE HOUSE COPY DOES NOT ACT. The fleet runs from the public copy of
     # this repository; the private one keeps the two jobs about the home
