@@ -1403,6 +1403,15 @@ for repo in "${REPOS[@]}"; do
         UNRESOLVED_TAG=1
         continue
       fi
+      # A LAG THE PIN DOES NOT HAVE IS NOT A BUMP. When the freshness check
+      # misreads a pin, the version it reports is the one already pinned, and
+      # the substitution below swapped a string for itself: "0.12.0 moved to
+      # 0.12.0" went into Ollama's changelog twice on 2026-10-13, as a commit,
+      # and once as release v1.6.11. The check is the thing to fix.
+      if [ "${ref##*:}@${olddg}" = "${newref##*:}@${newdg}" ]; then
+        note "$repo: $ref is already pinned at the digest upstream serves — the freshness check reported a lag that is not there; nothing written, the check needs a look"
+        continue
+      fi
       if [ "$DRY_RUN" = "true" ]; then
         note "$repo: would bump $ref -> $newref@$newdg"
         continue
