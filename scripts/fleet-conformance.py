@@ -255,6 +255,29 @@ def workflow_claims(repo):
     established belongs here, where it is asked every day of every repository.
     """
     bad = []
+    # A WORKFLOW THAT WAITS FOR ANOTHER ONE BY NAME WAITS FOREVER FOR ONE THAT
+    # IS NOT THERE, and says nothing: workflow_run on a name no workflow
+    # carries never fires. On 2026-10-13 the agent sandbox and the supply
+    # chain repository had been given the platform's dependabot-automerge.yml,
+    # which waits for "kind e2e" and reads verification.yml; neither
+    # repository has either, so their update pull requests would have stayed
+    # open with every check green.
+    files = [n for n in repo.workflows() if n.endswith((".yml", ".yaml"))]
+    bodies = {n: repo.read(f".github/workflows/{n}") or "" for n in files}
+    titles = set()
+    for body in bodies.values():
+        m = re.search(r"^name:\s*(.+?)\s*$", body, re.M)
+        if m:
+            titles.add(m.group(1).strip("\"'"))
+    for name, body in bodies.items():
+        m = re.search(r"^\s+workflow_run:\s*\n\s+workflows:\s*\[([^\]]*)\]", body, re.M)
+        for wanted in ([w.strip().strip("\"'") for w in m.group(1).split(",")] if m else []):
+            if wanted and wanted not in titles:
+                bad.append(f"{name} waits for a workflow named \"{wanted}\", and no workflow here has that name")
+        for ref in sorted(set(re.findall(r"actions/workflows/([A-Za-z0-9_.-]+\.ya?ml)", body) +
+                              re.findall(r"gh workflow run ([A-Za-z0-9_.-]+\.ya?ml)", body))):
+            if ref not in bodies:
+                bad.append(f"{name} reads or dispatches {ref}, which this repository does not have")
     # 8. A WRITE GRANT AT THE TOP OF A WORKFLOW APPLIES TO EVERY JOB IN IT,
     # including the ones somebody adds next year. The standard this fleet
     # advertises says "per-job permissions", and on 2026-09-14 OpenSSF

@@ -98,6 +98,9 @@ expect "too few decision records are caught" "$WORK/adrs" "decision records; the
 d="$(fixture claim)"; printf '\nBattle-tested at scale.\n' >> "$d/README.md"
 expect "a production claim is caught" "$WORK/claim" "README.md claims"
 
+d="$(fixture automerge)"; edit "$d/.github/workflows/dependabot-automerge.yml" 's/workflows: \[".*"\]/workflows: ["kind e2e"]/'
+expect "an auto-merge that waits for a workflow the repository does not have is caught" "$WORK/automerge" 'waits for a workflow named "kind e2e"'
+
 d="$(fixture runbooks)"; rm -rf "$d/docs/runbooks"
 expect_clean "a sandbox is not asked for a platform's runbooks" "$WORK/runbooks"
 

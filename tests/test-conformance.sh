@@ -250,7 +250,7 @@ if os.path.isfile(p):
     s = s.replace("jobs:\n  merge:\n", "jobs:\n  merge:\n    permissions:\n      contents: write\n      pull-requests: write\n", 1)
     io.open(p, "w", encoding="utf-8").write(s)
 FIX
-printf 'name: T\non:\n  workflow_run:\n    workflows: ["X"]\n    types: [completed]\n\npermissions:\n  contents: read\n\njobs:\n  merge:\n    runs-on: ubuntu-latest\n    permissions:\n      contents: write\n      pull-requests: write\n    steps:\n      - run: "true"\n' > "$d/.github/workflows/jobscoped-write.yml"
+printf 'name: T\non:\n  workflow_run:\n    workflows: ["T"]\n    types: [completed]\n\npermissions:\n  contents: read\n\njobs:\n  merge:\n    runs-on: ubuntu-latest\n    permissions:\n      contents: write\n      pull-requests: write\n    steps:\n      - run: "true"\n' > "$d/.github/workflows/jobscoped-write.yml"
 expect_clean "$(dirname "$d")"
 
 # .ENV.EXAMPLE IS THE FILE PEOPLE COPY, AND NOTHING CHECKED THAT IT IS ENOUGH.
