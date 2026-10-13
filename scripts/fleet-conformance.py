@@ -456,12 +456,7 @@ def kubernetes_rules(repo, names):
                 bad.append(f"platform/appsets/{f}: {key} {rev} is not one exact version")
 
     tree = repo.tree()
-    for path in tree:
-        if path.startswith(("apps/", "manifests/")) and path.endswith((".yaml", ".yml")):
-            for line in (repo.read(path) or "").splitlines():
-                m = re.match(r"\s*-?\s*image:\s*(\S+)", line)
-                if m and "@sha256:" not in m.group(1):
-                    bad.append(f"{path}: image {m.group(1)} is not pinned by digest")
+    bad += image_findings(repo, tree)
 
     for path in tree:
         if not (path.startswith("policies/") and path.count("/") == 1 and path.endswith(".yaml")):
@@ -477,6 +472,28 @@ def kubernetes_rules(repo, names):
         if "result: fail" not in test:
             bad.append(f"policy {name} has no test that shows it a violation")
 
+    bad += readme_findings(repo, runbooks=True)
+    return bad
+
+
+def image_findings(repo, tree):
+    """Every image a manifest names is pinned by digest."""
+    bad = []
+    for path in tree:
+        if path.startswith(("apps/", "manifests/")) and path.endswith((".yaml", ".yml")):
+            for line in (repo.read(path) or "").splitlines():
+                m = re.match(r"\s*-?\s*image:\s*(\S+)", line)
+                if m and "@sha256:" not in m.group(1):
+                    bad.append(f"{path}: image {m.group(1)} is not pinned by digest")
+    return bad
+
+
+def readme_findings(repo, runbooks):
+    """What a reader needs before trusting it: a diagram, a way to run it and
+    tear it down, its cost, the decisions behind it, and no claim CI cannot
+    back. A platform also owes its operators runbooks; a sandbox has no state
+    to restore."""
+    bad = []
     readme = repo.read("README.md") or ""
     if "```mermaid" not in readme:
         bad.append("README has no architecture diagram")
@@ -489,12 +506,80 @@ def kubernetes_rules(repo, names):
     adrs = [n for n in repo.names_in("docs/decisions") if re.match(r"\d{4}-.*\.md$", n)]
     if len(adrs) < 3:
         bad.append(f"docs/decisions holds {len(adrs)} decision records; the standard asks for at least 3")
-    runbooks = repo.names_in("docs/runbooks")
-    for rb in RUNBOOKS:
-        if f"{rb}.md" not in runbooks:
-            bad.append(f"no {rb} runbook in docs/runbooks")
-
+    if runbooks:
+        held = repo.names_in("docs/runbooks")
+        for rb in RUNBOOKS:
+            if f"{rb}.md" not in held:
+                bad.append(f"no {rb} runbook in docs/runbooks")
     bad += claim_findings(repo, ["README.md"] + [f"docs/decisions/{n}" for n in adrs])
+    return bad
+
+
+# --- Agent sandboxes ----------------------------------------------------------
+#
+# Kubernetes, but not a platform: no Argo CD, no Kyverno, no state to back up.
+# What stays from the standard: every static check it has is shown its
+# violation, a kind cluster proves it every day, every refusal it claims is a
+# planted manifest with the reason it must be refused for and a control that
+# must be admitted, and nothing claims more than CI proves. Each rule is
+# broken on a copy of the real sandbox in tests/test-conformance-sandbox.sh.
+
+def sandbox_rules(repo, names):
+    bad = []
+    files_kind = fleet_kind.kind_from_files(names)
+    if files_kind != "sandbox":
+        bad.append(f"named as an agent sandbox, but its files say {files_kind or 'nothing recognisable'}")
+    for f in ("LICENSE", "SECURITY.md"):
+        if f not in names:
+            bad.append(f"missing {f}")
+
+    validate = repo.read("scripts/validate.sh")
+    checks = re.findall(r"^check_([a-z0-9_]+)\(\)", validate or "", re.M)
+    if validate is None:
+        bad.append("no scripts/validate.sh: the static checks have no single entry point")
+    elif not checks:
+        bad.append("scripts/validate.sh defines no check")
+    plants = repo.read("tests/static/plants.tsv")
+    if plants is None:
+        bad.append("no tests/static/plants.tsv: no static check is ever shown a violation")
+    else:
+        planted = set()
+        for line in plants.splitlines():
+            fields = line.split("\t")
+            if line.strip() and not line.startswith("#") and len(fields) >= 4:
+                try:
+                    planted.add(json.loads(fields[3]))
+                except ValueError:
+                    bad.append("tests/static/plants.tsv has a line that is not JSON fields")
+        for c in checks:
+            if c.replace("_", "-") not in planted and c not in planted:
+                bad.append(f"no planted violation for the {c} check")
+
+    workflows = {w: repo.read(f".github/workflows/{w}") or "" for w in repo.workflows()}
+    every = "\n".join(workflows.values())
+    if "scripts/validate.sh" not in every:
+        bad.append("no workflow runs scripts/validate.sh")
+    if "tests/static/plant_violations.py" not in every:
+        bad.append("no workflow shows the static checks their planted violations")
+    e2e = [t for t in workflows.values() if "tests/e2e/run.sh" in t and "kind create cluster" in t]
+    if not e2e:
+        bad.append("no workflow runs tests/e2e/run.sh on a kind cluster")
+    elif not any(re.search(r"^\s+schedule:", t, re.M) for t in e2e):
+        bad.append("the e2e workflow has no schedule: nothing proves the sandbox daily")
+    bad += cloud_run_findings(workflows)
+
+    expects = [(n, re.search(r"^# expect: (.+)$", repo.read(f"tests/e2e/plants/{n}") or "", re.M))
+               for n in repo.names_in("tests/e2e/plants") if n.endswith((".yaml", ".yml"))]
+    if not expects:
+        bad.append("no planted manifests in tests/e2e/plants: no refusal is ever tried")
+    for n, m in expects:
+        if not m:
+            bad.append(f"tests/e2e/plants/{n} does not say what it expects (# expect: ...)")
+    if expects and not any(m and m.group(1).strip() == "admitted" for _, m in expects):
+        bad.append("no planted manifest expects to be admitted: refusals without a control prove nothing")
+
+    bad += image_findings(repo, repo.tree())
+    bad += readme_findings(repo, runbooks=False)
     return bad
 
 
@@ -527,6 +612,10 @@ def check(repo, exempt=None):
         return kubernetes_rules(repo, names) + workflow_claims(repo) + changelog_claims(repo)
     if fleet_kind.kind_from_files(names) == "kubernetes":
         return ["its files are a Kubernetes platform, but its name puts it outside the Kubernetes rules (scripts/fleet_kind.py)"]
+    if kind == "sandbox":
+        return sandbox_rules(repo, names) + workflow_claims(repo) + changelog_claims(repo)
+    if fleet_kind.kind_from_files(names) == "sandbox":
+        return ["its files are an agent sandbox, but its name puts it outside the sandbox rules (scripts/fleet_kind.py)"]
 
     compose_name = next((n for n in names if n.endswith(".yml") and "compose" in n), None)
     if not compose_name:

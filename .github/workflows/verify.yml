@@ -83,6 +83,8 @@ jobs:
           git -C /tmp/reference fetch -q --depth 1 origin --tags
           git clone -q --depth 1 "https://github.com/$OWNER/amazon-eks-cluster-pipeline-terraform" /tmp/tf-reference
           git -C /tmp/tf-reference fetch -q --depth 1 origin --tags
+          git clone -q --depth 1 "https://github.com/$OWNER/kubernetes-ai-agent-sandbox" /tmp/sandbox-reference
+          git -C /tmp/sandbox-reference fetch -q --depth 1 origin --tags
           if ! GIT_TERMINAL_PROMPT=0 git clone -q --depth 1 "https://github.com/$OWNER/aws-eks-reference-platform" /tmp/k8s-reference 2>/dev/null; then
             if [ -z "$READ_TOKEN" ] || ! GH_TOKEN="$READ_TOKEN" gh repo clone "$OWNER/aws-eks-reference-platform" /tmp/k8s-reference -- -q --depth 1; then
               echo "aws-eks-reference-platform is private and the read token cannot see it" > /tmp/k8s-reference.unavailable
@@ -111,6 +113,7 @@ jobs:
             echo "== $t"
             case "$t" in
               */test-conformance.sh) "$t" /tmp/reference || fail=1 ;;
+              */test-conformance-sandbox.sh) "$t" /tmp/sandbox-reference || fail=1 ;;
               */test-conformance-kubernetes.sh)
                 if [ -e /tmp/k8s-reference.unavailable ]; then
                   echo "SKIPPED: $(cat /tmp/k8s-reference.unavailable)"
