@@ -125,6 +125,40 @@ expect "a cloud run without always-teardown is caught" "$WORK/cloud" "a cloud ru
 expect "a cloud run without a timeout is caught" "$WORK/cloud" "a cloud run without a job timeout"
 expect "a cloud run that starts on push is caught" "$WORK/cloud" "a cloud run that starts on its own"
 
+# The one cloud run allowed on a schedule: ADR 10's sweeper, delete-only.
+sweeper() {          # sweeper <case> <role variable> <extra step>: a scheduled sweeper workflow
+  local d; d="$(fixture "$1")"
+  cat > "$d/.github/workflows/sweep.yml" <<EOF
+name: sweep
+on:
+  schedule:
+    - cron: "41 6 * * *"
+permissions:
+  contents: read
+concurrency:
+  group: sweep
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      id-token: write
+    steps:
+      - uses: aws-actions/configure-aws-credentials@0000000000000000000000000000000000000000
+        with:
+          role-to-assume: \${{ vars.$2 }}
+      - run: ./scripts/aws-sweep.sh
+      - if: always()
+        run: $3
+EOF
+}
+sweeper sweep-ok AWS_SWEEP_ROLE_ARN "echo done"
+expect_clean "a scheduled sweeper with the delete-only role is allowed" "$WORK/sweep-ok"
+sweeper sweep-create AWS_CREATE_ROLE_ARN "echo done"
+expect "a scheduled cloud run with the creation role is caught" "$WORK/sweep-create" "sweep.yml: a cloud run that starts on its own"
+sweeper sweep-apply AWS_SWEEP_ROLE_ARN "terraform -chdir=terraform apply -auto-approve"
+expect "a scheduled cloud run that applies is caught" "$WORK/sweep-apply" "sweep.yml: a cloud run that starts on its own"
+
 d="$(fixture tftest)"; rm -f "$d"/terraform/tests/*.tftest.hcl
 expect "Terraform without a test is caught" "$WORK/tftest" "terraform/ has no terraform test"
 

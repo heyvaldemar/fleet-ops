@@ -404,8 +404,19 @@ def cloud_run_findings(workflows):
             bad.append(f"{w}: a cloud run without a teardown that runs if: always()")
         if not re.search(r"^concurrency:", text, re.M):
             bad.append(f"{w}: a cloud run that two pushes could start twice (no concurrency group)")
+        # A CLOUD RUN THAT STARTS ON ITS OWN MAY ONLY DESTROY. ADR 10 in
+        # aws-eks-reference-platform asks for a daily sweeper that removes
+        # what a run left behind; it spends nothing, and waiting for a person
+        # is how leftovers keep billing. It is allowed on a schedule when it
+        # assumes the delete-only role (whose own tests show it can create
+        # nothing) and never applies. Anything else that logs in to a cloud
+        # waits for a manual dispatch.
         if re.search(r"^\s+schedule:|^\s+push:|^\s+pull_request:", text, re.M):
-            bad.append(f"{w}: a cloud run that starts on its own; it must be workflow_dispatch only")
+            delete_only = (re.search(r"role-to-assume:\s*\$\{\{\s*vars\.AWS_SWEEP_ROLE_ARN\s*\}\}", text)
+                           and not re.search(r"vars\.AWS_CREATE_ROLE_ARN|terraform[^\n]*\bapply\b|eks-up", text)
+                           and not re.search(r"^\s+(push|pull_request):", text, re.M))
+            if not delete_only:
+                bad.append(f"{w}: a cloud run that starts on its own; it must be workflow_dispatch only")
     return bad
 
 
