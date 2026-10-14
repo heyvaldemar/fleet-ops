@@ -32,10 +32,11 @@ NAMED = {
     "chatops-privilege-wall": "compose",
     "aws-eks-reference-platform": "kubernetes",
     # Kubernetes, but not a platform: each answers one question on kind
-    # (what an untrusted agent can reach; which images a cluster will run),
-    # with rules of its own in conformance.
+    # (what an untrusted agent can reach; which images a cluster will run;
+    # whether a database comes back), with rules of its own in conformance.
     "kubernetes-ai-agent-sandbox": "focused",
     "kubernetes-supply-chain-admission": "focused",
+    "kubernetes-postgres-recovery": "focused",
     "helm-charts": "helm",
 }
 

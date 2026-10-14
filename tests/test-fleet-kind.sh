@@ -30,6 +30,7 @@ kubernetes-portable-platform kubernetes
 kubernetes-ai-workload-sandbox kubernetes
 kubernetes-ai-agent-sandbox focused
 kubernetes-supply-chain-admission focused
+kubernetes-postgres-recovery focused
 helm-charts helm
 heyvaldemar-com none
 deadman-switch none
