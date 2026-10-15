@@ -390,6 +390,17 @@ def claim_findings(repo, paths):
     return bad
 
 
+def weekly_or_rarer(cron):
+    """True when a five-field cron fires at most once a week: one minute, one
+    hour, and either one day of the week or one day of the month."""
+    f = cron.split()
+    if len(f) != 5 or not all(re.fullmatch(r"\d{1,2}", x) for x in f[:2]):
+        return False
+    dom, month, dow = f[2], f[3], f[4]
+    one_dow = re.fullmatch(r"[0-7]|(?i:sun|mon|tue|wed|thu|fri|sat)", dow)
+    return (dom == "*" and bool(one_dow)) or (bool(re.fullmatch(r"\d{1,2}", dom)) and dow == "*")
+
+
 def cloud_run_findings(workflows):
     """A workflow that logs in to a cloud is a workflow that spends money."""
     bad = []
@@ -404,19 +415,26 @@ def cloud_run_findings(workflows):
             bad.append(f"{w}: a cloud run without a teardown that runs if: always()")
         if not re.search(r"^concurrency:", text, re.M):
             bad.append(f"{w}: a cloud run that two pushes could start twice (no concurrency group)")
-        # A CLOUD RUN THAT STARTS ON ITS OWN MAY ONLY DESTROY. ADR 10 in
+        # A CLOUD RUN THAT STARTS ON ITS OWN IS BOUNDED. ADR 10 in
         # aws-eks-reference-platform asks for a daily sweeper that removes
         # what a run left behind; it spends nothing, and waiting for a person
         # is how leftovers keep billing. It is allowed on a schedule when it
         # assumes the delete-only role (whose own tests show it can create
-        # nothing) and never applies. Anything else that logs in to a cloud
-        # waits for a manual dispatch.
+        # nothing) and never applies. A run that applies may start on a
+        # schedule at most once a week, and only behind a repository variable
+        # the owner sets, so switching it off needs no commit; the account's
+        # kill-switch bounds what a month of them can cost. A push or a pull
+        # request never starts one.
         if re.search(r"^\s+schedule:|^\s+push:|^\s+pull_request:", text, re.M):
+            on_push = re.search(r"^\s+(push|pull_request):", text, re.M)
             delete_only = (re.search(r"role-to-assume:\s*\$\{\{\s*vars\.AWS_SWEEP_ROLE_ARN\s*\}\}", text)
-                           and not re.search(r"vars\.AWS_CREATE_ROLE_ARN|terraform[^\n]*\bapply\b|eks-up", text)
-                           and not re.search(r"^\s+(push|pull_request):", text, re.M))
-            if not delete_only:
-                bad.append(f"{w}: a cloud run that starts on its own; it must be workflow_dispatch only")
+                           and not re.search(r"vars\.AWS_CREATE_ROLE_ARN|terraform[^\n]*\bapply\b|eks-up", text))
+            crons = re.findall(r"^\s+-\s*cron:\s*[\"']([^\"']+)[\"']", text, re.M)
+            weekly = (crons and all(weekly_or_rarer(c) for c in crons)
+                      and re.search(r"github\.event_name\s*==\s*'schedule'\s*&&\s*vars\.[A-Z0-9_]+\s*==\s*'true'", text))
+            if on_push or not (delete_only or weekly):
+                bad.append(f"{w}: a cloud run that starts on its own; it must be workflow_dispatch only, "
+                           "a delete-only sweeper, or an apply at most weekly behind a repository variable")
     return bad
 
 

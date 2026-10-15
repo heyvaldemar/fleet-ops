@@ -159,6 +159,51 @@ expect "a scheduled cloud run with the creation role is caught" "$WORK/sweep-cre
 sweeper sweep-apply AWS_SWEEP_ROLE_ARN "terraform -chdir=terraform apply -auto-approve"
 expect "a scheduled cloud run that applies is caught" "$WORK/sweep-apply" "sweep.yml: a cloud run that starts on its own"
 
+# A run that applies may start on a schedule: at most weekly, behind a
+# repository variable the owner sets.
+weekly() {           # weekly <case> <cron> <job condition>: a scheduled apply with its teardown
+  local d; d="$(fixture "$1")"
+  cat > "$d/.github/workflows/weekly.yml" <<EOF
+name: weekly
+on:
+  schedule:
+    - cron: "$2"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: weekly
+jobs:
+  up:
+    if: $3
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    permissions:
+      id-token: write
+    steps:
+      - uses: aws-actions/configure-aws-credentials@0000000000000000000000000000000000000000
+        with:
+          role-to-assume: \${{ vars.AWS_CREATE_ROLE_ARN }}
+      - run: terraform -chdir=terraform apply -auto-approve
+  down:
+    needs: up
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - run: terraform -chdir=terraform destroy -auto-approve
+EOF
+}
+gate="github.ref == 'refs/heads/main' && (inputs.confirm == 'SPEND' || (github.event_name == 'schedule' && vars.AWS_VALIDATION_ENABLED == 'true'))"
+weekly weekly-ok "17 3 * * 1" "$gate"
+expect_clean "a weekly apply behind a repository variable is allowed" "$WORK/weekly-ok"
+weekly weekly-daily "17 3 * * *" "$gate"
+expect "a daily apply is caught" "$WORK/weekly-daily" "weekly.yml: a cloud run that starts on its own"
+weekly weekly-minutely "* * * * 1" "$gate"
+expect "an apply every minute of one weekday is caught" "$WORK/weekly-minutely" "weekly.yml: a cloud run that starts on its own"
+weekly weekly-ungated "17 3 * * 1" "github.ref == 'refs/heads/main'"
+expect "a weekly apply with no variable to switch it off is caught" "$WORK/weekly-ungated" "weekly.yml: a cloud run that starts on its own"
+
 d="$(fixture tftest)"; rm -f "$d"/terraform/tests/*.tftest.hcl
 expect "Terraform without a test is caught" "$WORK/tftest" "terraform/ has no terraform test"
 
