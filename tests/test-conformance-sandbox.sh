@@ -83,7 +83,10 @@ expect "an e2e that never runs on its own is caught" "$WORK/nodaily" "the e2e wo
 d="$(fixture noexpect)"; edit "$d/tests/e2e/plants/no-gvisor.yaml" '/^# expect: /d'
 expect "a planted manifest that does not say what it expects is caught" "$WORK/noexpect" "tests/e2e/plants/no-gvisor.yaml does not say what it expects"
 
-d="$(fixture nocontrol)"; rm -f "$d/tests/e2e/plants/compliant-pod.yaml"
+# Every control goes, however many the sandbox keeps: v1.1.0 added a second
+# one (an agent pod with a token for the MCP server), and removing only the
+# first left the rule nothing to find.
+d="$(fixture nocontrol)"; grep -l '^# expect: admitted' "$d"/tests/e2e/plants/*.yaml | while read -r f; do rm -f "$f"; done
 expect "refusals without an admitted control are caught" "$WORK/nocontrol" "no planted manifest expects to be admitted"
 
 d="$(fixture tag)"; edit "$d/manifests/tools.yaml" 's#\(image: [^@]*\)@sha256:[0-9a-f]*#\1#'
@@ -92,7 +95,9 @@ expect "a manifest image without a digest is caught" "$WORK/tag" "manifests/tool
 d="$(fixture cost)"; edit "$d/README.md" 's/^## Cost$/## Money/'
 expect "a README silent on cost is caught" "$WORK/cost" "README says nothing about what it costs"
 
-d="$(fixture adrs)"; rm -f "$d"/docs/decisions/000[23]-*.md
+# Two records are left, whatever the sandbox has grown to: removing the second
+# and third stopped being too few when ADRs 4 and 5 arrived.
+d="$(fixture adrs)"; adrs=("$d"/docs/decisions/0*.md); rm -f "${adrs[@]:2}"
 expect "too few decision records are caught" "$WORK/adrs" "decision records; the standard asks for at least 3"
 
 d="$(fixture claim)"; printf '\nBattle-tested at scale.\n' >> "$d/README.md"
