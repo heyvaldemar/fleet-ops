@@ -510,7 +510,65 @@ def collect_live_status(names):
     return out
 
 
-def fleet_json(rows, ev, drills, sc=None, bp=None, live=None):
+UPSTREAM_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "upstream.json")
+GH_URL = re.compile(r"^https://github\.com/([^/]+)/([^/]+)/(issues|pull|discussions)/(\d+)(?:#issuecomment-(\d+))?$")
+
+
+def graphql_discussion(owner, repo, number):
+    q = ('{repository(owner:"%s",name:"%s"){discussion(number:%d)'
+         '{title closed isAnswered createdAt updatedAt comments{totalCount}}}}') % (owner, repo, number)
+    out = subprocess.check_output(["gh", "api", "graphql", "-f", "query=" + q], stderr=subprocess.DEVNULL)
+    return json.loads(out)["data"]["repository"]["discussion"]
+
+
+def upstream_one(item, discussion=graphql_discussion):
+    """An item of upstream.json with its title, date and state as GitHub has them now."""
+    m = GH_URL.match(item["url"])
+    if not m:
+        return dict(item, state="unreadable")
+    owner, repo, kind, number, comment = m.group(1), m.group(2), m.group(3), int(m.group(4)), m.group(5)
+    out = {"url": item["url"], "role": item.get("role"), "found_in": item.get("found_in"),
+           "project": "%s/%s" % (owner, repo)}
+    try:
+        if kind == "discussions":
+            d = discussion(owner, repo, number)
+            out.update(title=d["title"], posted=d["createdAt"][:10], updated=d["updatedAt"][:10],
+                       replies=d["comments"]["totalCount"],
+                       state="answered" if d.get("isAnswered") else ("closed" if d["closed"] else "open"))
+        elif kind == "pull":
+            pr = gh("repos/%s/%s/pulls/%d" % (owner, repo, number))
+            out.update(title=pr["title"], posted=pr["created_at"][:10], updated=pr["updated_at"][:10],
+                       state="merged" if pr.get("merged_at") else pr["state"])
+        else:
+            issue = gh("repos/%s/%s/issues/%d" % (owner, repo, number))
+            state = issue["state"] + (": " + issue["state_reason"] if issue.get("state_reason") else "")
+            out.update(title=issue["title"], state=state, replies=issue["comments"], updated=issue["updated_at"][:10])
+            if comment:
+                c = gh("repos/%s/%s/issues/comments/%s" % (owner, repo, comment))
+                out.update(posted=c["created_at"][:10], state="on an issue " + state)
+            else:
+                out.update(posted=issue["created_at"][:10])
+        if item.get("related"):
+            r = GH_URL.match(item["related"])
+            if r and r.group(3) == "pull":
+                pr = gh("repos/%s/%s/pulls/%s" % (r.group(1), r.group(2), r.group(4)))
+                out["related"] = {"url": item["related"], "title": pr["title"],
+                                  "state": "merged" if pr.get("merged_at") else pr["state"],
+                                  "merged": (pr.get("merged_at") or "")[:10] or None}
+    except (subprocess.CalledProcessError, KeyError, ValueError, TypeError):
+        out["state"] = "unreadable"
+    return out
+
+
+def collect_upstream(path=UPSTREAM_FILE):
+    if not os.path.exists(path):
+        return []
+    with io.open(path, encoding="utf-8") as f:
+        items = json.load(f).get("items", [])
+    return [upstream_one(i) for i in items]
+
+
+def fleet_json(rows, ev, drills, sc=None, bp=None, live=None, upstream=None):
     return json.dumps({
         "measured_at": stamp() + " UTC",
         "repositories": sum(len(v) for v in rows.values()),
@@ -521,6 +579,7 @@ def fleet_json(rows, ev, drills, sc=None, bp=None, live=None):
         "scorecard": sc or {"scored": 0, "unscored": []},
         "bestpractices": bp or {"registered": 0, "passing": 0, "unregistered": [], "unread": []},
         "live_status": live or {},
+        "upstream": upstream or [],
     }, indent=1, sort_keys=True) + "\n"
 
 
@@ -702,6 +761,7 @@ def main():
         sc = collect_scorecard(names)
         bp = collect_bestpractices(names)
         live = collect_live_status(names)
+        upstream = collect_upstream()
         previous = None
         if a.json and os.path.exists(a.json):
             try:
@@ -720,7 +780,7 @@ def main():
     if a.evidence:
         print("evidence:", rewrite(a.evidence, EVI_START, EVI_END, render_evidence(ev, drills, sc, bp)))
     if a.json:
-        print("json:", write_json(a.json, fleet_json(rows, ev, drills, sc, bp, live)))
+        print("json:", write_json(a.json, fleet_json(rows, ev, drills, sc, bp, live, upstream)))
 
 
 if __name__ == "__main__":

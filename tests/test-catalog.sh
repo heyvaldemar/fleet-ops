@@ -296,6 +296,35 @@ check("and an empty block when there is none", json.loads(m.fleet_json(rows0, ev
 m.gh = keep
 
 print()
+print("=== upstream items carry the state GitHub has, not the one typed ===")
+keep = m.gh
+def fake_up(path):
+    if path == "repos/o/r/issues/7":
+        return {"title": "A bug", "state": "closed", "state_reason": "completed", "comments": 3,
+                "created_at": "2026-10-12T00:00:00Z", "updated_at": "2026-10-15T00:00:00Z"}
+    if path == "repos/o/r/issues/comments/99":
+        return {"created_at": "2026-10-14T00:00:00Z"}
+    if path == "repos/o/r/pulls/8":
+        return {"title": "The fix", "state": "closed", "merged_at": "2026-10-15T14:46:54Z",
+                "created_at": "2026-10-13T00:00:00Z", "updated_at": "2026-10-15T00:00:00Z"}
+    raise sp.CalledProcessError(1, "gh")
+m.gh = fake_up
+c = m.upstream_one({"url": "https://github.com/o/r/issues/7#issuecomment-99", "role": "comment", "found_in": "x",
+                    "related": "https://github.com/o/r/pull/8"})
+check("a comment is dated by the comment, not the issue", c["posted"], "2026-10-14")
+check("and says the state of the issue it is on", c["state"], "on an issue closed: completed")
+check("the related fix says merged, with the day", (c["related"]["state"], c["related"]["merged"]), ("merged", "2026-10-15"))
+p = m.upstream_one({"url": "https://github.com/o/r/pull/8", "role": "pull request"})
+check("a merged pull request reads merged", (p["state"], p["title"]), ("merged", "The fix"))
+d = m.upstream_one({"url": "https://github.com/o/r/discussions/5", "role": "discussion"},
+                   discussion=lambda o, r, n: {"title": "Q", "closed": False, "isAnswered": True, "createdAt": "2026-10-13T00:00:00Z",
+                                               "updatedAt": "2026-10-13T00:00:00Z", "comments": {"totalCount": 1}})
+check("an answered discussion reads answered", d["state"], "answered")
+check("an item GitHub will not answer for says so", m.upstream_one({"url": "https://github.com/o/r/issues/404"})["state"], "unreadable")
+check("a URL that is not GitHub's is not guessed at", m.upstream_one({"url": "https://example.com/x"})["state"], "unreadable")
+m.gh = keep
+
+print()
 print("=== a partial read is not a smaller fleet ===")
 # 2026-09-26 03:46 and 03:52: sixty repositories unread, zero restores
 # published, and the website read it.
