@@ -396,7 +396,7 @@ def weekly_or_rarer(cron):
     f = cron.split()
     if len(f) != 5 or not all(re.fullmatch(r"\d{1,2}", x) for x in f[:2]):
         return False
-    dom, month, dow = f[2], f[3], f[4]
+    dom, dow = f[2], f[4]
     one_dow = re.fullmatch(r"[0-7]|(?i:sun|mon|tue|wed|thu|fri|sat)", dow)
     return (dom == "*" and bool(one_dow)) or (bool(re.fullmatch(r"\d{1,2}", dom)) and dow == "*")
 
