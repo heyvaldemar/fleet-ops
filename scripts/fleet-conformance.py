@@ -651,7 +651,61 @@ def terraform_rules(repo, names):
     return bad
 
 
+# DEPENDABOT'S COOLDOWN STAYS ON. Since 2026-07-14 Dependabot opens a version
+# update only once the release has been on its registry for three days, the
+# window in which most compromised releases are caught and pulled; security
+# updates are exempt and open at once. The fleet merges an update minutes
+# after its verification passes, so those three days are the only time a bad
+# release has to be noticed before it reaches main. The default needs no
+# configuration, which is also why nothing would notice a dependabot.yml
+# that turns it down or off: this does. Read from raw.githubusercontent.com,
+# which costs the sweep's API quota nothing.
+COOLDOWN_FLOOR = 3
+
+
+def raw_read(repo, path):
+    if LOCAL:
+        return repo.read(path)
+    try:
+        with urllib.request.urlopen("https://raw.githubusercontent.com/%s/%s/HEAD/%s" % (OWNER, repo.name, path), timeout=30) as r:
+            return r.read().decode("utf-8", "replace")
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return None
+        raise
+
+
+def cooldown_findings(text):
+    """What in a dependabot.yml shortens or switches off the cooldown."""
+    bad, lines = [], (text or "").splitlines()
+    for i, line in enumerate(lines):
+        m = re.match(r"^(\s*)cooldown:\s*(#.*)?$", line)
+        if not m:
+            continue
+        indent = len(m.group(1))
+        for sub in lines[i + 1:]:
+            if sub.strip() and not sub.lstrip().startswith("#") and len(sub) - len(sub.lstrip()) <= indent:
+                break
+            d = re.match(r"^\s*(default-days|semver-major-days|semver-minor-days|semver-patch-days):\s*(\d+)", sub)
+            if d and int(d.group(2)) < COOLDOWN_FLOOR:
+                bad.append(f".github/dependabot.yml sets {d.group(1)}: {d.group(2)}, below the {COOLDOWN_FLOOR}-day cooldown that keeps a release too new to trust off main")
+            if re.match(r"^\s*exclude:", sub):
+                bad.append(".github/dependabot.yml excludes dependencies from the cooldown; an update without it can merge minutes after a compromised release")
+    return bad
+
+
 def check(repo, exempt=None):
+    """check_repo, and the cooldown rule, which holds for every kind of repository."""
+    found = check_repo(repo, exempt)
+    if found == ["repository listing is empty or unreadable"]:
+        return found
+    cd = cooldown_findings(raw_read(repo, ".github/dependabot.yml"))
+    if not cd:
+        return found
+    return cd if (found is NOT_APPLICABLE or found == NOT_APPLICABLE) else list(found) + cd
+
+
+def check_repo(repo, exempt=None):
     """Returns a list of failures. An empty list means the repo conforms.
     Declared exemptions are appended to `exempt`, never to the failures."""
     bad = []

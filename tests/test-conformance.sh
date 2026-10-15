@@ -485,5 +485,24 @@ else
   echo "  FAIL: a listed repository that runs its scripts was not told to leave the list:"; printf '%s\n' "$out" | sed 's/^/        /' | head -8; FAILED=$((FAILED+1))
 fi
 
+# DEPENDABOT'S COOLDOWN STAYS ON. A dependabot.yml that turns the three-day
+# cooldown down, or excludes dependencies from it, is caught; one that makes
+# it longer is not.
+dependabot_with() {  # dependabot_with <repo dir> <cooldown lines, already indented>
+  mkdir -p "$1/.github"
+  printf 'version: 2\nupdates:\n  - package-ecosystem: docker\n    directory: "/"\n    schedule:\n      interval: weekly\n    cooldown:\n%s\n' "$2" > "$1/.github/dependabot.yml"
+}
+d="$(fixture cooldownzero)"; tag_all "$d"; dependabot_with "$d" "      default-days: 0"
+expect "a cooldown turned off is caught" "$WORK/cooldownzero" "default-days: 0, below the 3-day cooldown"
+d="$(fixture cooldownpatch)"; tag_all "$d"; dependabot_with "$d" "      default-days: 5
+      semver-patch-days: 1"
+expect "a cooldown shortened for patches is caught" "$WORK/cooldownpatch" "semver-patch-days: 1, below the 3-day cooldown"
+d="$(fixture cooldownexclude)"; tag_all "$d"; dependabot_with "$d" "      default-days: 5
+      exclude:
+        - \"*\""
+expect "dependencies excluded from the cooldown are caught" "$WORK/cooldownexclude" "excludes dependencies from the cooldown"
+d="$(fixture cooldownlonger)"; tag_all "$d"; dependabot_with "$d" "      default-days: 7"
+expect_clean "$WORK/cooldownlonger"
+
 echo "passed: $PASSED   failed: $FAILED"
 [ "$FAILED" -eq 0 ]
