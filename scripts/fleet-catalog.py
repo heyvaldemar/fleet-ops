@@ -646,7 +646,64 @@ def collect_operations(names, now=None, query=graphql, runs=ci_runs):
             "unread": sorted(unread)}
 
 
-def fleet_json(rows, ev, drills, sc=None, bp=None, live=None, upstream=None, ops=None):
+# PLANTED VIOLATIONS ARE THE CHECKS THAT HAVE BEEN SEEN TO FAIL.
+#
+# The reference architectures prove each check on a violation planted for
+# it: a row of a plants.tsv is a change a static check must refuse in CI,
+# and a manifest under tests/e2e/plants that says "# expect: <reason>" is one
+# the running cluster must refuse at admission. A manifest that expects to be
+# admitted is the control that makes a refusal mean something, and is counted
+# apart. Counted from each repository's default branch: one tree listing and
+# one GraphQL query a repository.
+E2E_PLANTS = re.compile(r"^tests/e2e/plants/[^/]+\.ya?ml$")
+
+
+def plants_one(name, query=graphql):
+    """{"static", "admission", "controls"} for one repository, or None if it cannot be read."""
+    try:
+        tree = gh("repos/%s/%s/git/trees/HEAD?recursive=1" % (OWNER, name))
+        paths = [e["path"] for e in tree.get("tree", []) if e.get("type") == "blob"]
+    except (subprocess.CalledProcessError, KeyError, ValueError, TypeError, AttributeError):
+        return None
+    wanted = sorted(p for p in paths if p.endswith("plants.tsv") or E2E_PLANTS.match(p))
+    if not wanted:
+        return {"static": 0, "admission": 0, "controls": 0}
+    q = '{repository(owner:"%s",name:"%s"){%s}}' % (OWNER, name, " ".join(
+        'f%d:object(expression:%s){...on Blob{text}}' % (i, json.dumps("HEAD:" + p)) for i, p in enumerate(wanted)))
+    try:
+        repo = query(q)["repository"]
+        texts = {p: repo["f%d" % i]["text"] for i, p in enumerate(wanted)}
+    except (subprocess.CalledProcessError, KeyError, ValueError, TypeError):
+        return None
+    out = {"static": 0, "admission": 0, "controls": 0}
+    for p, text in texts.items():
+        if p.endswith("plants.tsv"):
+            out["static"] += sum(1 for l in text.splitlines() if l.strip() and not l.startswith("#"))
+            continue
+        m = re.search(r"^# expect: (.+)$", text, re.M)
+        if m:
+            out["controls" if m.group(1).strip() == "admitted" else "admission"] += 1
+    return out
+
+
+def collect_plants(names, one=plants_one):
+    """The planted violations of every focused Kubernetes repository, and their totals."""
+    per, unread = {}, []
+    for n in sorted(names):
+        if not (n.startswith("kubernetes-") or n.startswith("aws-eks-")):
+            continue
+        r = one(n)
+        if r is None:
+            unread.append(n)
+        elif any(r.values()):
+            per[n] = r
+    return {"repositories": per, "unread": unread,
+            "static": sum(r["static"] for r in per.values()),
+            "admission": sum(r["admission"] for r in per.values()),
+            "controls": sum(r["controls"] for r in per.values())}
+
+
+def fleet_json(rows, ev, drills, sc=None, bp=None, live=None, upstream=None, ops=None, plants=None):
     return json.dumps({
         "measured_at": stamp() + " UTC",
         "repositories": sum(len(v) for v in rows.values()),
@@ -659,6 +716,7 @@ def fleet_json(rows, ev, drills, sc=None, bp=None, live=None, upstream=None, ops
         "live_status": live or {},
         "upstream": upstream or [],
         "operations": ops or {},
+        "planted_violations": plants or {},
     }, indent=1, sort_keys=True) + "\n"
 
 
@@ -845,6 +903,7 @@ def main():
         live = collect_live_status(names)
         upstream = collect_upstream()
         ops = collect_operations(names)
+        plants = collect_plants(names)
         previous = None
         if a.json and os.path.exists(a.json):
             try:
@@ -863,7 +922,7 @@ def main():
     if a.evidence:
         print("evidence:", rewrite(a.evidence, EVI_START, EVI_END, render_evidence(ev, drills, sc, bp)))
     if a.json:
-        print("json:", write_json(a.json, fleet_json(rows, ev, drills, sc, bp, live, upstream, ops)))
+        print("json:", write_json(a.json, fleet_json(rows, ev, drills, sc, bp, live, upstream, ops, plants)))
 
 
 if __name__ == "__main__":

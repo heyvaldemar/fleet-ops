@@ -369,6 +369,52 @@ check("a couple unread is said, not refused",
       m.refuse_partial({"unread": [], "scripts": 73}, [{}] * 47, None, {"unread": ["a", "b"]}), [])
 
 print()
+print("=== planted violations are counted from the files that plant them ===")
+keep = m.gh
+TREE = {"tree": [
+    {"path": "tests/static/plants.tsv", "type": "blob"},
+    {"path": "terraform/tests/plants.tsv", "type": "blob"},
+    {"path": "tests/e2e/plants/privileged.yaml", "type": "blob"},
+    {"path": "tests/e2e/plants/no-limits.yml", "type": "blob"},
+    {"path": "tests/e2e/plants/compliant-pod.yaml", "type": "blob"},
+    {"path": "tests/e2e/plants/README.md", "type": "blob"},
+    {"path": "tests/e2e/plants/nested/deep.yaml", "type": "blob"},
+    {"path": "tests/e2e/plants", "type": "tree"}]}
+BLOBS = {"tests/static/plants.tsv": "# file\told\tnew\n\"a\"\t\"b\"\t\"c\"\n\n\"d\"\t\"e\"\t\"f\"\n",
+         "terraform/tests/plants.tsv": "# header\n\"x\"\t\"y\"\t\"z\"\n",
+         "tests/e2e/plants/privileged.yaml": "# expect: violates PodSecurity\napiVersion: v1\n",
+         "tests/e2e/plants/no-limits.yml": "apiVersion: v1\n# expect: every container declares CPU and memory limits\n",
+         "tests/e2e/plants/compliant-pod.yaml": "# expect: admitted\napiVersion: v1\n",
+         "tests/e2e/plants/nested/deep.yaml": "# expect: not a plant the e2e applies\n",
+         "tests/e2e/plants/README.md": "# expect: not a manifest\n"}
+def fake_tree(path):
+    if path == "repos/heyvaldemar/kubernetes-x/git/trees/HEAD?recursive=1":
+        return TREE
+    if path == "repos/heyvaldemar/kubernetes-empty/git/trees/HEAD?recursive=1":
+        return {"tree": [{"path": "README.md", "type": "blob"}]}
+    raise sp.CalledProcessError(1, "gh")
+asked = []
+def fake_blobs(q):
+    asked.append(q)
+    import re as _re
+    return {"repository": {"f%s" % i: {"text": BLOBS[p]} for i, p in _re.findall(r'f(\d+):object\(expression:"HEAD:([^"]+)"\)', q)}}
+m.gh = fake_tree
+one = lambda n: m.plants_one(n, query=fake_blobs)
+r = one("kubernetes-x")
+check("every row of every plants.tsv counts, comments and blank lines do not", r["static"], 3)
+check("a manifest that expects a refusal counts as one, wherever its expect line sits", r["admission"], 2)
+check("a manifest that expects to be admitted is a control, not a plant", r["controls"], 1)
+check("a file in a subdirectory or not YAML is not read", "deep.yaml" in asked[0] or "README.md" in asked[0], False)
+check("a repository with no plant files is all zeros, not unread", one("kubernetes-empty"), {"static": 0, "admission": 0, "controls": 0})
+check("a repository GitHub will not list is unread", one("kubernetes-gone"), None)
+p = m.collect_plants(["kubernetes-x", "kubernetes-empty", "kubernetes-gone", "ghost-traefik-letsencrypt-docker-compose"], one=one)
+check("only repositories with plants are listed", sorted(p["repositories"]), ["kubernetes-x"])
+check("the totals add up", (p["static"], p["admission"], p["controls"]), (3, 2, 1))
+check("an unreadable one is named", p["unread"], ["kubernetes-gone"])
+check("fleet.json carries it", json.loads(m.fleet_json(rows0, ev0, [], plants=p))["planted_violations"]["admission"], 2)
+m.gh = keep
+
+print()
 print("=== a partial read is not a smaller fleet ===")
 # 2026-09-26 03:46 and 03:52: sixty repositories unread, zero restores
 # published, and the website read it.
