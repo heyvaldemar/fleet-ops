@@ -473,7 +473,44 @@ def collect_bestpractices(names, sleep=time.sleep):
             "date": (max((v["date"] or "") for v in found.values()) or None) if found else None}
 
 
-def fleet_json(rows, ev, drills, sc=None, bp=None):
+# The reference architectures keep their own record: each e2e run on main,
+# and the weekly run on AWS, rewrite a one-commit branch `status` with what
+# the last 30 days showed (their scripts/status.py). The page reads it from
+# here, so it says what the runs said, not what someone typed.
+LIVE_STATUS_FILES = (("kind", "status.json"), ("aws", "eks/status.json"))
+
+
+def live_status_one(name, path):
+    """The parts of a status.json the page shows, or None if there is none."""
+    try:
+        d = gh("repos/%s/%s/contents/%s?ref=status" % (OWNER, name, path))
+        s = json.loads(base64.b64decode(d["content"]))
+    except (subprocess.CalledProcessError, KeyError, ValueError, TypeError):
+        return None
+    latest = s.get("latest") or {}
+    return {"window_days": s.get("window_days"), "days_with_runs": s.get("days_with_runs"),
+            "green_days": s.get("green_days"), "streak_days": s.get("streak_days"),
+            "runs": s.get("runs"), "runs_passed": s.get("runs_passed"),
+            "written_at": s.get("written_at"),
+            "latest": {"at": latest.get("at"), "conclusion": latest.get("conclusion"),
+                       "commit": latest.get("commit"), "url": latest.get("url"),
+                       "checks_passed": latest.get("checks_passed"), "checks_failed": latest.get("checks_failed"),
+                       "measured": latest.get("measured") or []}}
+
+
+def collect_live_status(names):
+    """Every repository whose workflows include status.yml, read from its branch `status`."""
+    out = {}
+    for n in sorted(names):
+        if not (n.startswith("kubernetes-") or n.startswith("aws-eks-")) or not has_workflow(n, "status.yml"):
+            continue
+        found = {kind: s for kind, path in LIVE_STATUS_FILES for s in [live_status_one(n, path)] if s}
+        if found:
+            out[n] = found
+    return out
+
+
+def fleet_json(rows, ev, drills, sc=None, bp=None, live=None):
     return json.dumps({
         "measured_at": stamp() + " UTC",
         "repositories": sum(len(v) for v in rows.values()),
@@ -483,6 +520,7 @@ def fleet_json(rows, ev, drills, sc=None, bp=None):
         "clean_machine_restores": drills,
         "scorecard": sc or {"scored": 0, "unscored": []},
         "bestpractices": bp or {"registered": 0, "passing": 0, "unregistered": [], "unread": []},
+        "live_status": live or {},
     }, indent=1, sort_keys=True) + "\n"
 
 
@@ -663,6 +701,7 @@ def main():
         drills = [with_rpo(d) for d in (dr_result(n) for n in names if has_workflow(n, "dr-drill.yml")) if d]
         sc = collect_scorecard(names)
         bp = collect_bestpractices(names)
+        live = collect_live_status(names)
         previous = None
         if a.json and os.path.exists(a.json):
             try:
@@ -681,7 +720,7 @@ def main():
     if a.evidence:
         print("evidence:", rewrite(a.evidence, EVI_START, EVI_END, render_evidence(ev, drills, sc, bp)))
     if a.json:
-        print("json:", write_json(a.json, fleet_json(rows, ev, drills, sc, bp)))
+        print("json:", write_json(a.json, fleet_json(rows, ev, drills, sc, bp, live)))
 
 
 if __name__ == "__main__":

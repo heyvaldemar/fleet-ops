@@ -269,6 +269,33 @@ check("and an empty one when nothing was read", json.loads(m.fleet_json(rows0, e
 
 
 print()
+print("=== the reference architectures' own status branches reach fleet.json ===")
+keep = m.gh
+STATUS = {"window_days": 30, "days_with_runs": 3, "green_days": 3, "streak_days": 3, "runs": 4, "runs_passed": 3,
+          "written_at": "2026-10-15T07:23:00Z",
+          "latest": {"conclusion": "success", "at": "2026-10-15T04:41:00Z", "commit": "abc1234", "url": "u",
+                     "checks_passed": 19, "checks_failed": 0, "checks": [{"state": "PASS", "name": "x"}],
+                     "measured": ["point-in-time restore: ready in 52s"]}}
+def fake_live(path):
+    if path == "repos/heyvaldemar/kubernetes-postgres-recovery/contents/.github/workflows/status.yml":
+        return {}
+    if path == "repos/heyvaldemar/kubernetes-postgres-recovery/contents/status.json?ref=status":
+        return {"content": base64.b64encode(json.dumps(STATUS).encode()).decode()}
+    raise sp.CalledProcessError(1, "gh")
+m.gh = fake_live
+live = m.collect_live_status(["kubernetes-postgres-recovery", "ghost-traefik-letsencrypt-docker-compose", "kubernetes-nothing-here"])
+check("a repository with status.yml and a status branch is read", sorted(live), ["kubernetes-postgres-recovery"])
+check("its kind e2e record is there, and no AWS record it does not have",
+      sorted(live["kubernetes-postgres-recovery"]), ["kind"])
+k = live["kubernetes-postgres-recovery"]["kind"]
+check("the counts are the branch's", (k["green_days"], k["runs"], k["runs_passed"], k["latest"]["checks_passed"]), (3, 4, 3, 19))
+check("measurements travel as written", k["latest"]["measured"], ["point-in-time restore: ready in 52s"])
+check("the per-check list does not (the page shows counts)", "checks" in k["latest"], False)
+check("fleet.json carries it", json.loads(m.fleet_json(rows0, ev0, [], live=live))["live_status"]["kubernetes-postgres-recovery"]["kind"]["runs"], 4)
+check("and an empty block when there is none", json.loads(m.fleet_json(rows0, ev0, []))["live_status"], {})
+m.gh = keep
+
+print()
 print("=== a partial read is not a smaller fleet ===")
 # 2026-09-26 03:46 and 03:52: sixty repositories unread, zero restores
 # published, and the website read it.
