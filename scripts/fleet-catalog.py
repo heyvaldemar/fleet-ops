@@ -622,7 +622,52 @@ def ci_runs(name, day):
         return None
 
 
-def collect_operations(names, now=None, query=graphql, runs=ci_runs):
+# HOW LONG AN UPDATE WAITS. Dependabot proposes each dependency update as a
+# pull request, and the fleet merges it only after that repository's own
+# verification passes for it (dependabot-automerge.yml). The time from the
+# proposal to the merge is the fleet's own part of patch latency, and the
+# open ones are the updates that are waiting. Read with the search API, which
+# has its own quota; it returns at most 1000 items, and more is said, not cut.
+SEARCH_CAP = 1000
+
+
+def search_issues(q):
+    """Every item the search API returns for q, up to SEARCH_CAP, and the total it reports."""
+    items, page, total = [], 1, 0
+    while len(items) < SEARCH_CAP:
+        d = json.loads(subprocess.check_output(
+            ["gh", "api", "-X", "GET", "search/issues", "-f", "q=" + q, "-f", "per_page=100", "-f", "page=%d" % page],
+            stderr=subprocess.DEVNULL))
+        total = d.get("total_count", 0)
+        items += d.get("items", [])
+        if len(d.get("items", [])) < 100:
+            break
+        page += 1
+    return items, total
+
+
+def _ts(s):
+    return datetime.datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
+
+
+def dependency_updates(day, now, search=search_issues):
+    """Dependabot pull requests merged since day: how many, how fast; and how many wait."""
+    try:
+        merged, total = search("is:pr is:merged is:public author:app/dependabot user:%s merged:>=%s" % (OWNER, day))
+        waiting, _ = search("is:pr is:open is:public author:app/dependabot user:%s" % OWNER)
+        minutes = sorted((_ts(i["pull_request"]["merged_at"]) - _ts(i["created_at"])).total_seconds() / 60
+                         for i in merged if (i.get("pull_request") or {}).get("merged_at"))
+    except (subprocess.CalledProcessError, KeyError, ValueError, TypeError):
+        return None
+    pick = lambda q: round(minutes[min(len(minutes) - 1, int(q * len(minutes)))], 1) if minutes else None
+    return {"merged": total, "measured": len(minutes),
+            "repositories": len({i.get("repository_url") for i in merged}),
+            "median_minutes": pick(0.5), "p90_minutes": pick(0.9),
+            "open": len(waiting),
+            "oldest_open_days": max([(now - _ts(i["created_at"])).days for i in waiting] or [0])}
+
+
+def collect_operations(names, now=None, query=graphql, runs=ci_runs, deps=dependency_updates):
     now = now or datetime.datetime.now(datetime.timezone.utc)
     start = now - datetime.timedelta(days=OPS_WINDOW_DAYS)
     since, day = start.strftime("%Y-%m-%dT%H:%M:%SZ"), start.strftime("%Y-%m-%d")
@@ -643,6 +688,7 @@ def collect_operations(names, now=None, query=graphql, runs=ci_runs):
             "releases": sum(h[2] for h in hist.values()),
             "repositories_released": sum(1 for h in hist.values() if h[2]),
             "ci_runs_succeeded": ok, "ci_runs_failed": fail,
+            "dependency_updates": deps(day, now),
             "unread": sorted(unread)}
 
 

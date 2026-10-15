@@ -343,7 +343,7 @@ def fake_q(q):
                               {"publishedAt": "2026-09-01T00:00:00Z", "isDraft": False, "isPrerelease": False}]}}
     return out
 runs = {"a": (90, 10), "b": (5, 0)}
-o = m.collect_operations(["b", "a"], now=NOW, query=fake_q, runs=lambda n, day: runs.get(n))
+o = m.collect_operations(["b", "a"], now=NOW, query=fake_q, runs=lambda n, day: runs.get(n), deps=lambda day, now: None)
 check("the window starts 30 days back", (o["window_days"], o["since"]), (30, "2026-09-15"))
 check("the query asks from that moment", '"2026-09-15T12:00:00Z"' in seen_q[0], True)
 check("the owner's commits are asked by his account id", m.OWNER_NODE_ID in seen_q[0], True)
@@ -353,15 +353,33 @@ check("CI runs add up", (o["ci_runs_succeeded"], o["ci_runs_failed"]), (95, 10))
 check("a whole read has nothing unread", o["unread"], [])
 seen_q[:] = []
 names = ["r%02d" % i for i in range(30)]
-o = m.collect_operations(names, now=NOW, query=fake_q, runs=lambda n, day: (1, 0))
+o = m.collect_operations(names, now=NOW, query=fake_q, runs=lambda n, day: (1, 0), deps=lambda day, now: None)
 check("the fleet is asked 25 repositories a query", len(seen_q), 2)
 check("30 repositories, all read", (o["repositories"], o["commits"], o["unread"]), (30, 300, []))
-o = m.collect_operations(["broken-1", "fine"], now=NOW, query=fake_q, runs=lambda n, day: None if n == "fine" else (1, 0))
+o = m.collect_operations(["broken-1", "fine"], now=NOW, query=fake_q, runs=lambda n, day: None if n == "fine" else (1, 0), deps=lambda day, now: None)
 check("a query GitHub refuses leaves its repositories unread, not quiet", o["unread"], ["broken-1", "fine"])
 check("and what was not read is not counted", (o["commits"], o["ci_runs_succeeded"]), (0, 1))
-o2 = m.collect_operations(["a", "b"], now=NOW, query=fake_q, runs=lambda n, day: None if n == "b" else (1, 0))
+o2 = m.collect_operations(["a", "b"], now=NOW, query=fake_q, runs=lambda n, day: None if n == "b" else (1, 0), deps=lambda day, now: None)
 check("a repository whose CI runs cannot be read is unread too, though its commits were", o2["unread"], ["b"])
 check("fleet.json carries it", json.loads(m.fleet_json(rows0, ev0, [], ops=o))["operations"]["unread"], ["broken-1", "fine"])
+def fake_search(q):
+    if "is:merged" in q:
+        assert "merged:>=2026-09-15" in q and "author:app/dependabot" in q and "is:public" in q, q
+        return ([{"created_at": "2026-10-01T10:00:00Z", "repository_url": "r/a", "pull_request": {"merged_at": "2026-10-01T10:04:00Z"}},
+                 {"created_at": "2026-10-02T10:00:00Z", "repository_url": "r/a", "pull_request": {"merged_at": "2026-10-02T10:10:00Z"}},
+                 {"created_at": "2026-10-03T10:00:00Z", "repository_url": "r/b", "pull_request": {"merged_at": "2026-10-03T13:00:00Z"}},
+                 {"created_at": "2026-10-04T10:00:00Z", "repository_url": "r/b", "pull_request": {"merged_at": None}}], 1200)
+    return ([{"created_at": "2026-10-10T12:00:00Z"}, {"created_at": "2026-10-14T12:00:00Z"}], 2)
+du = m.dependency_updates("2026-09-15", NOW, search=fake_search)
+check("merged updates are counted as the search reports them, even past what it returns", du["merged"], 1200)
+check("only the ones with a merge time are timed", du["measured"], 3)
+check("median and p90 are minutes from the proposal to the merge", (du["median_minutes"], du["p90_minutes"]), (10.0, 180.0))
+check("the updates waiting are counted, with the oldest one's age", (du["open"], du["oldest_open_days"]), (2, 5))
+def broken_search(q):
+    raise sp.CalledProcessError(1, "gh")
+check("a search that fails is said as nothing measured, not as zero", m.dependency_updates("2026-09-15", NOW, search=broken_search), None)
+o3 = m.collect_operations(["a"], now=NOW, query=fake_q, runs=lambda n, day: (1, 0), deps=lambda day, now: {"merged": 7, "asked": day})
+check("the operations block carries them, over the same window", o3["dependency_updates"], {"merged": 7, "asked": "2026-09-15"})
 check("and an empty block when there is none", json.loads(m.fleet_json(rows0, ev0, []))["operations"], {})
 r = m.refuse_partial({"unread": [], "scripts": 73}, [{}] * 47, None, {"unread": ["r%d" % i for i in range(25)]})
 check("25 repositories' operations unread is refused", len(r) == 1 and "operations count would be a partial one" in r[0], True)
