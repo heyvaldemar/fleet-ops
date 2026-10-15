@@ -99,9 +99,15 @@ jobs:
           ./tests/test-fleet-kind.sh
 
       - name: Check the fleet
+        # pipefail on this step and the next: both scripts exit 1 when a
+        # repository falls short or a claim stops being true, and through tee
+        # the exit was tee's. On 2026-10-15 a README that named the wrong
+        # Outline version and a claims check that could not read the profile
+        # both ran green.
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -o pipefail
           python3 scripts/fleet-conformance.py | tee "$GITHUB_STEP_SUMMARY"
 
       - name: The profile's hand-written claims are still true
@@ -113,7 +119,9 @@ jobs:
         # leave the profile advertising it to the audience most likely to look.
         env:
           GH_TOKEN: ${{ secrets.FLEET_PAT }}
+        if: ${{ !cancelled() }}
         run: |
+          set -o pipefail
           python3 scripts/profile-claims.py --json profile-claims.json | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Start Fleet Triage if the scheduler dropped it
@@ -121,7 +129,7 @@ jobs:
         # start in the last eight hours? If not, start one. Triage carries its
         # own concurrency group, so a late-firing schedule and this cannot
         # overlap; the worse of the two outcomes is one extra quiet run.
-        if: github.event_name != 'pull_request'
+        if: ${{ !cancelled() && github.event_name != 'pull_request' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
