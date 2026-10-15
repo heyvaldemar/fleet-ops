@@ -325,6 +325,50 @@ check("a URL that is not GitHub's is not guessed at", m.upstream_one({"url": "ht
 m.gh = keep
 
 print()
+print("=== the operations block counts what reached main, and says what it could not read ===")
+import datetime as dt
+NOW = dt.datetime(2026, 10, 15, 12, 0, tzinfo=dt.timezone.utc)
+seen_q = []
+def fake_q(q):
+    seen_q.append(q)
+    if '"broken-' in q:
+        raise sp.CalledProcessError(1, "gh")
+    out = {}
+    for j in range(q.count("repository(")):
+        out["r%d" % j] = {"defaultBranchRef": {"target": {"all": {"totalCount": 10}, "owner": {"totalCount": 7}}},
+                          "releases": {"nodes": [
+                              {"publishedAt": "2026-10-01T00:00:00Z", "isDraft": False, "isPrerelease": False},
+                              {"publishedAt": "2026-10-02T00:00:00Z", "isDraft": False, "isPrerelease": True},
+                              {"publishedAt": None, "isDraft": True, "isPrerelease": False},
+                              {"publishedAt": "2026-09-01T00:00:00Z", "isDraft": False, "isPrerelease": False}]}}
+    return out
+runs = {"a": (90, 10), "b": (5, 0)}
+o = m.collect_operations(["b", "a"], now=NOW, query=fake_q, runs=lambda n, day: runs.get(n))
+check("the window starts 30 days back", (o["window_days"], o["since"]), (30, "2026-09-15"))
+check("the query asks from that moment", '"2026-09-15T12:00:00Z"' in seen_q[0], True)
+check("the owner's commits are asked by his account id", m.OWNER_NODE_ID in seen_q[0], True)
+check("commits add up across repositories", (o["commits"], o["commits_by_owner"], o["repositories_changed"]), (20, 14, 2))
+check("only published, final releases inside the window count", (o["releases"], o["repositories_released"]), (2, 2))
+check("CI runs add up", (o["ci_runs_succeeded"], o["ci_runs_failed"]), (95, 10))
+check("a whole read has nothing unread", o["unread"], [])
+seen_q[:] = []
+names = ["r%02d" % i for i in range(30)]
+o = m.collect_operations(names, now=NOW, query=fake_q, runs=lambda n, day: (1, 0))
+check("the fleet is asked 25 repositories a query", len(seen_q), 2)
+check("30 repositories, all read", (o["repositories"], o["commits"], o["unread"]), (30, 300, []))
+o = m.collect_operations(["broken-1", "fine"], now=NOW, query=fake_q, runs=lambda n, day: None if n == "fine" else (1, 0))
+check("a query GitHub refuses leaves its repositories unread, not quiet", o["unread"], ["broken-1", "fine"])
+check("and what was not read is not counted", (o["commits"], o["ci_runs_succeeded"]), (0, 1))
+o2 = m.collect_operations(["a", "b"], now=NOW, query=fake_q, runs=lambda n, day: None if n == "b" else (1, 0))
+check("a repository whose CI runs cannot be read is unread too, though its commits were", o2["unread"], ["b"])
+check("fleet.json carries it", json.loads(m.fleet_json(rows0, ev0, [], ops=o))["operations"]["unread"], ["broken-1", "fine"])
+check("and an empty block when there is none", json.loads(m.fleet_json(rows0, ev0, []))["operations"], {})
+r = m.refuse_partial({"unread": [], "scripts": 73}, [{}] * 47, None, {"unread": ["r%d" % i for i in range(25)]})
+check("25 repositories' operations unread is refused", len(r) == 1 and "operations count would be a partial one" in r[0], True)
+check("a couple unread is said, not refused",
+      m.refuse_partial({"unread": [], "scripts": 73}, [{}] * 47, None, {"unread": ["a", "b"]}), [])
+
+print()
 print("=== a partial read is not a smaller fleet ===")
 # 2026-09-26 03:46 and 03:52: sixty repositories unread, zero restores
 # published, and the website read it.

@@ -568,7 +568,85 @@ def collect_upstream(path=UPSTREAM_FILE):
     return [upstream_one(i) for i in items]
 
 
-def fleet_json(rows, ev, drills, sc=None, bp=None, live=None, upstream=None):
+# THE OPERATIONS BLOCK COUNTS WHAT SHIPPED, NOT WHAT WAS PLANNED.
+#
+# One engineer and his agents run this fleet, and the claim a reader can check
+# is what reached main: commits on each default branch, releases published,
+# and how the CI runs on them ended, over the last 30 days. GitHub is the only
+# source. Commits are split by author: the owner's account carries his and his
+# agents' work, everything else is Dependabot and the odd outside contributor.
+# A repository that cannot be read is named in `unread`, never counted as quiet.
+OPS_WINDOW_DAYS = 30
+OWNER_NODE_ID = "MDQ6VXNlcjEwNDk4NzQ0"  # heyvaldemar
+OPS_CHUNK = 25
+
+
+def graphql(q):
+    out = subprocess.check_output(["gh", "api", "graphql", "-f", "query=" + q], stderr=subprocess.DEVNULL)
+    return json.loads(out)["data"]
+
+
+def ops_history(names, since, query=graphql):
+    """{name: (commits, commits by the owner, releases published)} since `since`, and the names not read."""
+    found, unread = {}, []
+    for i in range(0, len(names), OPS_CHUNK):
+        chunk = names[i:i + OPS_CHUNK]
+        q = "{" + " ".join(
+            'r%d:repository(owner:"%s",name:"%s"){defaultBranchRef{target{...on Commit{'
+            'all:history(since:"%s"){totalCount} owner:history(since:"%s",author:{id:"%s"}){totalCount}}}}'
+            ' releases(first:100,orderBy:{field:CREATED_AT,direction:DESC}){nodes{publishedAt isDraft isPrerelease}}}'
+            % (j, OWNER, n, since, since, OWNER_NODE_ID) for j, n in enumerate(chunk)) + "}"
+        try:
+            data = query(q) or {}
+        except (subprocess.CalledProcessError, KeyError, ValueError, TypeError):
+            unread += chunk
+            continue
+        for j, n in enumerate(chunk):
+            try:
+                v = data["r%d" % j]
+                t = (v.get("defaultBranchRef") or {}).get("target") or {}
+                rel = [r for r in v["releases"]["nodes"]
+                       if r.get("publishedAt") and r["publishedAt"] >= since and not r["isDraft"] and not r["isPrerelease"]]
+                found[n] = ((t.get("all") or {}).get("totalCount", 0), (t.get("owner") or {}).get("totalCount", 0), len(rel))
+            except (KeyError, TypeError, AttributeError):
+                unread.append(n)
+    return found, unread
+
+
+def ci_runs(name, day):
+    """(succeeded, failed) workflow runs created on or after `day`, or None."""
+    try:
+        return tuple(gh("repos/%s/%s/actions/runs?per_page=1&status=%s&created=%%3E%%3D%s" % (OWNER, name, st, day))["total_count"]
+                     for st in ("success", "failure"))
+    except (subprocess.CalledProcessError, KeyError, ValueError, TypeError):
+        return None
+
+
+def collect_operations(names, now=None, query=graphql, runs=ci_runs):
+    now = now or datetime.datetime.now(datetime.timezone.utc)
+    start = now - datetime.timedelta(days=OPS_WINDOW_DAYS)
+    since, day = start.strftime("%Y-%m-%dT%H:%M:%SZ"), start.strftime("%Y-%m-%d")
+    names = sorted(names)
+    hist, unread = ops_history(names, since, query)
+    ok = fail = 0
+    for n in names:
+        r = runs(n, day)
+        if r is None:
+            if n not in unread:
+                unread.append(n)
+            continue
+        ok, fail = ok + r[0], fail + r[1]
+    return {"window_days": OPS_WINDOW_DAYS, "since": day, "repositories": len(names),
+            "commits": sum(h[0] for h in hist.values()),
+            "commits_by_owner": sum(h[1] for h in hist.values()),
+            "repositories_changed": sum(1 for h in hist.values() if h[0]),
+            "releases": sum(h[2] for h in hist.values()),
+            "repositories_released": sum(1 for h in hist.values() if h[2]),
+            "ci_runs_succeeded": ok, "ci_runs_failed": fail,
+            "unread": sorted(unread)}
+
+
+def fleet_json(rows, ev, drills, sc=None, bp=None, live=None, upstream=None, ops=None):
     return json.dumps({
         "measured_at": stamp() + " UTC",
         "repositories": sum(len(v) for v in rows.values()),
@@ -580,6 +658,7 @@ def fleet_json(rows, ev, drills, sc=None, bp=None, live=None, upstream=None):
         "bestpractices": bp or {"registered": 0, "passing": 0, "unregistered": [], "unread": []},
         "live_status": live or {},
         "upstream": upstream or [],
+        "operations": ops or {},
     }, indent=1, sort_keys=True) + "\n"
 
 
@@ -726,9 +805,12 @@ def rewrite(path, start, end, block):
 UNREAD_LIMIT = 3
 
 
-def refuse_partial(ev, drills, previous):
+def refuse_partial(ev, drills, previous, ops=None):
     """The reasons this run must not publish, or an empty list."""
     why = []
+    if ops and len(ops.get("unread") or []) > UNREAD_LIMIT:
+        why.append("%d repositories' commits, releases or CI runs could not be read; the operations count would be a partial one"
+                   % len(ops["unread"]))
     if len(ev["unread"]) > UNREAD_LIMIT:
         why.append("%d repositories could not be read (%s%s); more than %d is a partial read, not a smaller fleet"
                    % (len(ev["unread"]), ", ".join(ev["unread"][:4]), " …" if len(ev["unread"]) > 4 else "", UNREAD_LIMIT))
@@ -762,13 +844,14 @@ def main():
         bp = collect_bestpractices(names)
         live = collect_live_status(names)
         upstream = collect_upstream()
+        ops = collect_operations(names)
         previous = None
         if a.json and os.path.exists(a.json):
             try:
                 previous = json.load(io.open(a.json, encoding="utf-8"))
             except ValueError:
                 previous = None
-        why = refuse_partial(ev, drills, previous)
+        why = refuse_partial(ev, drills, previous, ops)
         if why:
             for w in why:
                 print("::error::nothing published: %s" % w)
@@ -780,7 +863,7 @@ def main():
     if a.evidence:
         print("evidence:", rewrite(a.evidence, EVI_START, EVI_END, render_evidence(ev, drills, sc, bp)))
     if a.json:
-        print("json:", write_json(a.json, fleet_json(rows, ev, drills, sc, bp, live, upstream)))
+        print("json:", write_json(a.json, fleet_json(rows, ev, drills, sc, bp, live, upstream, ops)))
 
 
 if __name__ == "__main__":
