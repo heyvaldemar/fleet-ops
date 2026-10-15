@@ -1,0 +1,41 @@
+{
+ "_why": "What the reference architectures found and reported to the projects they run on. fleet-catalog.py reads each item's live state from GitHub into fleet.json's upstream block; titles, dates and states come from there, not from here. Add an item only when it has been posted.",
+ "items": [
+  {
+   "url": "https://github.com/google/gvisor/issues/15756",
+   "role": "issue",
+   "found_in": "kubernetes-ai-agent-sandbox"
+  },
+  {
+   "url": "https://github.com/kyverno/website/pull/2201",
+   "role": "pull request",
+   "found_in": "kubernetes-supply-chain-admission"
+  },
+  {
+   "url": "https://github.com/kyverno/kyverno/issues/6554#issuecomment-6157719113",
+   "role": "comment",
+   "found_in": "aws-eks-reference-platform"
+  },
+  {
+   "url": "https://github.com/aquasecurity/trivy/discussions/11403",
+   "role": "discussion",
+   "found_in": "kubernetes-supply-chain-admission"
+  },
+  {
+   "url": "https://github.com/kyverno/kyverno/issues/18000#issuecomment-6159962152",
+   "role": "comment",
+   "found_in": "kubernetes-supply-chain-admission",
+   "related": "https://github.com/kyverno/kyverno/pull/18010"
+  },
+  {
+   "url": "https://github.com/kyverno/kyverno/issues/18023",
+   "role": "issue with a reproduction",
+   "found_in": "kubernetes-supply-chain-admission"
+  },
+  {
+   "url": "https://github.com/kubernetes-sigs/metrics-server/issues/1868#issuecomment-6195863017",
+   "role": "comment",
+   "found_in": "aws-eks-reference-platform"
+  }
+ ]
+}

@@ -25,6 +25,7 @@ on:
     branches: [main]
     paths:
       - "scripts/fleet-catalog.py"
+      - "upstream.json"
       - ".github/workflows/fleet-catalog.yml"
   workflow_dispatch:
 
