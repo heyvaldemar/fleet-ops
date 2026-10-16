@@ -1,42 +1,371 @@
 [
   {
-    "repo": "dashy-traefik-letsencrypt-docker-compose",
-    "sha": "5825b909e8e97242512f606bbe7c08293814afd6",
+    "repo": "affine-traefik-letsencrypt-docker-compose",
+    "sha": "d9b989dda02154c1b9e3be4e89ba4a9e9b5ca2d2",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-15T22:39:49Z",
+    "pushed_at": "2026-10-16T11:59:14Z"
+  },
+  {
+    "repo": "amazon-eks-cluster-pipeline-terraform",
+    "sha": "ca666cf14bc025718982ea5dec0904dd436c8f6a",
+    "wf": "Terraform Verification",
+    "kind": "version",
+    "pushed_at": "2026-10-16T12:00:12Z",
+    "review": "\n## Upstream changes 6.68.0 -> 6.69.1\n\n**Verdict:** SAFE TO APPLY \u2014 no breaking changes in this range, only additive features and bug fixes; the pinned version constraint needs a manual edit to actually take the update, but nothing in the notes requires caution.\n\n### Breaking changes\n- none found in the notes for 6.69.0 or 6.69.1. The only BREAKING CHANGES entries in scope are in the 6.68.0 baseline section (`aws_docdb_cluster` and `aws_rds_cluster` `availability_zones` plan-time validation), which the template already runs against and are not part of this upgrade.\n\n### Variables\n- none. This is a Terraform provider, not an application with runtime env vars; `.env.example` is empty and there is nothing in the notes naming a new or removed variable.\n\n### Data and dependencies\n- none introduced by this range. No database/engine version requirements are named in the 6.69.0 or 6.69.1 notes.\n- Already true at the current (6.68.0) baseline, not a change in this upgrade: `aws_docdb_cluster` and `aws_rds_cluster` both validate `availability_zones` to at most 3 items at plan time \u2014 \"This is acceptable in a minor version because AWS would always reject requests with more than 3 availability zones at apply time.\"\n\n### Before applying\n- Edit `01-providers.tf`: the `required_providers.aws.version` constraint is pinned to `\"~> 6.68.0\"`, which will not resolve to 6.69.1. Bump it (e.g. to `\"~> 6.69.0\"`) and run `terraform init -upgrade`.\n- No state migration, backup, or manual data step is called for by the notes \u2014 enhancements and list-resource/resource identity additions are additive, and the bug fixes (long log line scanner panic, API Gateway method read deserialization, transit gateway peering forced-replacement, ECS cluster capacity provider delete, OpenSearch warm_type enum, observability telemetry rule updates) are all behavior fixes, not schema-breaking.\n- As routine practice for any provider bump, run `terraform plan` before apply to confirm no unexpected diffs, since provider schema additions occasionally surface new computed attributes.\n\n### Notes read\n- hashicorp/terraform-provider-aws CHANGELOG.md: entries for 6.69.1 (2026-10-15), 6.69.0 (2026-10-14), and the 6.68.0 (2026-10-07) baseline section, as supplied above.\n"
+  },
+  {
+    "repo": "amazon-lightsail-instance-pipeline-terraform",
+    "sha": "7d026443ec9b846bdde183587e7b23f687c66efc",
+    "wf": "Terraform Verification",
+    "kind": "version",
+    "pushed_at": "2026-10-16T12:00:51Z",
+    "review": "\n## Upstream changes 6.68.0 -> 6.69.1\n\n**Verdict:** SAFE TO APPLY \u2014 no breaking changes in this range, only additive features and bug fixes; the pinned version constraint needs a manual edit to actually take the update, but nothing in the notes requires caution.\n\n### Breaking changes\n- none found in the notes for 6.69.0 or 6.69.1. The only BREAKING CHANGES entries in scope are in the 6.68.0 baseline section (`aws_docdb_cluster` and `aws_rds_cluster` `availability_zones` plan-time validation), which the template already runs against and are not part of this upgrade.\n\n### Variables\n- none. This is a Terraform provider, not an application with runtime env vars; `.env.example` is empty and there is nothing in the notes naming a new or removed variable.\n\n### Data and dependencies\n- none introduced by this range. No database/engine version requirements are named in the 6.69.0 or 6.69.1 notes.\n- Already true at the current (6.68.0) baseline, not a change in this upgrade: `aws_docdb_cluster` and `aws_rds_cluster` both validate `availability_zones` to at most 3 items at plan time \u2014 \"This is acceptable in a minor version because AWS would always reject requests with more than 3 availability zones at apply time.\"\n\n### Before applying\n- Edit `01-providers.tf`: the `required_providers.aws.version` constraint is pinned to `\"~> 6.68.0\"`, which will not resolve to 6.69.1. Bump it (e.g. to `\"~> 6.69.0\"`) and run `terraform init -upgrade`.\n- No state migration, backup, or manual data step is called for by the notes \u2014 enhancements and list-resource/resource identity additions are additive, and the bug fixes (long log line scanner panic, API Gateway method read deserialization, transit gateway peering forced-replacement, ECS cluster capacity provider delete, OpenSearch warm_type enum, observability telemetry rule updates) are all behavior fixes, not schema-breaking.\n- As routine practice for any provider bump, run `terraform plan` before apply to confirm no unexpected diffs, since provider schema additions occasionally surface new computed attributes.\n\n### Notes read\n- hashicorp/terraform-provider-aws CHANGELOG.md: entries for 6.69.1 (2026-10-15), 6.69.0 (2026-10-14), and the 6.68.0 (2026-10-07) baseline section, as supplied above.\n"
+  },
+  {
+    "repo": "audiobookshelf-traefik-letsencrypt-docker-compose",
+    "sha": "74753ff302e55ea6093d5ce5e7c2f1cf4c7a5f65",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:01:01Z"
+  },
+  {
+    "repo": "authelia-traefik-letsencrypt-docker-compose",
+    "sha": "9d1e2244347fa29bada6249c5ec0368d19c421ed",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:01:10Z"
+  },
+  {
+    "repo": "beszel-traefik-letsencrypt-docker-compose",
+    "sha": "000eb2ab1f7bb4b52d26753d473448573e5b5e23",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:01:18Z"
+  },
+  {
+    "repo": "bitbucket-traefik-letsencrypt-docker-compose",
+    "sha": "f7370a1c166ee38d95549cf99b0dbae1f68c10a4",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:01:24Z"
+  },
+  {
+    "repo": "confluence-traefik-letsencrypt-docker-compose",
+    "sha": "d10ee62d4761ed86c0fc1ff1757a33ac56fb1f64",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:01:32Z"
+  },
+  {
+    "repo": "dashy-traefik-letsencrypt-docker-compose",
+    "sha": "8ba4196310ac2ac907ca895caad5a6ababe0aa80",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:01:39Z",
     "review": "\n## Upstream changes 4.8.3 -> 4.8.4\n\n**Verdict:** SAFE TO APPLY \u2014 only translation fixes in the notes, and the one image difference (Node.js patch bump) is an internal runtime change, not a pinned dependency this template tracks.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none. The registry diff shows `NODE_VERSION`: '24.21.0' -> '24.22.0' inside the `dashy` image, but this is bundled with the image and not a companion service the compose file pins or needs to track.\n\n### Before applying\n- Update `DASHY_IMAGE_VERSION` (or the digest default in the compose file's `x-images` block) from 4.8.3 to 4.8.4.\n- No config edits, migrations, or backups required.\n\n### Notes read\n- Compare API output for Lissy93/dashy between 4.8.3 and 4.8.4 (4 commits); no dedicated release notes exist for these tags, so the commit log was used as the record. Covers: Arabic i18n completion, Hindi placeholder fix, the merge commit, and the version bump commit.\n"
   },
   {
-    "repo": "immich-traefik-letsencrypt-docker-compose",
-    "sha": "f740966a363c8ebbfaa61715ed75100ee5b05a4c",
+    "repo": "dify-traefik-letsencrypt-docker-compose",
+    "sha": "817fbb9601d5b93a9676c648a45bae055fc5417b",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-15T22:40:13Z",
+    "pushed_at": "2026-10-16T12:01:50Z"
+  },
+  {
+    "repo": "docmost-traefik-letsencrypt-docker-compose",
+    "sha": "5c925529f3a55f479819159a4ba4d2eed3d81c19",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:01:57Z"
+  },
+  {
+    "repo": "dozzle-traefik-letsencrypt-docker-compose",
+    "sha": "eb606aee35741b6c9030ed9d44011fe51433fade",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:02:04Z"
+  },
+  {
+    "repo": "forgejo-traefik-letsencrypt-docker-compose",
+    "sha": "1e8141c32c0ab003c1751076225d8fb90edd8086",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:02:36Z",
+    "review": "\n## Upstream changes 16.0.6 -> 17.0.0\n\n**Verdict:** DO NOT APPLY UNATTENDED \u2014 no release notes and no image-configuration diff are available, so a major version jump (16 -> 17) is going in blind.\n\nRelease-notes source is given as \"none\", and the upstream notes block states plainly: \"(not available: Forgejo is developed on Codeberg, not on GitHub)\". The image-diff section likewise reports it \"could not be read from the registry (RuntimeError: no anonymous token endpoint known for codeberg.org)\" and explicitly says \"Nothing below is measured; judge on the notes alone.\" There is nothing to judge on. For a major-version bump this is reason enough to withhold a clean pass regardless of how small the compose file's exposure looks.\n\n### Breaking changes\n- none found in the notes \u2014 none were retrievable. A major version increment (16.x -> 17.0.0) conventionally signals breaking changes upstream; this cannot be confirmed or ruled out from what was supplied.\n\n### Variables\n- none documented as changed. The compose file pins the image by tag+digest (`FORGEJO_IMAGE_VERSION:-16.0.6@sha256:\u2026`), and .env.example documents only `FORGEJO_IMAGE_VERSION` as the override point \u2014 no renamed/removed/new variables appear in anything available for this review.\n\n### Data and dependencies\n- Already true at 16.0.6, not introduced by this upgrade: the compose file requires `FORGEJO__database__PATH: /data/gitea/forgejo.db` to live under `/data/gitea` specifically, because the container \"starts as root, creates /data/git and /data/gitea, chowns those two to the uid above, and then drops to it\" \u2014 this is a pre-existing constraint, not a change in this range.\n- No companion-service version requirement is named in the (absent) notes, so the SAFE-TO-APPLY-blocking rule about an unpinned companion engine does not independently trigger here \u2014 the verdict is driven by the total absence of notes, not a named dependency mismatch.\n- Whether Forgejo 17.0.0 changes SQLite schema, requires a migration step, or alters `app.ini` key behavior cannot be determined \u2014 none of the supplied material speaks to it.\n\n### Before applying\n- Take a full backup of the `forgejo-data` volume before touching the pin \u2014 the backup container already does this on a schedule, but trigger one manually immediately before the upgrade (stop writes, or at minimum run the existing backup loop once and confirm a non-`.failed` archive lands in `forgejo-data-backups`).\n- Read the actual Forgejo 17.0.0 release notes and changelog on Codeberg (codeberg.org/forgejo/forgejo/releases) by hand before updating the digest \u2014 this review could not fetch them.\n- Check Forgejo's own upgrade/breaking-changes documentation for the 16 -> 17 range specifically (not just the latest release) for any required manual migration command, config key rename, or minimum SQLite/storage format change.\n- After reading those notes, re-run this review's checks manually against the actual text: container user/entrypoint/healthcheck compatibility, any new required environment variable, and any change to the `/api/healthz` response shape that the healthcheck's `grep` depends on.\n- Only then update the digest in the compose file's `x-images` block (or set `FORGEJO_IMAGE_VERSION`/`FORGEJO_IMAGE_TAG` in `.env`) and deploy.\n\n### Notes read\n- None. Upstream release notes were stated as unavailable (\"Forgejo is developed on Codeberg, not on GitHub\"), and the registry image-configuration diff could not be fetched (anonymous token endpoint for codeberg.org not known). No UPGRADING, BREAKING_CHANGES or CHANGELOG section was supplied for this range. This assessment rests solely on the compose file and .env.example as given.\n"
+  },
+  {
+    "repo": "gaseous-server-using-docker-compose",
+    "sha": "479426d62e430b5cbf7ae4eb3221f7ab3c3bfa9a",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:02:42Z"
+  },
+  {
+    "repo": "ghost-traefik-letsencrypt-docker-compose",
+    "sha": "7d78abe66d6b1cdba0c0e3314d7f01ac1d5aa3b2",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:03:02Z",
+    "review": "\n## Upstream changes 6.70.0 -> 6.71.0\n\n**Verdict:** SAFE TO APPLY \u2014 notes are bug fixes and small features, the only fix of note is a regression introduced in 6.70 being corrected here, and the registry diff shows only Ghost/Ghost-CLI version bumps.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none \u2014 no renamed, removed or newly required variables in the compose file or .env.example\n\n### Data and dependencies\n- none. The compose file pins `mysql:8.4-oracle`, and nothing in the 6.71.0 or 6.70.0 notes names a required MySQL version or raises one.\n- Worth flagging as context, not as a new requirement: 6.70.0's notes list \"\ud83d\udc1b Fixed relative SQLite paths failing to open after upgrading to 6.70\" fixed in 6.71 (#31976) \u2014 this only matters for SQLite deployments; this template runs MySQL, so it does not apply here.\n\n### Before applying\n- None required beyond the template's normal routine (take the usual DB/data backup the `backups` service already performs on its schedule, or trigger one manually before pulling). No manual migration or config edit is called for by these notes.\n\n### Notes read\n- v6.71.0 (2026-10-15) \u2014 the release being moved to\n- v6.70.0 (2026-10-13) \u2014 the baseline release the template currently runs, read only to confirm nothing in this range introduces a new requirement already in force\n"
+  },
+  {
+    "repo": "gitea-traefik-letsencrypt-docker-compose",
+    "sha": "2a2c83bc83790127ea307a7f7fce8a7b3c49cba2",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:03:08Z"
+  },
+  {
+    "repo": "gitlab-traefik-letsencrypt-docker-compose",
+    "sha": "e10a60be256d6946037dec640b30004fed5c4b4b",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:03:36Z",
+    "review": "\n## Upstream changes 19.4.2 -> 19.5.0\n\n**Verdict:** NEEDS ATTENTION \u2014 no usable release notes exist for this range, so the upgrade's actual content (including any database or migration requirement) is unknown and must be checked by hand before applying.\n\n### Breaking changes\n- none found in the notes \u2014 the only material available is a list of 11 commits from the compare API (\"Add latest changes from gitlab-org/gitlab@19-4-stable-ee\" / \"@19-5-stable-ee\", \"Update VERSION files\", one CI-pipeline housekeeping commit). None describes an application-level change, breaking or otherwise. This is a gap in the record, not a confirmation that nothing changed.\n\n### Variables\n- none \u2014 nothing in the commit list touches configuration variables, and the compose file / .env.example structure (GITLAB_DB_*, GITLAB_URL, GITLAB_SHELL_SSH_PORT, SMTP vars) is unaffected by anything in the notes.\n\n### Data and dependencies\n- The compose file already pins PostgreSQL 17 and runs GitLab with `postgresql['enable'] = false` (external Postgres) at the current version, 19.4.2 \u2014 this is a pre-existing requirement, not something this range introduces, and does not drive the verdict here.\n- Nothing in the 19.4.2 -> 19.5.0 commit list states a new minimum PostgreSQL version, a Redis requirement, or an irreversible migration. GitLab minor releases frequently carry background or batched migrations even when not called out in truncated notes like these; that risk is unconfirmed either way for this range.\n- \"WHAT THE IMAGES THEMSELVES DIFFER IN\" could not be fetched (registry 404) \u2014 no independent check of user, entrypoint, command, ports, volumes, healthcheck or environment differences between the two image builds was possible. Treat that comparison as not done.\n\n### Before applying\n- Before upgrading, check GitLab's own release post and upgrade path documentation for 19.5.0 directly (docs.gitlab.com / the GitLab 19.5 release post) since the notes available here carry no content \u2014 only sync commits.\n- Take a GitLab backup (`gitlab-backup.sh` per this repo's README) and a Postgres volume snapshot before touching the pin, as normal practice for a GitLab minor version bump.\n- Confirm whether 19.5.0 requires a specific GitLab upgrade path (GitLab enforces stop points on major/minor jumps in some ranges) \u2014 this cannot be ruled out from what's available.\n- After editing the pin (`GITLAB_IMAGE_VERSION` or `GITLAB_IMAGE_TAG` in `.env`, or the default in the compose file's `x-images` block), watch `docker compose logs -f gitlab` through the reconfigure/migration run on first start.\n\n### Notes read\n- Attempted: GitLab release notes for v19.4.2 and v19.5.0 under gitlabhq/gitlabhq \u2014 none exist for these tags. The only record obtained was the GitLab compare API's commit list between the two tags (11 commits, quoted above in full), which contains no changelog content, only branch-sync and CI housekeeping messages.\n"
+  },
+  {
+    "repo": "glpi-traefik-letsencrypt-docker-compose",
+    "sha": "9049aa04eca03508a78e1bd75a99dc4e0858cfb1",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:03:41Z"
+  },
+  {
+    "repo": "grafana-traefik-letsencrypt-docker-compose",
+    "sha": "d79edd4c88334c97932ea5b9ae89658fb7af06de",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:03:47Z"
+  },
+  {
+    "repo": "homeassistant-traefik-letsencrypt-docker-compose",
+    "sha": "9001d33e84114c7c00cd138a407c1f52cd369cf3",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:03:52Z"
+  },
+  {
+    "repo": "homebox-traefik-letsencrypt-docker-compose",
+    "sha": "16e698cc8ba5ff0046a73b0f3932609943640cd1",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:03:57Z"
+  },
+  {
+    "repo": "homepage-traefik-letsencrypt-docker-compose",
+    "sha": "a1ad7e3f3dc9dd3e56e40067132dd0bb3607ec2a",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:04:03Z"
+  },
+  {
+    "repo": "immich-traefik-letsencrypt-docker-compose",
+    "sha": "7025b6b6197f2ad6a83a0d896ef7a1d16364d6bd",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:04:09Z",
     "review": "\n## Upstream changes v3.3.1 -> v3.3.3\n\n**Verdict:** SAFE TO APPLY \u2014 both patch releases contain only bug fixes and a performance improvement; the registry diff shows no change to user, entrypoint, command, ports, volumes, healthcheck or environment beyond build metadata.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none introduced by this range. v3.3.1's own notes mention a new `MACHINE_LEARNING_MODEL_REVISION` doc addition (\"docs: Add MACHINE_LEARNING_MODEL_REVISION variable to docs\"), but that is part of the baseline release the template already runs, not a change in this upgrade.\n- No database, cache, or search-engine version is named in the v3.3.3 notes, so there is nothing to check against the compose file's postgres/redis pins for this range.\n\n### Before applying\n- None required by the notes. Standard practice: bump `IMMICH_SERVER_IMAGE_VERSION` and `IMMICH_ML_IMAGE_VERSION` together to `v3.3.3` (compose file requires both to match), then `docker compose pull && docker compose up -d`.\n\n### Notes read\n- v3.3.3 (2026-10-14) \u2014 the release being moved to\n- v3.3.1 (2026-10-08) \u2014 supplied as the baseline currently running, read only to exclude already-true items from this range\n- No UPGRADING/BREAKING_CHANGES/CHANGELOG section was included for this range\n\n## Upstream changes v3.3.1 -> v3.3.3\n\n**Verdict:** SAFE TO APPLY \u2014 both patch releases contain only bug fixes and a performance improvement; the registry diff shows no change to user, entrypoint, command, ports, volumes, healthcheck or environment beyond build metadata.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none introduced by this range. v3.3.1's own notes mention a new `MACHINE_LEARNING_MODEL_REVISION` doc addition (\"docs: Add MACHINE_LEARNING_MODEL_REVISION variable to docs\"), but that is part of the baseline release the template already runs, not a change in this upgrade.\n- No database, cache, or search-engine version is named in the v3.3.3 notes, so there is nothing to check against the compose file's postgres/redis pins for this range.\n\n### Before applying\n- None required by the notes. Standard practice: bump `IMMICH_SERVER_IMAGE_VERSION` and `IMMICH_ML_IMAGE_VERSION` together to `v3.3.3` (compose file requires both to match), then `docker compose pull && docker compose up -d`.\n\n### Notes read\n- v3.3.3 (2026-10-14) \u2014 the release being moved to\n- v3.3.1 (2026-10-08) \u2014 supplied as the baseline currently running, read only to exclude already-true items from this range\n- No UPGRADING/BREAKING_CHANGES/CHANGELOG section was included for this range\n"
   },
   {
-    "repo": "mailu-traefik-letsencrypt-docker-compose",
-    "sha": "57ba712bde503aa2451d82e82dc85a54a7bee5cb",
+    "repo": "jellyfin-traefik-letsencrypt-docker-compose",
+    "sha": "b2ee6d3eb2828120f9ec36d8d085f12fe17a03df",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-15T22:40:37Z",
+    "pushed_at": "2026-10-16T12:04:17Z"
+  },
+  {
+    "repo": "jira-traefik-letsencrypt-docker-compose",
+    "sha": "28c051b3aaa9915dacf2aaa370591898146e9471",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:04:22Z"
+  },
+  {
+    "repo": "joomla-traefik-letsencrypt-docker-compose",
+    "sha": "55aa3bc29317ed54597be78c7588921a9844e15c",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:04:28Z"
+  },
+  {
+    "repo": "keycloak-traefik-letsencrypt-docker-compose",
+    "sha": "a0e0d8905cb074aad21c699dd44aa422cd89b24a",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:04:34Z"
+  },
+  {
+    "repo": "mailu-traefik-letsencrypt-docker-compose",
+    "sha": "24aabd1186b823db373047283806236c14cd60cf",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:04:46Z",
     "review": "\n## Upstream changes 2024.06.63 -> 2024.06.64\n\n**Verdict:** SAFE TO APPLY \u2014 the one change in the notes is confined to the resolver image's healthcheck, not to admin; the image comparison shows no behavioural difference at all for admin between the two tags.\n\n### Breaking changes\n- none found in the notes. The single changelog entry for this release \u2014 \"Make the resolver healthcheck fail when unbound answers SERVFAIL, instead of reporting healthy while every lookup fails\" \u2014 describes a fix to the `resolver` (unbound) image's healthcheck, not to `admin`. It is also identical, word for word, to the entry already listed under the 2024.06.63 baseline, so it is not new in this range for either image.\n\n### Variables\n- none\n\n### Data and dependencies\n- none. WHAT THE IMAGES THEMSELVES DIFFER IN reports the admin image's `User`, `Entrypoint`, `Cmd`, `WorkingDir`, `ExposedPorts`, `Volumes`, `Healthcheck` and environment as identical between 2024.06.63 and 2024.06.64, so nothing here is acted on by a change in this range.\n\n### Before applying\n- none specific to this upgrade. Routine practice applies: pull, recreate, confirm the admin container comes up healthy.\n\n### Notes read\n- 2024.06.64 (target) and 2024.06.63 (baseline), both from Mailu/Mailu release notes, as supplied above.\n- Top portion of Mailu/Mailu CHANGELOG.md was read; it covers only the 2024.06.0 and 2.0.0 major entries, not a dedicated 2024.06.63\u21922024.06.64 section \u2014 no additional breaking-change text found for this specific patch range.\n\n## Upstream changes 2024.06.63 -> 2024.06.64\n\n**Verdict:** SAFE TO APPLY \u2014 the one change in the notes is confined to the resolver image's healthcheck, not to admin; the image comparison shows no behavioural difference at all for admin between the two tags.\n\n### Breaking changes\n- none found in the notes. The single changelog entry for this release \u2014 \"Make the resolver healthcheck fail when unbound answers SERVFAIL, instead of reporting healthy while every lookup fails\" \u2014 describes a fix to the `resolver` (unbound) image's healthcheck, not to `admin`. It is also identical, word for word, to the entry already listed under the 2024.06.63 baseline, so it is not new in this range for either image.\n\n### Variables\n- none\n\n### Data and dependencies\n- none. WHAT THE IMAGES THEMSELVES DIFFER IN reports the admin image's `User`, `Entrypoint`, `Cmd`, `WorkingDir`, `ExposedPorts`, `Volumes`, `Healthcheck` and environment as identical between 2024.06.63 and 2024.06.64, so nothing here is acted on by a change in this range.\n\n### Before applying\n- none specific to this upgrade. Routine practice applies: pull, recreate, confirm the admin container comes up healthy.\n\n### Notes read\n- 2024.06.64 (target) and 2024.06.63 (baseline), both from Mailu/Mailu release notes, as supplied above.\n- Top portion of Mailu/Mailu CHANGELOG.md was read; it covers only the 2024.06.0 and 2.0.0 major entries, not a dedicated 2024.06.63\u21922024.06.64 section \u2014 no additional breaking-change text found for this specific patch range.\n\n## Upstream changes 2024.06.63 -> 2024.06.64\n\n**Verdict:** SAFE TO APPLY \u2014 the one change in the notes is confined to the resolver image's healthcheck, not to admin; the image comparison shows no behavioural difference at all for admin between the two tags.\n\n### Breaking changes\n- none found in the notes. The single changelog entry for this release \u2014 \"Make the resolver healthcheck fail when unbound answers SERVFAIL, instead of reporting healthy while every lookup fails\" \u2014 describes a fix to the `resolver` (unbound) image's healthcheck, not to `admin`. It is also identical, word for word, to the entry already listed under the 2024.06.63 baseline, so it is not new in this range for either image.\n\n### Variables\n- none\n\n### Data and dependencies\n- none. WHAT THE IMAGES THEMSELVES DIFFER IN reports the admin image's `User`, `Entrypoint`, `Cmd`, `WorkingDir`, `ExposedPorts`, `Volumes`, `Healthcheck` and environment as identical between 2024.06.63 and 2024.06.64, so nothing here is acted on by a change in this range.\n\n### Before applying\n- none specific to this upgrade. Routine practice applies: pull, recreate, confirm the admin container comes up healthy.\n\n### Notes read\n- 2024.06.64 (target) and 2024.06.63 (baseline), both from Mailu/Mailu release notes, as supplied above.\n- Top portion of Mailu/Mailu CHANGELOG.md was read; it covers only the 2024.06.0 and 2.0.0 major entries, not a dedicated 2024.06.63\u21922024.06.64 section \u2014 no additional breaking-change text found for this specific patch range.\n\n## Upstream changes 2024.06.63 -> 2024.06.64\n\n**Verdict:** SAFE TO APPLY \u2014 the one change in the notes is confined to the resolver image's healthcheck, not to admin; the image comparison shows no behavioural difference at all for admin between the two tags.\n\n### Breaking changes\n- none found in the notes. The single changelog entry for this release \u2014 \"Make the resolver healthcheck fail when unbound answers SERVFAIL, instead of reporting healthy while every lookup fails\" \u2014 describes a fix to the `resolver` (unbound) image's healthcheck, not to `admin`. It is also identical, word for word, to the entry already listed under the 2024.06.63 baseline, so it is not new in this range for either image.\n\n### Variables\n- none\n\n### Data and dependencies\n- none. WHAT THE IMAGES THEMSELVES DIFFER IN reports the admin image's `User`, `Entrypoint`, `Cmd`, `WorkingDir`, `ExposedPorts`, `Volumes`, `Healthcheck` and environment as identical between 2024.06.63 and 2024.06.64, so nothing here is acted on by a change in this range.\n\n### Before applying\n- none specific to this upgrade. Routine practice applies: pull, recreate, confirm the admin container comes up healthy.\n\n### Notes read\n- 2024.06.64 (target) and 2024.06.63 (baseline), both from Mailu/Mailu release notes, as supplied above.\n- Top portion of Mailu/Mailu CHANGELOG.md was read; it covers only the 2024.06.0 and 2.0.0 major entries, not a dedicated 2024.06.63\u21922024.06.64 section \u2014 no additional breaking-change text found for this specific patch range.\n\n## Upstream changes 2024.06.63 -> 2024.06.64\n\n**Verdict:** SAFE TO APPLY \u2014 the one change in the notes is confined to the resolver image's healthcheck, not to admin; the image comparison shows no behavioural difference at all for admin between the two tags.\n\n### Breaking changes\n- none found in the notes. The single changelog entry for this release \u2014 \"Make the resolver healthcheck fail when unbound answers SERVFAIL, instead of reporting healthy while every lookup fails\" \u2014 describes a fix to the `resolver` (unbound) image's healthcheck, not to `admin`. It is also identical, word for word, to the entry already listed under the 2024.06.63 baseline, so it is not new in this range for either image.\n\n### Variables\n- none\n\n### Data and dependencies\n- none. WHAT THE IMAGES THEMSELVES DIFFER IN reports the admin image's `User`, `Entrypoint`, `Cmd`, `WorkingDir`, `ExposedPorts`, `Volumes`, `Healthcheck` and environment as identical between 2024.06.63 and 2024.06.64, so nothing here is acted on by a change in this range.\n\n### Before applying\n- none specific to this upgrade. Routine practice applies: pull, recreate, confirm the admin container comes up healthy.\n\n### Notes read\n- 2024.06.64 (target) and 2024.06.63 (baseline), both from Mailu/Mailu release notes, as supplied above.\n- Top portion of Mailu/Mailu CHANGELOG.md was read; it covers only the 2024.06.0 and 2.0.0 major entries, not a dedicated 2024.06.63\u21922024.06.64 section \u2014 no additional breaking-change text found for this specific patch range.\n\n## Upstream changes 2024.06.63 -> 2024.06.64\n\n**Verdict:** SAFE TO APPLY \u2014 the one change in the notes is confined to the resolver image's healthcheck, not to admin; the image comparison shows no behavioural difference at all for admin between the two tags.\n\n### Breaking changes\n- none found in the notes. The single changelog entry for this release \u2014 \"Make the resolver healthcheck fail when unbound answers SERVFAIL, instead of reporting healthy while every lookup fails\" \u2014 describes a fix to the `resolver` (unbound) image's healthcheck, not to `admin`. It is also identical, word for word, to the entry already listed under the 2024.06.63 baseline, so it is not new in this range for either image.\n\n### Variables\n- none\n\n### Data and dependencies\n- none. WHAT THE IMAGES THEMSELVES DIFFER IN reports the admin image's `User`, `Entrypoint`, `Cmd`, `WorkingDir`, `ExposedPorts`, `Volumes`, `Healthcheck` and environment as identical between 2024.06.63 and 2024.06.64, so nothing here is acted on by a change in this range.\n\n### Before applying\n- none specific to this upgrade. Routine practice applies: pull, recreate, confirm the admin container comes up healthy.\n\n### Notes read\n- 2024.06.64 (target) and 2024.06.63 (baseline), both from Mailu/Mailu release notes, as supplied above.\n- Top portion of Mailu/Mailu CHANGELOG.md was read; it covers only the 2024.06.0 and 2.0.0 major entries, not a dedicated 2024.06.63\u21922024.06.64 section \u2014 no additional breaking-change text found for this specific patch range.\n\n## Upstream changes 2024.06.63 -> 2024.06.64\n\n**Verdict:** SAFE TO APPLY \u2014 the one change in the notes is confined to the resolver image's healthcheck, not to admin; the image comparison shows no behavioural difference at all for admin between the two tags.\n\n### Breaking changes\n- none found in the notes. The single changelog entry for this release \u2014 \"Make the resolver healthcheck fail when unbound answers SERVFAIL, instead of reporting healthy while every lookup fails\" \u2014 describes a fix to the `resolver` (unbound) image's healthcheck, not to `admin`. It is also identical, word for word, to the entry already listed under the 2024.06.63 baseline, so it is not new in this range for either image.\n\n### Variables\n- none\n\n### Data and dependencies\n- none. WHAT THE IMAGES THEMSELVES DIFFER IN reports the admin image's `User`, `Entrypoint`, `Cmd`, `WorkingDir`, `ExposedPorts`, `Volumes`, `Healthcheck` and environment as identical between 2024.06.63 and 2024.06.64, so nothing here is acted on by a change in this range.\n\n### Before applying\n- none specific to this upgrade. Routine practice applies: pull, recreate, confirm the admin container comes up healthy.\n\n### Notes read\n- 2024.06.64 (target) and 2024.06.63 (baseline), both from Mailu/Mailu release notes, as supplied above.\n- Top portion of Mailu/Mailu CHANGELOG.md was read; it covers only the 2024.06.0 and 2.0.0 major entries, not a dedicated 2024.06.63\u21922024.06.64 section \u2014 no additional breaking-change text found for this specific patch range.\n\n## Upstream changes 2024.06.63 -> 2024.06.64\n\n**Verdict:** SAFE TO APPLY \u2014 the one change in the notes is confined to the resolver image's healthcheck, not to admin; the image comparison shows no behavioural difference at all for admin between the two tags.\n\n### Breaking changes\n- none found in the notes. The single changelog entry for this release \u2014 \"Make the resolver healthcheck fail when unbound answers SERVFAIL, instead of reporting healthy while every lookup fails\" \u2014 describes a fix to the `resolver` (unbound) image's healthcheck, not to `admin`. It is also identical, word for word, to the entry already listed under the 2024.06.63 baseline, so it is not new in this range for either image.\n\n### Variables\n- none\n\n### Data and dependencies\n- none. WHAT THE IMAGES THEMSELVES DIFFER IN reports the admin image's `User`, `Entrypoint`, `Cmd`, `WorkingDir`, `ExposedPorts`, `Volumes`, `Healthcheck` and environment as identical between 2024.06.63 and 2024.06.64, so nothing here is acted on by a change in this range.\n\n### Before applying\n- none specific to this upgrade. Routine practice applies: pull, recreate, confirm the admin container comes up healthy.\n\n### Notes read\n- 2024.06.64 (target) and 2024.06.63 (baseline), both from Mailu/Mailu release notes, as supplied above.\n- Top portion of Mailu/Mailu CHANGELOG.md was read; it covers only the 2024.06.0 and 2.0.0 major entries, not a dedicated 2024.06.63\u21922024.06.64 section \u2014 no additional breaking-change text found for this specific patch range.\n\n## Upstream changes 2024.06.63 -> 2024.06.64\n\n**Verdict:** SAFE TO APPLY \u2014 the one change in the notes is confined to the resolver image's healthcheck, not to admin; the image comparison shows no behavioural difference at all for admin between the two tags.\n\n### Breaking changes\n- none found in the notes. The single changelog entry for this release \u2014 \"Make the resolver healthcheck fail when unbound answers SERVFAIL, instead of reporting healthy while every lookup fails\" \u2014 describes a fix to the `resolver` (unbound) image's healthcheck, not to `admin`. It is also identical, word for word, to the entry already listed under the 2024.06.63 baseline, so it is not new in this range for either image.\n\n### Variables\n- none\n\n### Data and dependencies\n- none. WHAT THE IMAGES THEMSELVES DIFFER IN reports the admin image's `User`, `Entrypoint`, `Cmd`, `WorkingDir`, `ExposedPorts`, `Volumes`, `Healthcheck` and environment as identical between 2024.06.63 and 2024.06.64, so nothing here is acted on by a change in this range.\n\n### Before applying\n- none specific to this upgrade. Routine practice applies: pull, recreate, confirm the admin container comes up healthy.\n\n### Notes read\n- 2024.06.64 (target) and 2024.06.63 (baseline), both from Mailu/Mailu release notes, as supplied above.\n- Top portion of Mailu/Mailu CHANGELOG.md was read; it covers only the 2024.06.0 and 2.0.0 major entries, not a dedicated 2024.06.63\u21922024.06.64 section \u2014 no additional breaking-change text found for this specific patch range.\n\n## Upstream changes 2024.06.63 -> 2024.06.64\n\n**Verdict:** SAFE TO APPLY \u2014 the one change in the notes is confined to the resolver image's healthcheck, not to admin; the image comparison shows no behavioural difference at all for admin between the two tags.\n\n### Breaking changes\n- none found in the notes. The single changelog entry for this release \u2014 \"Make the resolver healthcheck fail when unbound answers SERVFAIL, instead of reporting healthy while every lookup fails\" \u2014 describes a fix to the `resolver` (unbound) image's healthcheck, not to `admin`. It is also identical, word for word, to the entry already listed under the 2024.06.63 baseline, so it is not new in this range for either image.\n\n### Variables\n- none\n\n### Data and dependencies\n- none. WHAT THE IMAGES THEMSELVES DIFFER IN reports the admin image's `User`, `Entrypoint`, `Cmd`, `WorkingDir`, `ExposedPorts`, `Volumes`, `Healthcheck` and environment as identical between 2024.06.63 and 2024.06.64, so nothing here is acted on by a change in this range.\n\n### Before applying\n- none specific to this upgrade. Routine practice applies: pull, recreate, confirm the admin container comes up healthy.\n\n### Notes read\n- 2024.06.64 (target) and 2024.06.63 (baseline), both from Mailu/Mailu release notes, as supplied above.\n- Top portion of Mailu/Mailu CHANGELOG.md was read; it covers only the 2024.06.0 and 2.0.0 major entries, not a dedicated 2024.06.63\u21922024.06.64 section \u2014 no additional breaking-change text found for this specific patch range.\n"
   },
   {
-    "repo": "nextcloud-onlyoffice-traefik-letsencrypt-docker-compose",
-    "sha": "79b9065a194338b24dda1fe523988c24a0539a4f",
+    "repo": "mattermost-traefik-letsencrypt-docker-compose",
+    "sha": "9d714aaf1ebe71fd7a12442906c2c305c9e008d4",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-15T22:41:17Z",
+    "pushed_at": "2026-10-16T12:05:14Z",
+    "review": "\n## Upstream changes 11.11.1 -> 12.0.0\n\n**Verdict:** NEEDS ATTENTION \u2014 this is a major version jump (11.x -> 12.0.0) whose release notes give almost no detail (\"multiple new quality of life improvements\"), and no UPGRADING/BREAKING_CHANGES content is available to check for migration steps or dependency requirements.\n\n### Breaking changes\n- None named explicitly in the notes. The entry for v12.0.0 only lists new features: \"Attribute Management, Ranked and Hierarchical Attributes, Channel Attributes and Labels, Session Attributes, and Improved DM Calls Experience.\" No deprecations, removals, or config changes are mentioned anywhere in the rc1-rc5 or final entries.\n- A major version bump (11 -> 12) conventionally carries breaking changes in Mattermost's own practice, but nothing of that nature is stated in the text given, so none can be reported as confirmed.\n\n### Variables\n- None found. No environment variable is named as renamed, removed, or newly required in any of the listed release entries.\n\n### Data and dependencies\n- None stated in the notes read. No PostgreSQL version requirement, migration note, or changed default is mentioned for this range.\n- Already true at the current version (11.11.1 baseline, not a change here): the compose file pins Postgres 16, which is unaffected by anything in this range per the notes available.\n\n### Before applying\n- Take a database backup (`mattermost-postgres` volume / the `backups` service's pg_dump) and a copy of the `mattermost-data`, `mattermost-config`, `mattermost-plugins` volumes before upgrading, as standard practice for any major-version jump \u2014 not because the notes name an irreversible migration, but because they document nothing at all about what changed under the hood.\n- Check Mattermost's own admin-facing upgrade guide / \"Important Upgrade Notes\" page by hand before rolling this out, since the CHANGELOG.md fetched here is a stub pointing to external documentation (\"Please see Mattermost Changelog in product documentation\") rather than actual content.\n- Review plugin compatibility manually: a major release touching attributes/labels/session data is a plausible place for plugin API or schema changes, but this is a precaution, not something the notes assert.\n- Confirm image digest for `12.0.0` before updating the `MATTERMOST_IMAGE_VERSION` pin in `.env` or the compose `x-images` default \u2014 the compose file currently pins `11.11.1@sha256:...` and this must be updated to the correct `12.0.0` digest, not just the tag.\n\n### Notes read\n- v12.0.0, v12.0.0-rc5, v12.0.0-rc4, v11.7.12, v11.7.12-rc2, v11.7.12-rc1, v12.0.0-rc3, v11.10.3-rc1, v12.0.0-rc2 (all provided inline above)\n- v11.11.1 (baseline, provided as \"THE RELEASE THE TEMPLATE RUNS NOW\")\n- CHANGELOG.md: fetched but empty of real content \u2014 it only redirects to external documentation (\"Please see Mattermost Changelog in product documentation\"), so it could not be used to check for an UPGRADING/BREAKING_CHANGES section covering this range. This should be checked by hand at docs.mattermost.com before applying.\n"
+  },
+  {
+    "repo": "mssql-server-traefik-letsencrypt-docker-compose",
+    "sha": "d6c67f74d388e65c234049c63079ffeacce7aa05",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:05:22Z"
+  },
+  {
+    "repo": "navidrome-traefik-letsencrypt-docker-compose",
+    "sha": "21c1d068ad98e1ef47248d9ad7fbefad14232c4f",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:05:27Z"
+  },
+  {
+    "repo": "nextcloud-onlyoffice-traefik-letsencrypt-docker-compose",
+    "sha": "c6ed6ed7e123a35b19121585d0012fe7ae386a41",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:05:36Z",
     "review": "\n## Upstream changes 35.0.1 -> 35.0.2\n\n**Verdict:** SAFE TO APPLY \u2014 the only substantive content in the supplied notes is a list of release tags with no changelog text, the registry diff shows only the version label changed, and nothing here names a companion-service version this compose file doesn't already pin.\n\n### Breaking changes\n- none found in the notes \u2014 the \"release notes\" supplied are bare tag/date/URL listings with no body text (e.g. `### v35.0.2 (2026-10-15)` followed only by the release URL). No actual change descriptions were provided to read.\n\n### Variables\n- none \u2014 the only difference reported anywhere is the `NEXTCLOUD_VERSION` env value baked into the image (`'35.0.1' -> '35.0.2'`), which simply reflects the new version and is not a configuration change a host must act on. No entries in `.env.example` are affected.\n\n### Data and dependencies\n- none introduced by this range. The compose file already pins `postgres:16` and `redis:7.4` for the Nextcloud stack at 35.0.1 (the baseline), so that requirement predates this upgrade and is not something 35.0.2 raises or changes.\n\n### Before applying\n- None beyond routine good practice: take the usual pre-upgrade backup (the `backups` service already dumps Postgres and the data volume on its normal schedule \u2014 confirm a recent dump exists before pulling).\n- No manual migration command or config edit is indicated by anything in the supplied notes.\n- Because the actual release content wasn't retrievable, check by hand before/after the upgrade: the Nextcloud 35.0.2 entry on https://nextcloud.com/changelog/ and the GitHub release body at https://github.com/nextcloud-releases/server/releases/tag/v35.0.2, in case either names a security fix, a forced `occ upgrade` step, or an app-compatibility change not visible here.\n\n### Notes read\n- Tag list only (no bodies) for: v35.0.2, v34.0.5, v33.0.10, v35.0.2rc2, v35.0.2rc1, v34.0.5rc1, v33.0.10rc1, and baseline v35.0.1.\n- `CHANGELOG.md` from upstream repo: contains only a pointer to https://nextcloud.com/changelog/, no inline entries \u2014 could not be read for this range.\n- No UPGRADING / BREAKING_CHANGES section was supplied for this image.\n"
   },
   {
-    "repo": "sonarqube-traefik-letsencrypt-docker-compose",
-    "sha": "a55ed4d7497f02c4b0f0b17a87b1d324977d7f0d",
+    "repo": "nextcloud-traefik-letsencrypt-docker-compose",
+    "sha": "24dd3dba2c18588202f4c5822e999cb7efead5ab",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-15T22:41:37Z",
+    "pushed_at": "2026-10-16T12:05:42Z"
+  },
+  {
+    "repo": "ollama-traefik-letsencrypt-docker-compose",
+    "sha": "56b0a7638b0c24b188168f407acd73a435af5266",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:06:02Z",
+    "review": "\n## Upstream changes 0.40.4 -> 0.40.5\n\n**Verdict:** SAFE TO APPLY \u2014 no breaking changes in the notes, no companion-service version requirement introduced, and the image configurations (user, entrypoint, command, ports, volumes, healthcheck, environment) are unchanged.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none. The notes mention \"Updated llama.cpp (adding Nemotron 3.5 support) and MLX\" but name no version requirement for any companion service (database, cache, search engine), and the compose file pins no such service for this image.\n\n### Before applying\n- Update the pinned digest/tag for `ollama/ollama` from `0.40.4@sha256:926d40fd6eeeebd346b5c358a63de2a10ec995371cd93dd22f1843200694b1a6` to the `0.40.5` tag and its digest in the `x-images` block of the compose file (and the commented `OLLAMA_IMAGE_VERSION=0.40.4` example in `.env.example`, for consistency).\n- No backup, manual migration, or config edit is required by anything in the notes.\n\n### Notes read\n- v0.40.5 (2026-10-14) \u2014 the release being moved to\n- v0.40.4 (2026-10-12) \u2014 the baseline release the template currently runs, read only to confirm nothing it requires is newly introduced by this range\n"
+  },
+  {
+    "repo": "otrs-traefik-letsencrypt-docker-compose",
+    "sha": "df98361dad75d48e630d31ccbac20b39df682125",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:06:07Z"
+  },
+  {
+    "repo": "outline-keycloak-traefik-letsencrypt-docker-compose",
+    "sha": "b83eb91d5f9ccc405d8661d52b72c59916e8fa52",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:06:16Z"
+  },
+  {
+    "repo": "owncloud-traefik-letsencrypt-docker-compose",
+    "sha": "7afe39ac6b3b48c2000bc9d7ad843a211dd4506f",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:06:22Z"
+  },
+  {
+    "repo": "portainer-traefik-letsencrypt-docker-compose",
+    "sha": "c54f7948696f17ef1ba9798de2de60aba21fc234",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:06:27Z"
+  },
+  {
+    "repo": "rocketchat-traefik-letsencrypt-docker-compose",
+    "sha": "4061a2ecf137745191ef135389b03473a0fb4ea6",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:06:35Z"
+  },
+  {
+    "repo": "romm-traefik-letsencrypt-docker-compose",
+    "sha": "54189da2a439cd0b6be4ffb76ea3117ef25d2c9c",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:06:40Z"
+  },
+  {
+    "repo": "seafile-traefik-letsencrypt-docker-compose",
+    "sha": "f7b4d5ddd075697b5a3306ab0dea9b4e28cbfb11",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:06:46Z"
+  },
+  {
+    "repo": "sftp-traefik-letsencrypt-docker-compose",
+    "sha": "d7893ba76655977e2bc8689725fd27710eb0b19f",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:06:51Z"
+  },
+  {
+    "repo": "sonarqube-traefik-letsencrypt-docker-compose",
+    "sha": "434a34a87f4dab61aba63579faa1f2f48da071ea",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:06:58Z",
     "review": "\n## Upstream changes 26.9.0.129388-community -> 26.10.0.133078-community\n\n**Verdict:** NEEDS ATTENTION \u2014 no release notes could be read for this range, so the upgrade is going in blind; apply only after checking SonarQube's own upgrade guide by hand.\n\n### Breaking changes\n- none found in the notes (notes not available \u2014 see below)\n\n### Variables\n- none \u2014 no variable renames, removals, or new requirements are indicated by either the compose file or the (unavailable) notes. `.env.example` still shows `SONARQUBE_IMAGE_VERSION=26.9.0.129388-community` as its documented example value, which is now stale relative to the compose pin, but that is documentation only, not a behavioral change.\n\n### Data and dependencies\n- The image differences confirm only a version bump: env `SONAR_VERSION`: `'26.9.0.129388' -> '26.10.0.133078'`. No user, entrypoint, command, port, volume, healthcheck, or environment-variable-contract difference is reported between the two images.\n- Already true at the current (FROM) version, not introduced by this range: the compose file pins Postgres at `17-alpine` and the template already runs against it \u2014 this is an existing requirement, not a new one, since no \"THE RELEASE THE TEMPLATE RUNS NOW\" notes were supplied to compare against. Confirm by hand that SonarQube 26.10 still supports Postgres 17 before applying, since this cannot be verified from the notes given.\n- SonarQube major/minor upgrades frequently require a one-time database schema migration triggered on first startup of the new version, and sometimes require moving through LTA versions in sequence. This cannot be confirmed or ruled out here because the notes are missing.\n\n### Before applying\n- Take a backup before upgrading (the `backups` service in this compose file already does periodic Postgres + data-volume backups \u2014 trigger or confirm a fresh one manually right before the upgrade window).\n- Check the official SonarQube Upgrade Guide (docs.sonarsource.com) for the 26.9 \u2192 26.10 jump by hand, specifically for: required upgrade path (whether intermediate versions are mandatory), Postgres version compatibility, and any Elasticsearch/Lucene index rebuild requirement (SonarQube's search index sometimes needs a rebuild across minor versions, which can take significant time on first boot).\n- After starting the new container, watch `docker compose logs -f sonarqube` until it reports fully started, since a failed or stuck migration will hang the healthcheck (`start_period: 120s`) rather than fail fast.\n- Log in and confirm the UI/API respond normally; the compose healthcheck (`/api/system/status` must report `\"status\":\"UP\"`) is a reasonable automated proxy for migration success.\n\n### Notes read\n- None. The upstream source (`SonarSource/sonarqube`) returned no release between 26.9.0.129388-community and 26.10.0.133078-community across 78 releases read, and no tag-range diff was available. No UPGRADING/BREAKING_CHANGES/CHANGELOG section was supplied either. This verdict rests only on the registry image diff and the compose/.env.example contents; SonarQube's own documented upgrade path should be checked manually before proceeding.\n"
+  },
+  {
+    "repo": "uptime-kuma-traefik-letsencrypt-docker-compose",
+    "sha": "4c645c1944ea38ff23e46149b17340ae4d2f1327",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:07:04Z"
+  },
+  {
+    "repo": "vaultwarden-traefik-letsencrypt-docker-compose",
+    "sha": "43ba6aa8ed24e9b2591a7ee27101ba6dbfdcb3b9",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:07:09Z"
+  },
+  {
+    "repo": "webrcade-traefik-letsencrypt-docker-compose",
+    "sha": "ca0be23c9f3bc08e6109cfee591e0110f0404786",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:07:14Z"
+  },
+  {
+    "repo": "wikijs-traefik-letsencrypt-docker-compose",
+    "sha": "1fc179e1ebfe69e40b8df4b07423fecab2cd07fb",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:07:20Z"
+  },
+  {
+    "repo": "wordpress-traefik-letsencrypt-docker-compose",
+    "sha": "7c7105c1aba713df59c4d67136299f690a9bca57",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:07:25Z"
+  },
+  {
+    "repo": "xwiki-traefik-letsencrypt-docker-compose",
+    "sha": "ac6fd65b7e3eadf40505daced258195225fc9ddb",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:07:31Z"
+  },
+  {
+    "repo": "zabbix-traefik-letsencrypt-docker-compose",
+    "sha": "23e961fc3db3a753a1e846562d8ee2eadf0490ed",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:07:39Z"
+  },
+  {
+    "repo": "zammad-traefik-letsencrypt-docker-compose",
+    "sha": "7454ee28b5449757380982ee57045b238d797dba",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-16T12:07:46Z"
   }
 ]
