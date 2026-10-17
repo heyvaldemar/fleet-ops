@@ -1,42 +1,125 @@
 [
   {
-    "repo": "amazon-rds-pipeline-terraform",
-    "sha": "7f154d220456a89c1b93ec6d1ca34dfb18920650",
+    "repo": "amazon-ec2-gitlab-pipeline-terraform",
+    "sha": "82004c8eabb72dfacf6a17878c0c1e313dc59fdd",
     "wf": "Terraform Verification",
     "kind": "version",
-    "pushed_at": "2026-10-16T22:20:11Z",
-    "review": "\n## Upstream changes 6.68.0 -> 6.69.1\n\n**Verdict:** SAFE TO APPLY \u2014 no breaking changes in the notes for this range, and no companion-service version requirement is introduced.\n\nThe registry comparison could not be performed (\"The image configurations could not be read from the registry (HTTPError: HTTP Error 401: Unauthorized)\"), so this verdict rests on the notes alone, as instructed.\n\n### Breaking changes\n- none found in the notes for 6.69.0 or 6.69.1. The only BREAKING CHANGES entries in the material supplied belong to 6.68.0 (`aws_docdb_cluster` and `aws_rds_cluster` `availability_zones` plan-time validation of at most 3 items), which is the baseline already running and not part of this move.\n\n### Variables\n- none. No provider configuration variables, `.env.example` entries, or required arguments are renamed, removed, or newly required by 6.69.0 or 6.69.1. (`.env.example` was supplied empty \u2014 there is nothing in it to check against these notes.)\n\n### Data and dependencies\n- Already true at 6.68.0, not introduced by this range: `aws_docdb_cluster` and `aws_rds_cluster` `availability_zones` must contain at most 3 items, now enforced at plan time \u2014 \"This is acceptable in a minor version because AWS would always reject requests with more than 3 availability zones at apply time.\" Any config already violating this would already be failing plans before this upgrade.\n- 6.69.0 adds `aws_rds_cluster: Add publicly_accessible argument` \u2014 new optional attribute, not a requirement.\n- No companion service (database engine, cache, search engine) version is named anywhere in the 6.69.0/6.69.1 notes, so the \"no SAFE TO APPLY\" trigger for an unpinned dependency does not apply here.\n\n### Before applying\n- None required by the notes. As routine Terraform provider hygiene: run `terraform init -upgrade` to pick up the new version under the `~> 6.68.0` constraint in `01-providers.tf` (note this constraint will need to be widened, e.g. to `~> 6.69.0`, since `~> 6.68.0` does not admit 6.69.x), then run `terraform plan` and review before applying.\n\n### Notes read\n- Release notes for v6.69.1 (2026-10-15) and v6.69.0 (2026-10-14), and the CHANGELOG.md excerpt covering the same two versions plus the v6.68.0 baseline. No UPGRADING or BREAKING_CHANGES section was supplied separately; the CHANGELOG's own \"BREAKING CHANGES\" headers were used in their place.\n"
+    "pushed_at": "2026-10-17T11:16:30Z",
+    "review": "\n## Upstream changes 6.68.0 -> 6.69.1\n\n**Verdict:** NEEDS ATTENTION \u2014 the provider version constraint in the compose/terraform file pins `~> 6.68.0`, which will not resolve to 6.69.1 at all; that constraint has to be edited for this upgrade to apply, and there are plan-time validation changes to check against in-flight state.\n\n### Breaking changes\n- None found in the 6.69.0 or 6.69.1 notes themselves. No `BREAKING CHANGES:` heading appears in either release.\n- Carried forward from the baseline (6.68.0, not part of this range, but relevant context for any resources not yet reconciled against it): `resource/aws_docdb_cluster` and `resource/aws_rds_cluster`: *\"`availability_zones` now validates that at most 3 items are provided at plan time.\"* If any configuration still has more than 3 zones listed and has not yet been planned/applied since 6.68.0, that will surface now rather than at apply time against AWS. This is a 6.68.0 change, not introduced by 6.68.0\u21926.69.1, so it does not drive this verdict, but it is worth confirming has already been dealt with.\n\n### Variables\n- None. No provider configuration variables, environment variables, or `.env.example` entries are mentioned or affected by these notes. The `.env.example` file provided is empty.\n\n### Data and dependencies\n- The `required_providers` block in `01-providers.tf` pins `version = \"~> 6.68.0\"`, which under Terraform's pessimistic-constraint operator only allows `>= 6.68.0, < 6.69.0`. **6.69.1 will not be selected** until this line is changed (e.g. to `~> 6.69.0` or `>= 6.69.0, < 6.70.0`). This is a required edit, not optional, for the upgrade to take effect at all.\n- No companion service (database, cache, search engine) version is named anywhere in these notes, so the SAFE-TO-APPLY-blocking rule for unpinned companion services does not apply here \u2014 this is a Terraform provider, not an application with a backing datastore of its own.\n- `resource/aws_opensearch_domain`: *\"Increase default `timeouts.delete` value to `120m`\"* \u2014 if any config relies on the old shorter default delete timeout to fail fast, that behavior changes.\n- `resource/aws_opensearch_domain`: *\"Remove hardcoded enum validation for `cluster_config.warm_type`\"* \u2014 loosens validation, not a breaking restriction.\n\n### Before applying\n- Edit `01-providers.tf`: change `version = \"~> 6.68.0\"` to permit 6.69.1 (e.g. `~> 6.69.0`).\n- Run `terraform init -upgrade` to pull the new provider version.\n- Run `terraform plan` and review it before applying \u2014 specifically check any `aws_rds_cluster`, `aws_docdb_cluster`, or `aws_opensearch_domain` resources in state for the plan-time validation and timeout-default items noted above.\n- No state migration, manual data steps, or irreversible changes are indicated in the notes for this range.\n\n### Notes read\n- Release notes for v6.69.1 (2026-10-15) and v6.69.0 (2026-10-14), read in full as supplied.\n- Baseline release notes for v6.68.0 (2026-10-07), read only to establish what was already true before this range, per instructions.\n- CHANGELOG.md excerpt (top 30000 characters, newest first) covering 6.69.1 down through 6.64.0 \u2014 used only to confirm no additional breaking-change entries exist for 6.69.0/6.69.1; entries for 6.67.0 and earlier are outside the range and not reported on.\n- Image registry metadata for `hashicorp/aws` could not be read (401 Unauthorized), so the \"WHAT THE IMAGES THEMSELVES DIFFER IN\" section carries no findings and did not factor into this verdict \u2014 this is a Terraform provider binary resolved by version constraint, not a container image with its own user/entrypoint/ports to compare in any case.\n"
   },
   {
-    "repo": "amazon-route53-pipeline-terraform",
-    "sha": "8c94fa0878022e92674bb8f87449e6b966d96423",
-    "wf": "Terraform Verification",
-    "kind": "version",
-    "pushed_at": "2026-10-16T22:20:54Z",
-    "review": "\n## Upstream changes 6.68.0 -> 6.69.1\n\n**Verdict:** SAFE TO APPLY \u2014 no breaking changes in the notes for this range, and no companion-service version requirement is introduced.\n\nThe registry comparison could not be performed (\"The image configurations could not be read from the registry (HTTPError: HTTP Error 401: Unauthorized)\"), so this verdict rests on the notes alone, as instructed.\n\n### Breaking changes\n- none found in the notes for 6.69.0 or 6.69.1. The only BREAKING CHANGES entries in the material supplied belong to 6.68.0 (`aws_docdb_cluster` and `aws_rds_cluster` `availability_zones` plan-time validation of at most 3 items), which is the baseline already running and not part of this move.\n\n### Variables\n- none. No provider configuration variables, `.env.example` entries, or required arguments are renamed, removed, or newly required by 6.69.0 or 6.69.1. (`.env.example` was supplied empty \u2014 there is nothing in it to check against these notes.)\n\n### Data and dependencies\n- Already true at 6.68.0, not introduced by this range: `aws_docdb_cluster` and `aws_rds_cluster` `availability_zones` must contain at most 3 items, now enforced at plan time \u2014 \"This is acceptable in a minor version because AWS would always reject requests with more than 3 availability zones at apply time.\" Any config already violating this would already be failing plans before this upgrade.\n- 6.69.0 adds `aws_rds_cluster: Add publicly_accessible argument` \u2014 new optional attribute, not a requirement.\n- No companion service (database engine, cache, search engine) version is named anywhere in the 6.69.0/6.69.1 notes, so the \"no SAFE TO APPLY\" trigger for an unpinned dependency does not apply here.\n\n### Before applying\n- None required by the notes. As routine Terraform provider hygiene: run `terraform init -upgrade` to pick up the new version under the `~> 6.68.0` constraint in `01-providers.tf` (note this constraint will need to be widened, e.g. to `~> 6.69.0`, since `~> 6.68.0` does not admit 6.69.x), then run `terraform plan` and review before applying.\n\n### Notes read\n- Release notes for v6.69.1 (2026-10-15) and v6.69.0 (2026-10-14), and the CHANGELOG.md excerpt covering the same two versions plus the v6.68.0 baseline. No UPGRADING or BREAKING_CHANGES section was supplied separately; the CHANGELOG's own \"BREAKING CHANGES\" headers were used in their place.\n"
-  },
-  {
-    "repo": "dashy-traefik-letsencrypt-docker-compose",
-    "sha": "80828824723eb7776d7f7b6f732bea4d51a1ac5c",
+    "repo": "chatops-privilege-wall",
+    "sha": "6293fc0c17d5726e4707bb4fea9bb922a409bfcc",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-16T22:21:35Z",
-    "review": "\n## Upstream changes 4.8.3 -> 4.8.4\n\n**Verdict:** SAFE TO APPLY \u2014 only translation fixes in the notes, and the one image difference (Node.js patch bump) is an internal runtime change, not a pinned dependency this template tracks.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none. The registry diff shows `NODE_VERSION`: '24.21.0' -> '24.22.0' inside the `dashy` image, but this is bundled with the image and not a companion service the compose file pins or needs to track.\n\n### Before applying\n- Update `DASHY_IMAGE_VERSION` (or the digest default in the compose file's `x-images` block) from 4.8.3 to 4.8.4.\n- No config edits, migrations, or backups required.\n\n### Notes read\n- Compare API output for Lissy93/dashy between 4.8.3 and 4.8.4 (4 commits); no dedicated release notes exist for these tags, so the commit log was used as the record. Covers: Arabic i18n completion, Hindi placeholder fix, the merge commit, and the version bump commit.\n\n## Upstream changes 4.8.4 -> 4.8.7\n\n**Verdict:** SAFE TO APPLY \u2014 no release notes exist for these tags, but the only recorded changes are docs, dev-dependency bumps, and minor/patch production dependency bumps; the image configuration itself is unchanged between versions.\n\n### Breaking changes\n- none found in the notes. No GitHub release notes exist for 4.8.5, 4.8.6, or 4.8.7; the only record is the commit log, which lists docs changes, CI workflow tweaks, dev-dependency bumps (vitest, happy-dom), and a batch of minor/patch production dependency bumps (vue, vue-router, express, dompurify, @sentry/vue, simple-icons, etc). None of these commits describe a behavioural or config change.\n\n### Variables\n- none. Nothing in the commit log touches environment variables, and the .env.example / compose file need no changes for this range.\n\n### Data and dependencies\n- none. No database or companion-service version requirement appears anywhere in this range \u2014 Dashy has no such dependency in this template, and the commits don't introduce one.\n- The image configuration (`User`, `Entrypoint`, `Cmd`, `WorkingDir`, `ExposedPorts`, `Volumes`, `Healthcheck`, environment) is identical between 4.8.4 and 4.8.7 per the registry comparison, confirming nothing deploy-relevant moved.\n\n### Before applying\n- Update the digest pin: the compose file's `x-images` block still points `dashy` at `4.8.4@sha256:dcb67a2530feea9b6c9692b1f3c521389c8b1424c78fae544c49ac31aeef7afd`. Bump `DASHY_IMAGE_VERSION` (or the default in the compose file) to `4.8.7` and replace the digest with the correct sha256 for that tag before pulling \u2014 this template is digest-pinned by design, so the version string alone will not move the running image.\n- No backup, migration, or manual config edit is required beyond that pin update.\n\n### Notes read\n- No release notes exist under Lissy93/dashy for 4.8.5, 4.8.6, or 4.8.7; the compare-API commit log between 4.8.4 and 4.8.7 was read in full as the only available record.\n"
+    "pushed_at": "2026-10-17T11:16:52Z"
   },
   {
-    "repo": "homeassistant-traefik-letsencrypt-docker-compose",
-    "sha": "3f0872fa4fcda282f5e653afec188ef3622392a2",
+    "repo": "game-server-wireguard-relay-docker-compose",
+    "sha": "86fb4a027eabf23f37444e8dec0672fd04deb030",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-16T22:22:50Z",
-    "review": "\n## Upstream changes 2026.10.1 -> 2026.10.2\n\n**Verdict:** SAFE TO APPLY \u2014 this is a patch release consisting entirely of bug fixes and dependency bumps; the images are confirmed identical in every field that affects container behaviour, and no companion-service version requirement appears in the notes.\n\n### Breaking changes\n- none found in the notes. This is a point release with no entries tagged `(breaking-change)`, unlike the 2026.10.1 baseline which carried one (see below).\n\n### Variables\n- none. No environment variable additions, renames or removals appear in the 2026.10.2 notes, and the compose file / .env.example require no changes.\n\n### Data and dependencies\n- \"switch Broadlink to broadlink-async (fixes #184800, replaces #184806)\" ([#186053]) \u2014 a library swap inside the `broadlink` integration. Only relevant if the deployment uses Broadlink devices; no user-facing config change is described.\n- The usual batch of internal Python dependency bumps (aiohttp, deebot-client, py-opendisplay, aiotankerkoenig, etc.) \u2014 these are bundled in the image and require no host action.\n- Already true at the current version (not introduced by this upgrade): the 2026.10.1 baseline notes record \"Remove user-configurable polling interval from `omnilogic`\" ([#184380], tagged `breaking-change`) \u2014 this was already shipped before the version this host is moving from, so it does not affect this upgrade's verdict. Mentioned here only for completeness in case it was missed at the 2026.10.1 upgrade.\n- No database, cache, or search-engine version requirement is named in the 2026.10.2 notes, so the compose file's lack of a pin for such a service is not a mismatch here.\n\n### Before applying\n- No manual migration, backup, or config edit is required for this step. Standard practice (the template's own `backups` service already runs continuously) covers it.\n- If Broadlink devices are in use, watch the first startup log for any Broadlink-async connection errors given the library swap in [#186053].\n\n### Notes read\n- 2026.10.2 (upgrade target) \u2014 full release notes as supplied.\n- 2026.10.1 (current baseline) \u2014 full release notes as supplied, read only to confirm no breaking change from that version carries forward as new in this range.\n"
+    "pushed_at": "2026-10-17T11:17:31Z"
   },
   {
-    "repo": "nextcloud-onlyoffice-traefik-letsencrypt-docker-compose",
-    "sha": "2fdc81ab42998e0f6ed9cd95ea56d26732388e93",
+    "repo": "gaseous-server-using-docker-compose",
+    "sha": "9fb381c4253878a2c31542897feb38971c4f2ffb",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-16T22:23:58Z",
-    "review": "\n## Upstream changes 35.0.1 -> 35.0.2\n\n**Verdict:** SAFE TO APPLY \u2014 the only substantive content in the supplied notes is a list of release tags with no changelog text, the registry diff shows only the version label changed, and nothing here names a companion-service version this compose file doesn't already pin.\n\n### Breaking changes\n- none found in the notes \u2014 the \"release notes\" supplied are bare tag/date/URL listings with no body text (e.g. `### v35.0.2 (2026-10-15)` followed only by the release URL). No actual change descriptions were provided to read.\n\n### Variables\n- none \u2014 the only difference reported anywhere is the `NEXTCLOUD_VERSION` env value baked into the image (`'35.0.1' -> '35.0.2'`), which simply reflects the new version and is not a configuration change a host must act on. No entries in `.env.example` are affected.\n\n### Data and dependencies\n- none introduced by this range. The compose file already pins `postgres:16` and `redis:7.4` for the Nextcloud stack at 35.0.1 (the baseline), so that requirement predates this upgrade and is not something 35.0.2 raises or changes.\n\n### Before applying\n- None beyond routine good practice: take the usual pre-upgrade backup (the `backups` service already dumps Postgres and the data volume on its normal schedule \u2014 confirm a recent dump exists before pulling).\n- No manual migration command or config edit is indicated by anything in the supplied notes.\n- Because the actual release content wasn't retrievable, check by hand before/after the upgrade: the Nextcloud 35.0.2 entry on https://nextcloud.com/changelog/ and the GitHub release body at https://github.com/nextcloud-releases/server/releases/tag/v35.0.2, in case either names a security fix, a forced `occ upgrade` step, or an app-compatibility change not visible here.\n\n### Notes read\n- Tag list only (no bodies) for: v35.0.2, v34.0.5, v33.0.10, v35.0.2rc2, v35.0.2rc1, v34.0.5rc1, v33.0.10rc1, and baseline v35.0.1.\n- `CHANGELOG.md` from upstream repo: contains only a pointer to https://nextcloud.com/changelog/, no inline entries \u2014 could not be read for this range.\n- No UPGRADING / BREAKING_CHANGES section was supplied for this image.\n"
+    "pushed_at": "2026-10-17T11:17:39Z"
+  },
+  {
+    "repo": "glpi-traefik-letsencrypt-docker-compose",
+    "sha": "0fd930e2837ecb78ef0892e15095cab136fc2f03",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-17T11:17:49Z"
+  },
+  {
+    "repo": "homepage-traefik-letsencrypt-docker-compose",
+    "sha": "104d15166fe50733967ad0a36c43237e99384886",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-17T11:18:21Z",
+    "review": "\n## Upstream changes v2.5.0 -> v2.6.0\n\n**Verdict:** NEEDS ATTENTION \u2014 the notes include \"Refactor: auth architecture (#7256)\" and a security fix (GHSA-qxcr-4rv3-v23r), both of which touch how the application behaves, but neither is explained in enough detail to confirm compatibility without checking.\n\n### Breaking changes\n- \"Refactor: auth architecture (#7256) @shamoon\" \u2014 listed under both \ud83d\udc1b Fixes and \ud83e\uddf0 Maintenance. The word \"refactor\" plus its appearance under Fixes suggests behavioural change in how authentication works, but the notes give no detail on what changed, whether any env var or config key is affected, or whether existing sessions/configs need action. Treat as a potential breaking change until checked against the actual diff or Homepage's docs for auth configuration (e.g. `HOMEPAGE_ALLOWED_HOSTS`, any reverse-proxy auth headers, OIDC/basic-auth config in `config.example/`).\n- \"Resolve GHSA-qxcr-4rv3-v23r\" \u2014 a security advisory fix with no description in the notes of what the vulnerability was or what behaviour changed to fix it. Cannot assess impact from the notes alone.\n\n### Variables\n- none named in the notes. \"Fix: preserve dollar sequences in environment and file secrets (#7242)\" may affect how `$` characters in environment-backed widget secrets are parsed, but no variable name, rename, or removal is given.\n\n### Data and dependencies\n- none. No companion-service version requirement is named in these notes, and the compose file's other pins (Traefik, docker-socket-proxy, Alpine) are untouched by this image's release.\n\n### Before applying\n- Back up the config directory before upgrading (the compose file's `backups` service already does this on a schedule, but run or confirm one manually right before pulling the new tag, since the application holds all state as hand-written YAML with no separate migration path noted).\n- Read the actual PR/diff for #7256 before or right after the upgrade to confirm it does not change how `HOMEPAGE_ALLOWED_HOSTS` or any proxy-auth/basic-auth headers are evaluated, since this template depends on exact host-header handling for the `homepage` service.\n- After upgrading, verify login/auth-protected widgets or any auth-dependent config in `config.example/` still behaves as expected \u2014 the notes do not say what the refactor changed, so this must be checked by hand.\n- No .env.example or compose edit is required: WHAT THE IMAGES THEMSELVES DIFFER IN confirms user, entrypoint, command, ports, volumes, healthcheck and environment are all unchanged between the two image builds.\n\n### Notes read\n- v2.6.0 (release notes above)\n- v2.5.0 (baseline, read only to confirm no overlapping requirement carries forward)\n"
+  },
+  {
+    "repo": "immich-traefik-letsencrypt-docker-compose",
+    "sha": "d3ea2af19851f56c7675b552dabc7002c35d6fcb",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-17T11:18:29Z"
+  },
+  {
+    "repo": "kf2-server-docker-compose",
+    "sha": "2d226d692e3f348e7f7c3d345ae93de168a2ce73",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-17T11:18:39Z"
+  },
+  {
+    "repo": "minecraft-server-docker-compose",
+    "sha": "2a18e6723a85067797c1165fd79ff18d0a541beb",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-17T11:19:31Z",
+    "review": "\n## Upstream changes 2026.10.0 -> 2026.10.1\n\n**Verdict:** SAFE TO APPLY \u2014 the only change is a bundled tool bump, and the image configuration itself (user, entrypoint, command, ports, volumes, healthcheck, environment) is unchanged between the two versions.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none. The only change recorded is: \"chore(deps): update dependency itzg/rcon-cli to v1.7.8\" \u2014 an internal tool bump inside the backup image, not a variable, port, path, or external database/service version requirement.\n\n### Before applying\n- none required. Normal practice applies: update the digest pin (`MINECRAFT_SERVER_BACKUP_IMAGE_VERSION`/sha256 in the compose `x-images` block) and redeploy.\n\n### Notes read\n- 2026.10.1 (2026-10-16) \u2014 the release being moved to\n- 2026.10.0 (2026-10-12) \u2014 read only as the baseline the template already runs, per instructions\n"
+  },
+  {
+    "repo": "minecraft-server-proxy-docker-compose",
+    "sha": "1f89106b9ade1a792e9581d6228e40b71efc4e79",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-17T11:19:50Z",
+    "review": "\n## Upstream changes 2026.10.0 -> 2026.10.1\n\n**Verdict:** SAFE TO APPLY \u2014 only bundled tool versions were bumped, and the image configuration itself (user, entrypoint, cmd, ports, volumes, healthcheck, environment) is unchanged between the two versions.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none. The notes list only internal dependency bumps: `itzg/mc-image-helper` (v1.71.0 \u2192 v1.73.1), `itzg/rcon-cli` (v1.7.8), `itzg/easy-add` (v0.8.18), `itzg/mc-monitor` (v1.18.3). None of these are companion services the compose file pins separately, and none are described as changing startup behaviour, ports, paths, or defaults.\n- The image's behaviour of copying `/config/velocity.toml` into `/server` on startup (noted in the compose file's own comment) is a pre-existing requirement of the current 2026.10.0 deployment, not something this range changes.\n\n### Before applying\n- None required. Standard practice (pull, recreate, watch logs) is enough; there is nothing version-specific to do.\n\n### Notes read\n- 2026.10.1 (target) and 2026.10.0 (baseline), both from itzg/docker-mc-proxy's GitHub release notes, as supplied above.\n"
+  },
+  {
+    "repo": "owncloud-traefik-letsencrypt-docker-compose",
+    "sha": "7a4d13f677e250567edbac9650287ae51e2588c3",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-17T11:20:07Z"
+  },
+  {
+    "repo": "rocketchat-traefik-letsencrypt-docker-compose",
+    "sha": "573d95bab949c8a5fdfd460df48258d25f191669",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-17T11:20:17Z"
+  },
+  {
+    "repo": "romm-traefik-letsencrypt-docker-compose",
+    "sha": "d2e511732acc952f494ef421e9f970b639e47225",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-17T11:20:24Z"
+  },
+  {
+    "repo": "seafile-traefik-letsencrypt-docker-compose",
+    "sha": "9bdc466aec3f3c21671b0c6cc911ab3afa5252cf",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-17T11:20:33Z"
+  },
+  {
+    "repo": "sonarqube-traefik-letsencrypt-docker-compose",
+    "sha": "c5b7997dd52b342497acaccc02faf3f6637927e9",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-17T11:20:42Z"
+  },
+  {
+    "repo": "wordpress-traefik-letsencrypt-docker-compose",
+    "sha": "08c86349697851bbc3e52db2e5da7ef7dcca1120",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-17T11:20:55Z"
+  },
+  {
+    "repo": "xwiki-traefik-letsencrypt-docker-compose",
+    "sha": "f9165c2a71b7ebe09be467d5aabad035f270c64d",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-17T11:21:02Z"
   }
 ]
