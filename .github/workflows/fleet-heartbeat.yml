@@ -53,7 +53,7 @@ jobs:
     # minutes by October 2026 and twenty left no room: on 2026-10-07 it ran a
     # few seconds over and the job was cancelled in the middle of reporting.
     # This repository is public, so the minutes are not metered.
-    timeout-minutes: 30
+    timeout-minutes: 45
     permissions:
       contents: read
       actions: read
@@ -143,6 +143,12 @@ jobs:
         # the fleet to the copy that acts on it.
         if: always() && vars.FLEET_ROLE != 'house' && (github.event_name != 'workflow_dispatch' || inputs.sweep)
         continue-on-error: true
+        # ITS OWN CLOCK. The sweep grew from 15 minutes (2026-10-14) to 21
+        # (10-16) to past the job's 30 on 10-17, and the job's timeout then
+        # cancelled the ping below with it: the switch outside GitHub reported
+        # the heartbeat down because one optional step ran long. Bounded here,
+        # a slow sweep fails alone and the ping still goes.
+        timeout-minutes: 25
         env:
           GH_TOKEN: ${{ secrets.FLEET_PAT }}
           # Read-only, scoped to the repositories the main token does not reach.
