@@ -37,6 +37,11 @@
    "url": "https://github.com/kubernetes-sigs/metrics-server/issues/1868#issuecomment-6195863017",
    "role": "comment",
    "found_in": "aws-eks-reference-platform"
+  },
+  {
+   "url": "https://github.com/kyverno/kyverno/pull/17555#issuecomment-6245868388",
+   "role": "comment with a tested workaround",
+   "found_in": "kubernetes-air-gapped-ai-agent"
   }
  ]
 }

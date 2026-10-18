@@ -33,10 +33,12 @@ NAMED = {
     "aws-eks-reference-platform": "kubernetes",
     # Kubernetes, but not a platform: each answers one question on kind
     # (what an untrusted agent can reach; which images a cluster will run;
-    # whether a database comes back), with rules of its own in conformance.
+    # whether a database comes back; what an agent can do with no way
+    # out), with rules of its own in conformance.
     "kubernetes-ai-agent-sandbox": "focused",
     "kubernetes-supply-chain-admission": "focused",
     "kubernetes-postgres-recovery": "focused",
+    "kubernetes-air-gapped-ai-agent": "focused",
     "helm-charts": "helm",
 }
 

@@ -31,6 +31,7 @@ kubernetes-ai-workload-sandbox kubernetes
 kubernetes-ai-agent-sandbox focused
 kubernetes-supply-chain-admission focused
 kubernetes-postgres-recovery focused
+kubernetes-air-gapped-ai-agent focused
 helm-charts helm
 heyvaldemar-com none
 deadman-switch none
