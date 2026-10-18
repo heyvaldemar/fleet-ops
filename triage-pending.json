@@ -1,9 +1,61 @@
 [
   {
-    "repo": "game-server-wireguard-relay-docker-compose",
-    "sha": "5c263b0d16e641955713ba2e3bc9823d72b74be8",
+    "repo": "confluence-traefik-letsencrypt-docker-compose",
+    "sha": "973d8cd0b23b61e3a064aa3bd1d8b9e5daf1ab14",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-17T21:42:49Z"
+    "pushed_at": "2026-10-18T11:47:19Z"
+  },
+  {
+    "repo": "glpi-traefik-letsencrypt-docker-compose",
+    "sha": "3f55c2354b2512a53b466a7b3e8f9a139e9fde7a",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-18T11:47:36Z"
+  },
+  {
+    "repo": "homebox-traefik-letsencrypt-docker-compose",
+    "sha": "4537b6583827ef329112010323f55ffa84e8646c",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-18T11:48:09Z",
+    "review": "\n## Upstream changes 0.26.2 -> 0.27.0\n\n**Verdict:** NEEDS ATTENTION \u2014 a behavioural default change (notifier egress blocking) plus a large security patch batch (15 advisories) land in this range, and neither this compose file nor .env.example configures notifiers, so the new default will apply silently.\n\n### Breaking changes\n- Notifier network security default change: *\"Homebox now defaults to blocking notifiers to all internal IP addresses, if you have internal services with RFC1918 IPs that Homebox needs access to for webhooks or otherwise, please review our documentation on notifier security configuration.\"* This template does not set any notifier-related environment variable, so if the operator (or any end user of this instance) has configured a webhook notifier pointing at an internal/RFC1918 address (e.g. another container, a local Gotify/ntfy/Home Assistant instance), it will stop working after this upgrade until the new notifier security settings are reviewed and, if needed, relaxed.\n- 15 security advisories patched in this release (GHSA-mw9p-fhpj-jf82 and 14 others listed in the notes). No advisory details, severities, or required follow-up actions are given beyond the patch itself \u2014 treat as a meaningful security-relevant upgrade, not merely a feature release.\n- \"fix: dates (hopefully)\" (PR #1708) and \"fix: child item seperate location\" (PR #1696) are behavioural fixes to date handling and item/location relationships; the notes give no detail on data impact, so verify date fields and child-item locations look correct after upgrade.\n- \"fix: roll back thumbnail transaction on all errors to prevent DB lockups\" (PR #1761) \u2014 implies 0.26.x could leave the database locked on thumbnail errors; informational, not an action item now.\n\n### Variables\n- None renamed, removed, or newly required in the compose file or .env.example. The notifier behaviour change above is not exposed as a template variable at all \u2014 it is an application-level default with no corresponding `HBOX_*` entry in this .env.example, so there is nothing to toggle here short of editing compose environment directly per Homebox's own documentation.\n\n### Data and dependencies\n- None stated as introduced by this range. The release mentions a new optional Meilisearch backend for search (\"the ability to use Meilisearch as a backend\") \u2014 this is opt-in; the compose file has no Meilisearch service, so the default (presumably the existing database-based search, now with tokenization) applies and nothing need be added.\n- No database engine version requirement is named by these notes for either the 0.26.2 baseline or the 0.27.0 target. Homebox here uses embedded SQLite (per the backups service), not an external pinned engine, so the \"companion service version absent from compose\" rule does not trigger.\n- No irreversible migration, removed default, or changed port/path is stated in the notes.\n\n### Before applying\n- Before upgrading, check whether any notifier (webhook, etc.) configured in this Homebox instance points at an internal/RFC1918 address. If so, read https://homebox.software/en/user-guide/notifiers/#network-security-for-notifiers and apply whatever allow-list setting it describes, or the notifier will silently stop firing post-upgrade.\n- Take a database/data backup before upgrading as routine practice \u2014 the backups service in this compose file already does this on a schedule (`homebox-backups` volume); confirm a recent successful backup exists (check backups container logs for \"Database backup OK\") before bumping `HOMEBOX_IMAGE_VERSION`.\n- After upgrade, spot-check date fields and any child items with locations separate from their parent, given the two date/location fixes bundled in this range.\n- No manual migration command is given in the notes; none is indicated as necessary.\n\n### Notes read\n- v0.27.0 (2026-10-17) \u2014 full release notes, read in full.\n- v0.27.0-rc.1 (2026-09-28) \u2014 read for completeness; content is a subset of v0.27.0, no additional changes found.\n- v0.26.2 (2026-06-14) \u2014 read only as the stated baseline, per instructions; its one line (\"fix: various new bugs\") is not reported as a change in this range.\n- No UPGRADING, BREAKING_CHANGES, or CHANGELOG section was supplied separately from the release notes above; none to weigh against them.\n"
+  },
+  {
+    "repo": "jira-traefik-letsencrypt-docker-compose",
+    "sha": "e17d5a400674ed44ad9244db20084c65b2634f94",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-18T11:48:19Z"
+  },
+  {
+    "repo": "nextcloud-onlyoffice-traefik-letsencrypt-docker-compose",
+    "sha": "a174f3aa8040cde3e99a114907c588c6216fe540",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-18T11:48:42Z"
+  },
+  {
+    "repo": "ollama-traefik-letsencrypt-docker-compose",
+    "sha": "c5889760336e9a16c3820efdca4f83efb6ca015c",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-18T11:49:03Z",
+    "review": "\n## Upstream changes 0.40.5 -> 0.40.6\n\n**Verdict:** SAFE TO APPLY \u2014 the notes describe only a Windows runner fix, a new GGUF tensor/file type, cloud-login additions, and an internal identifier change; the image config diff confirms user, entrypoint, command, ports, volumes, healthcheck and environment are unchanged.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none. The notes name no companion-service version requirement for this release.\n\n### Before applying\n- No manual steps. Bump `OLLAMA_IMAGE_VERSION` (or the `x-images` default) to `0.40.6` and pull.\n\n### Notes read\n- v0.40.6 (2026-10-16) \u2014 the range this upgrade covers\n- v0.40.5 (2026-10-14) \u2014 read only as the baseline already running, per instructions; its Nemotron/llama.cpp/MLX updates are not part of this move\n"
+  },
+  {
+    "repo": "owncloud-traefik-letsencrypt-docker-compose",
+    "sha": "511ca48de86041770ec5df19226c6c6f6d133c4e",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-18T11:49:12Z"
+  },
+  {
+    "repo": "webrcade-traefik-letsencrypt-docker-compose",
+    "sha": "6a6268318679fb55a5c57cd616c4932b0b45de49",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-18T11:49:44Z",
+    "review": "\n## Upstream changes 0.2.3 -> 0.2.4\n\n**Verdict:** SAFE TO APPLY \u2014 the notes describe additive application features and bug fixes only, and the underlying image's PHP bump is an internal runtime change with no compose-visible effect.\n\n### Breaking changes\n- none found in the notes. The closest candidate, the \"Experimental apps\" setting, is a removal of a *setting*, not a breaking change to deployment: \"Removed the Experimental apps setting. Experimental applications always appear, marked with an experimental tag in the editor's Platform Chooser instead.\" This changes what end users see in the UI, not anything the host configures.\n\n### Variables\n- none. No new, renamed, or removed environment variables appear in the notes, the compose file, or .env.example for the `webrcade` service.\n\n### Data and dependencies\n- WHAT THE IMAGES THEMSELVES DIFFER IN shows the image's internal PHP runtime moved from 8.0.30 to 8.3.35 (`PHP_VERSION`, `PHP_URL`, `PHP_ASC_URL`, `PHP_SHA256`, `GPG_KEYS`). This is not mentioned anywhere in the release notes or changelog. It is an internal build detail of the image, not a host-facing configuration requirement \u2014 no compose variable, port, volume, or healthcheck references PHP directly, and the container's healthcheck (`curl http://127.0.0.1/`) is unaffected.\n- No database, cache, or search-engine version requirements appear in the notes. webrcade has no such companion service in this compose file, so the \"unpinned companion service\" rule does not apply.\n- No ports, volumes, or paths changed per the notes or the image diff.\n\n### Before applying\n- No manual migration or backup is required by the notes. As general hygiene before any image bump, confirm the `webrcade-data` volume is backed up, since the application does hold user library/feed state there, but nothing in this release forces a migration step.\n- After upgrading, verify in-app settings: the Experimental apps toggle is gone, so if the operator's users relied on enabling/disabling it, expect the UI change described above.\n\n### Notes read\n- Upstream release notes for 0.2.4 (2026-10-18)\n- Upstream CHANGELOG.md, entries from 0.2.4 (10/18/26) back through 0.2.3 (07/18/26), the span covering this upgrade\n"
   }
 ]
