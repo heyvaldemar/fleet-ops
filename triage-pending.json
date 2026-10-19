@@ -1,62 +1,9 @@
 [
   {
-    "repo": "amazon-ec2-instance-pipeline-terraform",
-    "sha": "3c5425946a9abb72e8d648b73d2648ed43ee7e60",
-    "wf": "Terraform Verification",
-    "kind": "version",
-    "pushed_at": "2026-10-19T14:03:37Z",
-    "review": "\n## Upstream changes 6.69.0 -> 6.69.1\n\n**Verdict:** SAFE TO APPLY \u2014 the only change is a provider logging bug fix, and the compose pin `~> 6.69.0` already allows this upgrade.\n\n### Breaking changes\n- none found in the notes. The 6.69.1 notes contain a single entry: \"provider: Fixes `bufio.Scanner: token too long` when logging requests or responses with long lines ([#50501])\"\n\n### Variables\n- none. No .env.example content was provided (file is empty), and nothing in the notes names an environment variable for this range.\n\n### Data and dependencies\n- none. No database, cache, or companion service version is named anywhere in the 6.69.1 notes.\n- Note for context only, not part of this range: the 6.68.0 BREAKING CHANGES entries (`aws_docdb_cluster` and `aws_rds_cluster` `availability_zones` plan-time validation) landed before the current baseline (6.69.0) and are already in effect; they are not introduced by this upgrade.\n\n### Before applying\n- None required. The version constraint in `01-providers.tf` (`version = \"~> 6.69.0\"`) already permits 6.69.1, so no file edit is needed to pick it up on next `terraform init -upgrade`.\n- Standard practice still applies: run `terraform plan` after the provider upgrade and review it before `apply`, since this is a provider binary change even though the diff is a single bug fix.\n\n### Notes read\n- hashicorp/terraform-provider-aws release notes for 6.69.1 and 6.69.0 (baseline), and the corresponding CHANGELOG.md entries for both versions.\n- Registry image metadata could not be read (\"HTTPError: HTTP Error 401: Unauthorized\"); the WHAT THE IMAGES THEMSELVES DIFFER IN section is empty and the verdict above is based on the notes alone, as instructed.\n"
-  },
-  {
-    "repo": "amazon-ec2-keycloak-docker-swarm-pipeline-terraform",
-    "sha": "f2c1ec87d323d283402d1b3117fdb054254bbf53",
-    "wf": "Terraform Verification",
-    "kind": "version",
-    "pushed_at": "2026-10-19T14:04:22Z",
-    "review": "\n## Upstream changes 6.69.0 -> 6.69.1\n\n**Verdict:** SAFE TO APPLY \u2014 the only change is a provider logging bug fix, and the compose pin `~> 6.69.0` already allows this upgrade.\n\n### Breaking changes\n- none found in the notes. The 6.69.1 notes contain a single entry: \"provider: Fixes `bufio.Scanner: token too long` when logging requests or responses with long lines ([#50501])\"\n\n### Variables\n- none. No .env.example content was provided (file is empty), and nothing in the notes names an environment variable for this range.\n\n### Data and dependencies\n- none. No database, cache, or companion service version is named anywhere in the 6.69.1 notes.\n- Note for context only, not part of this range: the 6.68.0 BREAKING CHANGES entries (`aws_docdb_cluster` and `aws_rds_cluster` `availability_zones` plan-time validation) landed before the current baseline (6.69.0) and are already in effect; they are not introduced by this upgrade.\n\n### Before applying\n- None required. The version constraint in `01-providers.tf` (`version = \"~> 6.69.0\"`) already permits 6.69.1, so no file edit is needed to pick it up on next `terraform init -upgrade`.\n- Standard practice still applies: run `terraform plan` after the provider upgrade and review it before `apply`, since this is a provider binary change even though the diff is a single bug fix.\n\n### Notes read\n- hashicorp/terraform-provider-aws release notes for 6.69.1 and 6.69.0 (baseline), and the corresponding CHANGELOG.md entries for both versions.\n- Registry image metadata could not be read (\"HTTPError: HTTP Error 401: Unauthorized\"); the WHAT THE IMAGES THEMSELVES DIFFER IN section is empty and the verdict above is based on the notes alone, as instructed.\n"
-  },
-  {
-    "repo": "amazon-ec2-nextcloud-docker-swarm-pipeline-terraform",
-    "sha": "bd7c259f2c77024d893c4eb0a21300870c49e735",
-    "wf": "Terraform Verification",
-    "kind": "version",
-    "pushed_at": "2026-10-19T14:05:07Z",
-    "review": "\n## Upstream changes 6.69.0 -> 6.69.1\n\n**Verdict:** SAFE TO APPLY \u2014 the only change is a provider logging bug fix, and the compose pin `~> 6.69.0` already allows this upgrade.\n\n### Breaking changes\n- none found in the notes. The 6.69.1 notes contain a single entry: \"provider: Fixes `bufio.Scanner: token too long` when logging requests or responses with long lines ([#50501])\"\n\n### Variables\n- none. No .env.example content was provided (file is empty), and nothing in the notes names an environment variable for this range.\n\n### Data and dependencies\n- none. No database, cache, or companion service version is named anywhere in the 6.69.1 notes.\n- Note for context only, not part of this range: the 6.68.0 BREAKING CHANGES entries (`aws_docdb_cluster` and `aws_rds_cluster` `availability_zones` plan-time validation) landed before the current baseline (6.69.0) and are already in effect; they are not introduced by this upgrade.\n\n### Before applying\n- None required. The version constraint in `01-providers.tf` (`version = \"~> 6.69.0\"`) already permits 6.69.1, so no file edit is needed to pick it up on next `terraform init -upgrade`.\n- Standard practice still applies: run `terraform plan` after the provider upgrade and review it before `apply`, since this is a provider binary change even though the diff is a single bug fix.\n\n### Notes read\n- hashicorp/terraform-provider-aws release notes for 6.69.1 and 6.69.0 (baseline), and the corresponding CHANGELOG.md entries for both versions.\n- Registry image metadata could not be read (\"HTTPError: HTTP Error 401: Unauthorized\"); the WHAT THE IMAGES THEMSELVES DIFFER IN section is empty and the verdict above is based on the notes alone, as instructed.\n"
-  },
-  {
     "repo": "game-server-wireguard-relay-docker-compose",
-    "sha": "624990c083c3043a3eb47a39a89bee59a18b0148",
+    "sha": "0fe4b431dc815cf35467884dc1eaaf7892575436",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-19T14:05:40Z"
-  },
-  {
-    "repo": "gitea-traefik-letsencrypt-docker-compose",
-    "sha": "b937231d217d5bedd0495d6a184055c59248986e",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-19T14:06:15Z",
-    "review": "\n## Upstream changes 28.1.0 -> 28.2.0\n\n**Verdict:** SAFE TO APPLY \u2014 only bug fixes and minor enhancements; no breaking changes, no variable or schema changes, and the images are confirmed identical in all behaviour-relevant fields.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none. The notes mention a dependency bump (\"*(deps)* Update module golang.org/x/net to v0.60.0 [security]\") but this is a Go module compiled into the binary, not a companion service version requirement \u2014 nothing for the compose file to pin or change.\n- No database version requirement is introduced or raised by this range. The compose file pins `postgres:15`, matching what Gitea already runs against at 28.1.0.\n\n### Before applying\n- None required by the notes. Routine precaution: the `backups` service already runs on its normal schedule, so no manual backup step is strictly needed before this patch-level bump, but take one anyway per standing practice if you have reason to.\n\n### Notes read\n- v28.2.0 (2026-10-18) \u2014 the version being moved to\n- v28.1.0 (2026-10-06) \u2014 the baseline version, read only to confirm no overlapping requirement carries forward unflagged\n- No UPGRADING, BREAKING_CHANGES or CHANGELOG section was supplied for this range; none of its content could be weighed against the release notes.\n"
-  },
-  {
-    "repo": "kf2-server-docker-compose",
-    "sha": "5df74dcd030d356782c562a323aca6643164e9f5",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-19T14:06:35Z"
-  },
-  {
-    "repo": "mailu-traefik-letsencrypt-docker-compose",
-    "sha": "6bff95b75e15781284505e7d97b42b72873f96cc",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-19T14:06:54Z"
-  },
-  {
-    "repo": "owncloud-traefik-letsencrypt-docker-compose",
-    "sha": "90d0602c1e251a12c726cda4326516f4b29e3e32",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-19T14:07:20Z"
+    "pushed_at": "2026-10-19T23:05:18Z"
   }
 ]
