@@ -416,41 +416,13 @@ review_provider() {
   fi
 }
 
-# THE TERRAFORM ALARM, READ WHATEVER IT SAYS. On 2026-10-19
-# amazon-eks-cluster-pipeline-terraform's freshness check said "helm_release
-# aws-ebs-csi-driver is behind: pinned 2.66.1, latest is 2.67.0". The report
-# said "freshness, handled below", and below there was nothing: this pass read
-# only lines shaped "latest ... release is", and it had no fallback for an
-# alarm it did not move, so the lag vanished between the two. Now every lag
-# line is read the way lag_lines reads a compose alarm, and every error line
-# the check prints comes out as an action, a wait, or a question for a person.
-tf_lag_lines() {     # stdin: a freshness log -> one line per lag it names
-  { grep -oE '(helm_release )?[A-Za-z0-9_/.-]+ is behind[^:]*: pinned ([a-z]+ )?v?[0-9][^,]*, (latest|newest)[^,]* is v?[0-9][^ "]*' || true; } | sort -u
-}
-
-# The error lines no pass below acts on. Digest drift is read from
-# ci-images.pins by the digest pass, not from the log, and the runner's own
-# "Process completed" line is not an alarm; everything else either names a lag
-# tf_lag_lines reads or is left for a person.
-tf_unread_errors() { # stdin: a freshness log -> one line per error nothing here acts on
-  local l
-  { grep -oE '##\[error\].*' || true; } | sed 's/^##\[error\]//' \
-    | { grep -vE '^Process completed with exit code| digest drift: ' || true; } \
-    | while IFS= read -r l; do
-        [ -n "$(tf_lag_lines <<<"$l")" ] || printf '%s\n' "$l"
-      done | sort -u
-}
-
 # A terraform repository: providers from the lockfile, CI images from the
-# workflow. Sets TF_CHANGED when anything moved and TF_NOTED when it reported
-# a lag it did not move (a branch, a wait, a question), so the caller can tell
-# "nothing to do" from "nothing done".
+# workflow. Sets TF_CHANGED when anything moved.
 TF_CHANGED=0
-TF_NOTED=0
 terraform_refresh() {
   local dir="$1" repo="$2" frid="$3"
-  local tfimage lags subject oldv newv line log
-  TF_CHANGED=0 TF_NOTED=0
+  local tfimage lags subject oldv newv line
+  TF_CHANGED=0
   # The pins live in ci-images.pins, not in the workflow: the fleet token has
   # no `workflow` scope, and giving an automation the right to rewrite its own
   # CI is a ceiling worth keeping.
@@ -458,7 +430,7 @@ terraform_refresh() {
   # ends the script, and a missing pin file would take every repository
   # behind this one down with it. Absence is a finding, not a crash.
   tfimage="$(grep -m1 -oE '^TERRAFORM_IMAGE=.*' "$dir/ci-images.pins" 2>/dev/null | sed -E 's/^TERRAFORM_IMAGE=//' || true)"
-  [ -n "$tfimage" ] || { note "$repo: no TERRAFORM_IMAGE in ci-images.pins — needs a human"; TF_NOTED=1; return 0; }
+  [ -n "$tfimage" ] || { note "$repo: no TERRAFORM_IMAGE in ci-images.pins — needs a human"; return 0; }
 
   # Digest drift on the two pinned CI images: same tag, rebuilt binary.
   local var pin ref olddg newdg
@@ -467,7 +439,7 @@ terraform_refresh() {
     case "$pin" in *@sha256:*) ;; *) continue ;; esac
     ref="${pin%%@*}"; olddg="${pin##*@}"
     newdg="$(docker buildx imagetools inspect "$ref" --format '{{json .Manifest}}' 2>/dev/null | jq -r '.digest // empty' || true)"
-    [ -n "$newdg" ] || { note "$repo: $ref did not resolve — registry hiccup, needs a human"; TF_NOTED=1; continue; }
+    [ -n "$newdg" ] || { note "$repo: $ref did not resolve — registry hiccup, needs a human"; continue; }
     [ "$newdg" = "$olddg" ] && continue
     if [ "$DRY_RUN" = "true" ]; then note "$repo: would refresh $var ($olddg -> $newdg)"; continue; fi
     sed -i "s|${olddg}|${newdg}|" "$dir/ci-images.pins"
@@ -476,30 +448,16 @@ terraform_refresh() {
     TF_CHANGED=1
   done
 
-  # Version lag, named by subject: a provider source, TERRAFORM_IMAGE, or a
-  # Helm chart.
-  log="$(gh run view "$frid" --repo "$OWNER/$repo" --log 2>/dev/null || true)"
-  lags="$(tf_lag_lines <<<"$log")"
+  # Version lag, named by subject: a provider source or TERRAFORM_IMAGE.
+  lags="$( (gh run view "$frid" --repo "$OWNER/$repo" --log 2>/dev/null || true) \
+      | { grep -oE '[A-Za-z0-9_/.-]+ is behind: pinned [0-9][^,]*, latest ([^ ]+ )?release is [0-9][^ "]*' || true; } | sort -u)"
   while IFS= read -r line; do
     [ -n "$line" ] || continue
     subject="${line%% is behind*}"
-    oldv="$(sed -E 's/.*pinned ([a-z]+ )?v?([0-9][^,]*),.*/\2/' <<<"$line")"
-    newv="$(sed -E 's/.* is v?([0-9][^ "]*)$/\1/' <<<"$line")"
-    case "$subject" in
-      "helm_release "*)
-        # A CHART IS MOVED BY A PERSON. The chart's GitHub release is a
-        # packaging record, not the application's notes: chart 2.67.0 of
-        # aws-ebs-csi-driver said nothing, and the driver's CHANGELOG for the
-        # v1.67.0 inside it carried an urgent upgrade note (a StorageClass
-        # topology accepted before is now refused). A review of the releases
-        # the provider path reads would have found nothing and let it through.
-        note "$repo: $subject $oldv -> $newv — a Helm chart is not moved unattended: read the chart's CHANGELOG and the release notes of the version it installs, then move the variable that pins it — needs a human"
-        TF_NOTED=1
-        continue ;;
-    esac
+    oldv="$(sed -E 's/.*pinned ([0-9][^,]*),.*/\1/' <<<"$line")"
+    newv="$(sed -E 's/.* is ([0-9][^ "]*)$/\1/' <<<"$line")"
     if [ "${oldv%%.*}" != "${newv%%.*}" ]; then
       note "$repo: $subject $oldv -> $newv crosses a major — prepared for a human, not applied"
-      TF_NOTED=1
       terraform_major_branch "$dir" "$repo" "$subject" "$oldv" "$newv"
       continue
     fi
@@ -509,8 +467,8 @@ terraform_refresh() {
         local newref newdg2
         newref="${tfimage%%:*}:${newv}"
         newdg2="$(docker buildx imagetools inspect "$newref" --format '{{json .Manifest}}' 2>/dev/null | jq -r '.digest // empty' || true)"
-        [ -n "$newdg2" ] || { note "$repo: $newref does not resolve yet — skipping this bump, retried next run"; TF_NOTED=1; continue; }
-        if [ "$DRY_RUN" = "true" ]; then note "$repo: would move TERRAFORM_IMAGE $oldv -> $newv"; TF_NOTED=1; continue; fi
+        [ -n "$newdg2" ] || { note "$repo: $newref does not resolve yet — skipping this bump"; continue; }
+        if [ "$DRY_RUN" = "true" ]; then note "$repo: would move TERRAFORM_IMAGE $oldv -> $newv"; continue; fi
         sed -i "s|^TERRAFORM_IMAGE=.*|TERRAFORM_IMAGE=${newref}@${newdg2}|" "$dir/ci-images.pins"
         note "$repo: TERRAFORM_IMAGE moved $oldv -> $newv"
         changelog_line "$dir" "Changed" "- **Terraform ${oldv} → ${newv} in CI.** The same binary that formats, validates and lints this configuration; \`terraform validate\` ran against it before this landed."
@@ -521,39 +479,16 @@ terraform_refresh() {
         case "$REVIEW_VERDICT" in
           "DO NOT APPLY UNATTENDED"*)
             note "$repo: $subject $oldv -> $newv is inside a major but the upstream review says do not apply unattended — prepared on a branch instead"
-            TF_NOTED=1
             terraform_major_branch "$dir" "$repo" "$subject" "$oldv" "$newv"
             continue ;;
         esac
-        if [ "$DRY_RUN" = "true" ]; then note "$repo: would move $subject $oldv -> $newv"; TF_NOTED=1; continue; fi
-        terraform_bump "$dir" "$repo" "$tfimage" "$subject" "$oldv" "$newv" || { TF_NOTED=1; continue; }
+        if [ "$DRY_RUN" = "true" ]; then note "$repo: would move $subject $oldv -> $newv"; continue; fi
+        terraform_bump "$dir" "$repo" "$tfimage" "$subject" "$oldv" "$newv" || continue
         TF_CHANGED=1
         ;;
-      *) note "$repo: do not know how to move $subject — needs a human"; TF_NOTED=1 ;;
+      *) note "$repo: do not know how to move $subject — needs a human" ;;
     esac
   done <<<"$lags"
-
-  # What the check said that nothing above acts on. A registry that did not
-  # answer is a wait; anything else is a person's.
-  while IFS= read -r line; do
-    [ -n "$line" ] || continue
-    case "$line" in
-      *"did not resolve after"*|*"registry did not answer"*)
-        note "$repo: the freshness check could not reach a registry (${line:0:140}) — retried next run" ;;
-      *) note "$repo: the freshness check says \"${line:0:160}\" and triage does not act on that line — needs a human" ;;
-    esac
-    TF_NOTED=1
-  done < <(tf_unread_errors <<<"$log")
-}
-
-# The freshness pass for a terraform repository, with the line the compose
-# path has always had: a red check that produced no change and no report of
-# its own is still a red check, and a person is asked about it.
-terraform_freshness() {   # <dir> <repo> <freshness run id>; sets TF_CHANGED
-  terraform_refresh "$1" "$2" "$3"
-  if [ "$TF_CHANGED" -eq 0 ] && [ "$TF_NOTED" -eq 0 ]; then
-    note "$2: freshness is red but nothing was auto-fixable — see the run log, needs a human"
-  fi
 }
 
 # The constraint and the lockfile move together, and the lockfile is
@@ -1374,7 +1309,7 @@ for repo in "${REPOS[@]}"; do
   # provider is what catches an argument it renamed. Its own branch, then.
   case "$repo" in
     *-terraform)
-      terraform_freshness "$dir" "$repo" "$frid"
+      terraform_refresh "$dir" "$repo" "$frid"
       drift_fixed="$TF_CHANGED"
       if [ "$drift_fixed" -eq 1 ]; then push_and_defer "$dir" "$repo" "$wf"; fi
       continue
