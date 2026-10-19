@@ -463,5 +463,52 @@ fwcase "a moved repository is read from freshness.yml" found "freshness.yml"
 fwcase "one not moved yet is read where it always was" missing "Deployment Verification"
 fwcase "an unreadable answer is refused, not guessed" broken "REFUSED"
 
+# A TERRAFORM ALARM NOBODY READ. On 2026-10-19 the EKS pipeline's freshness
+# check said a Helm chart was behind; the report said "freshness, handled
+# below", and below there was nothing. The real pass runs here against a
+# terraform-shaped directory, with gh answering the log and docker answering
+# the CI image's digest unchanged, and every alarm has to come out as an
+# action, a wait or a question.
+tfdir="$WORK/tfrepo"
+mkdir -p "$tfdir"
+printf 'TERRAFORM_IMAGE=hashicorp/terraform:1.16@%s\n' "$OLDDG_A" > "$tfdir/ci-images.pins"
+TFLOG=""
+gh() { [ "$1 $2" = "run view" ] && printf '%s\n' "$TFLOG"; return 0; }
+docker() { printf '{"digest":"%s"}\n' "$OLDDG_A"; }
+tfcase() {           # tfcase <log lines> -> the notes the pass leaves, one a line
+  TFLOG="$1"
+  NOTES=()
+  terraform_freshness "$tfdir" "eks-pipeline" 1 >/dev/null 2>&1
+  [ "${#NOTES[@]}" -eq 0 ] || printf '%s\n' "${NOTES[@]}"
+}
+job="Check pinned providers and images for upstream drift	UNKNOWN STEP	2026-10-19T12:00:00.0000000Z "
+DRY_RUN="true"
+
+got="$(tfcase "${job}##[error]helm_release aws-ebs-csi-driver is behind: pinned 2.66.1, latest is 2.67.0
+${job}##[error]Process completed with exit code 1.")"
+same "a Helm chart that lags is put to a person" "1" \
+  "$(grep -c 'helm_release aws-ebs-csi-driver 2.66.1 -> 2.67.0 .*needs a human' <<<"$got")"
+same "and is not reported twice" "1" "$(grep -c . <<<"$got")"
+
+got="$(tfcase "${job}##[error]hashicorp/aws is behind: pinned 6.69.0, latest release is 6.69.1")"
+same "a provider lag is still moved" "1" "$(grep -c 'would move hashicorp/aws 6.69.0 -> 6.69.1' <<<"$got")"
+same "and nobody is asked about it" "0" "$(grep -c 'needs a human' <<<"$got")"
+
+got="$(tfcase "${job}##[error]TFLINT_IMAGE is not present in ci-images.pins — this job is checking a pin that does not exist")"
+same "an alarm triage does not act on is put to a person" "1" \
+  "$(grep -c 'does not act on that line — needs a human' <<<"$got")"
+
+got="$(tfcase "${job}##[error]the registry did not answer for hashicorp/aws; the pin itself is unchanged")"
+same "a registry that did not answer is a wait" "1" "$(grep -c 'retried next run' <<<"$got")"
+
+got="$(tfcase "${job}##[error]TFLINT_IMAGE digest drift: pinned sha256:aaaa, but ghcr.io/x now resolves to sha256:bbbb")"
+same "drift the digest pass did not find still reaches a person" "1" \
+  "$(grep -c 'nothing was auto-fixable — see the run log, needs a human' <<<"$got")"
+
+# shellcheck disable=SC2016  # ${...} is the workflow's own echo, written literally
+same "the workflow's own echo of its error line is not a lag" "" \
+  "$(printf '%s\n' '  echo "::error::${source} is behind: pinned ${version}, latest release is ${latest}"' | tf_lag_lines)"
+unset -f gh docker
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
