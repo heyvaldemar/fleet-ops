@@ -19,6 +19,8 @@
 # read from the event itself rather than guessed: github.event.workflow_run.path
 # is the file that just went green. The job gains actions: write for it.
 set -uo pipefail
+# shellcheck source=scripts/git-auth.sh
+. "$(dirname "${BASH_SOURCE[0]}")/git-auth.sh"  # GH_TOKEN reaches git by environment, never in a URL
 
 OWNER="${FLEET_OWNER:-heyvaldemar}"
 DRY_RUN="${DRY_RUN:-false}"
@@ -78,7 +80,7 @@ PY
 
 for repo in $(gh repo list "$OWNER" --no-archived --source --visibility public -L 300 --json name -q '.[].name' | sort); do
   dir="$WORKDIR/$repo"
-  git clone -q --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/$OWNER/$repo" "$dir" || {
+  git clone -q --depth 1 "https://github.com/$OWNER/$repo" "$dir" || {
     skipped=$((skipped+1)); skips="$skips\n  $repo: clone failed"; continue; }
   f="$dir/.github/workflows/dependabot-automerge.yml"
   [ -f "$f" ] || continue

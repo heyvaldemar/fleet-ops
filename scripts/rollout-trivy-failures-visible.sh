@@ -26,6 +26,8 @@
 # Measured blast radius before running it: one repository was red, and it was
 # fixed first. A rollout whose consequences have not been counted is a wave.
 set -uo pipefail
+# shellcheck source=scripts/git-auth.sh
+. "$(dirname "${BASH_SOURCE[0]}")/git-auth.sh"  # GH_TOKEN reaches git by environment, never in a URL
 
 OWNER="${FLEET_OWNER:-heyvaldemar}"
 DRY_RUN="${DRY_RUN:-false}"
@@ -104,7 +106,7 @@ for repo in $(gh repo list "$OWNER" --no-archived --source --visibility public -
         | grep -iE 'verif' | head -1)"
   [ -n "$wf" ] || continue
   dir="$WORKDIR/$repo"
-  git clone -q --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/$OWNER/$repo" "$dir" || {
+  git clone -q --depth 1 "https://github.com/$OWNER/$repo" "$dir" || {
     skipped=$((skipped+1)); skips="$skips\n  $repo: clone failed"; continue; }
   f="$dir/.github/workflows/$wf"
   grep -q "aquasecurity/trivy-action" "$f" 2>/dev/null || continue

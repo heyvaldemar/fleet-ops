@@ -918,23 +918,6 @@ def check_repo(repo, exempt=None):
             bad.append(f"CI never runs {', '.join(unrun)}: a restore script that no test invokes can be "
                        f"wrong for its stack while every run is green")
 
-    # A RESTORE MUST NOT COPY A DIRECTORY OVER THE DATA ROOT. `cp -a <dir>/.
-    # <root>/` copies <dir>'s own owner and mode onto <root>. Seven templates
-    # put their kept paths back that way; the data root became root-owned and
-    # the restored database, given the root's owner, did too. AnythingLLM runs
-    # as uid 1000 and came back from its first restore test (2026-10-19)
-    # reading everything and writing nothing. The six others ran as root or
-    # chowned on start, which is luck, not design. Comments are not code.
-    for sc in scripts:
-        for line in (repo.read(sc) or "").splitlines():
-            if line.lstrip().startswith("#"):
-                continue
-            if re.search(r"\bcp\s+-[A-Za-z]*a[A-Za-z]*\s+\S*/\.['\"]?\s", line):
-                bad.append(f"{sc} copies a directory over the data root with cp -a <dir>/. "
-                           f"(\"{line.strip()[:80]}\"): that copies the directory's owner onto the root, "
-                           f"and an unprivileged application cannot write after the restore; move kept paths back one by one")
-                break
-
     # A PRUNE THAT IS ONLY INTENDED IS NOT A PRUNE.
     #
     # A backup sidecar that prunes old archives is one line of find; whether

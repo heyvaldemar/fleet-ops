@@ -14,6 +14,8 @@
 # Idempotent: a test that already polls is skipped; a test whose lines differ
 # is left alone and named.
 set -euo pipefail
+# shellcheck source=scripts/git-auth.sh
+. "$(dirname "${BASH_SOURCE[0]}")/git-auth.sh"  # GH_TOKEN reaches git by environment, never in a URL
 
 OWNER="${FLEET_OWNER:-heyvaldemar}"
 DRY_RUN="${DRY_RUN:-false}"
@@ -34,7 +36,7 @@ fi
 CHANGED=0; SKIPPED=0; ODD=0; NONE=0; PRS=0; rc=0
 for repo in "${REPOS[@]}"; do
   dir="$WORKDIR/$repo"
-  git clone -q --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/$OWNER/$repo" "$dir" 2>/dev/null || continue
+  git clone -q --depth 1 "https://github.com/$OWNER/$repo" "$dir" 2>/dev/null || continue
   f="$dir/tests/e2e-backup-restore.sh"
   [ -f "$f" ] || { NONE=$((NONE + 1)); rm -rf "$dir"; continue; }
   if grep -qF "pruned after" "$f"; then SKIPPED=$((SKIPPED + 1)); rm -rf "$dir"; continue; fi

@@ -14,6 +14,8 @@
 # already carries a bestpractices.dev badge is skipped; a README without a
 # badge block at all is left alone and named.
 set -euo pipefail
+# shellcheck source=scripts/git-auth.sh
+. "$(dirname "${BASH_SOURCE[0]}")/git-auth.sh"  # GH_TOKEN reaches git by environment, never in a URL
 
 OWNER="${FLEET_OWNER:-heyvaldemar}"
 DRY_RUN="${DRY_RUN:-false}"
@@ -43,7 +45,7 @@ for repo in "${REPOS[@]}"; do
   id="$(project_id "$repo" || true)"
   if [ -z "$id" ]; then NOTREG=$((NOTREG + 1)); echo "  $repo: not registered on bestpractices.dev"; continue; fi
   dir="$WORKDIR/$repo"
-  git clone -q --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/$OWNER/$repo" "$dir" 2>/dev/null || { ODD=$((ODD + 1)); echo "  $repo: could not clone"; continue; }
+  git clone -q --depth 1 "https://github.com/$OWNER/$repo" "$dir" 2>/dev/null || { ODD=$((ODD + 1)); echo "  $repo: could not clone"; continue; }
   f="$dir/README.md"
   [ -f "$f" ] || { ODD=$((ODD + 1)); echo "  $repo: no README.md"; rm -rf "$dir"; continue; }
   if grep -qF "bestpractices.dev/projects/" "$f"; then SKIPPED=$((SKIPPED + 1)); rm -rf "$dir"; continue; fi

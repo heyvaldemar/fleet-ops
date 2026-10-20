@@ -16,6 +16,8 @@
 # Idempotent: a repository that has one, under any of the paths GitHub
 # recognises, is skipped.
 set -euo pipefail
+# shellcheck source=scripts/git-auth.sh
+. "$(dirname "${BASH_SOURCE[0]}")/git-auth.sh"  # GH_TOKEN reaches git by environment, never in a URL
 
 OWNER="${FLEET_OWNER:-heyvaldemar}"
 DRY_RUN="${DRY_RUN:-false}"
@@ -43,7 +45,7 @@ for repo in "${REPOS[@]}"; do
     echo "  would add SECURITY.md to $repo"; CHANGED=$((CHANGED + 1)); continue
   fi
   dir="$WORKDIR/$repo"
-  git clone -q --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/$OWNER/$repo" "$dir" 2>/dev/null || { echo "  $repo: could not clone"; continue; }
+  git clone -q --depth 1 "https://github.com/$OWNER/$repo" "$dir" 2>/dev/null || { echo "  $repo: could not clone"; continue; }
   cat > "$dir/SECURITY.md" <<'MD'
 # Security Policy
 

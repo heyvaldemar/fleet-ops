@@ -25,6 +25,8 @@
 # DRY_RUN=true prints what would happen without pushing anything.
 
 set -euo pipefail
+# shellcheck source=scripts/git-auth.sh
+. "$(dirname "${BASH_SOURCE[0]}")/git-auth.sh"  # GH_TOKEN reaches git by environment, never in a URL
 
 OWNER="${FLEET_OWNER:-heyvaldemar}"
 DRY_RUN="${DRY_RUN:-false}"
@@ -851,7 +853,7 @@ PY
 workdir_for() {   # repo -> dir on stdout, or non-zero
   local repo="$1" dir="$WORKDIR/$1"
   [ -d "$dir" ] || git clone -q --depth 50 \
-    "https://x-access-token:${GH_TOKEN}@github.com/$OWNER/$repo" "$dir" || return 1
+    "https://github.com/$OWNER/$repo" "$dir" || return 1
   echo "$dir"
 }
 

@@ -54,6 +54,17 @@ jobs:
           docker run --rm -v "$PWD:/mnt" -w /mnt \
             koalaman/shellcheck@sha256:bb596a0d169b85ddd81d8b6d3a2ff6d5baf5fca10b97f575ebc647c3dff62b3d scripts/*.sh tests/*.sh
 
+      - name: No credential in a URL
+        # A token in a URL is a command-line argument, which any process on
+        # the runner can read, and a clone writes its remote URL into
+        # .git/config. scripts/git-auth.sh hands GH_TOKEN to git through the
+        # environment instead.
+        run: |
+          if grep -rnE 'https://[^/"[:space:]]*:[^@"[:space:]]*@' scripts tests .github; then
+            echo "a credential in a URL: source scripts/git-auth.sh instead" >&2
+            exit 1
+          fi
+
       - name: actionlint
         run: |
           docker run --rm -v "$PWD:/mnt" -w /mnt rhysd/actionlint:1.7.12 -color

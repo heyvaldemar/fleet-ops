@@ -17,6 +17,8 @@
 # already carrying the section is left alone; BACKFILL skips a release that
 # already has an .intoto.jsonl asset.
 set -euo pipefail
+# shellcheck source=scripts/git-auth.sh
+. "$(dirname "${BASH_SOURCE[0]}")/git-auth.sh"  # GH_TOKEN reaches git by environment, never in a URL
 
 OWNER="${FLEET_OWNER:-heyvaldemar}"
 DRY_RUN="${DRY_RUN:-false}"
@@ -67,7 +69,7 @@ for repo in "${REPOS[@]}"; do
   latest="$(gh api "repos/$OWNER/$repo/releases/latest" --jq .tag_name 2>/dev/null || true)"
   if [ -z "$latest" ]; then NORELEASE=$((NORELEASE + 1)); continue; fi
   dir="$WORKDIR/$repo"
-  git clone -q --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/$OWNER/$repo" "$dir" 2>/dev/null || { echo "  $repo: could not clone"; continue; }
+  git clone -q --depth 1 "https://github.com/$OWNER/$repo" "$dir" 2>/dev/null || { echo "  $repo: could not clone"; continue; }
   changed=false
   if ! cmp -s "$TEMPLATE" "$dir/.github/workflows/release-assets.yml" 2>/dev/null; then
     # Missing, or an older copy: the template is the one source of the file.

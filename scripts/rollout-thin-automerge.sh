@@ -22,6 +22,8 @@
 #
 # Idempotent: a repository that already has either file is left alone.
 set -euo pipefail
+# shellcheck source=scripts/git-auth.sh
+. "$(dirname "${BASH_SOURCE[0]}")/git-auth.sh"  # GH_TOKEN reaches git by environment, never in a URL
 
 OWNER="${FLEET_OWNER:-heyvaldemar}"
 DRY_RUN="${DRY_RUN:-false}"
@@ -41,7 +43,7 @@ CHANGED=0; SKIPPED=0
 for repo in "${REPOS[@]}"; do
   case "$repo" in aws-kubectl-docker) continue ;; esac
   dir="$WORKDIR/$repo"
-  git clone -q --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/$OWNER/$repo" "$dir" 2>/dev/null || continue
+  git clone -q --depth 1 "https://github.com/$OWNER/$repo" "$dir" 2>/dev/null || continue
   if [ ! -f "$dir/.github/dependabot.yml" ]; then rm -rf "$dir"; continue; fi
   if [ -f "$dir/.github/workflows/dependabot-automerge.yml" ] || [ -f "$dir/.github/workflows/verify.yml" ]; then
     SKIPPED=$((SKIPPED+1)); rm -rf "$dir"; continue
