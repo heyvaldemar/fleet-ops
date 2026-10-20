@@ -1,5 +1,5 @@
-# shellcheck shell=bash
-# scripts/git-auth.sh - sourced, never run: hands GH_TOKEN to git through its
+#!/usr/bin/env bash
+# scripts/git-auth.sh - sourced, not run (run, it sets nothing that outlives it): hands GH_TOKEN to git through its
 # environment, as an Authorization header for github.com set by GIT_CONFIG_*.
 #
 # Never in a URL. A URL is a command-line argument, which any process on the
