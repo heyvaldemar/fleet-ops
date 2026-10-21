@@ -546,6 +546,33 @@ try:
 except SystemExit as e:
     ended = str(e)
 check("three server errors still end it, saying which", (len(seen), "HTTP 502" in (ended or "")), (3, True))
+# 2026-10-21: the fleet-wide schedule check ended on one list of thirty days
+# of runs that came back cut off: gh said "unexpected end of JSON input",
+# which matched none of the words above, and the check produced nothing.
+def cut(answers):
+    seen = []
+    def co(cmd, stderr=None):
+        seen.append(cmd)
+        a = answers[len(seen) - 1] if len(seen) <= len(answers) else "ok"
+        if a == "cut":
+            raise _sp.CalledProcessError(1, cmd, output=b"", stderr=b"unexpected end of JSON input")
+        if a == "half":
+            return b'{"workflow_runs": [{"id": 1'
+        return b'{"ok": true}'
+    return co, seen
+co, seen = cut(["cut"])
+hbf.subprocess.check_output = co
+check("an answer cut off on the way is asked again and the answer used", (hbf.gh("x"), len(seen)), ({"ok": True}, 2))
+co, seen = cut(["half"])
+hbf.subprocess.check_output = co
+check("an answer that is not whole JSON is asked again too", (hbf.gh("x"), len(seen)), ({"ok": True}, 2))
+co, seen = cut(["cut", "half", "cut"])
+hbf.subprocess.check_output = co
+try:
+    hbf.gh("x"); ended = None
+except SystemExit as e:
+    ended = str(e)
+check("three cut-off answers still end it, saying so", (len(seen), "JSON" in (ended or "")), (3, True))
 hbf.subprocess.check_output, hbf.time.sleep = _real_co, _real_sleep
 
 # The same stale filter, deciding whether this repository's own workflows

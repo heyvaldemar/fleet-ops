@@ -174,21 +174,30 @@ def report(findings):
 # GitHub answered with HTTP 500 and answered correctly minutes later. Ninety-
 # four repositories went unreported for one transient answer. A 5xx, or a
 # connection that did not complete, is asked twice more after a pause; a 4xx
-# is an answer and is not.
+# is an answer and is not. So is an answer cut off on the way: on 2026-10-21
+# a list of thirty days of runs came back as "unexpected end of JSON input",
+# matched none of the words here, and the fleet-wide schedule check produced
+# nothing at all.
 RETRY_PAUSES = (3, 10)
 
 
 def gh(path):
     for pause in RETRY_PAUSES + (None,):
         try:
-            return json.loads(subprocess.check_output(["gh", "api", path], stderr=subprocess.PIPE))
+            out = subprocess.check_output(["gh", "api", path], stderr=subprocess.PIPE)
         except subprocess.CalledProcessError as e:
             lines = (e.stderr or b"").decode("utf-8", "replace").strip().splitlines()
             said = lines[0] if lines else "gh api failed"
-            transient = re.search(r"HTTP 5\d\d|connection (reset|refused)|timeout|EOF", " ".join(lines), re.I)
-            if pause is None or not transient:
-                sys.exit("cannot read %s: %s" % (path, said))
-            time.sleep(pause)
+            transient = re.search(r"HTTP 5\d\d|connection (reset|refused)|timeout|EOF|unexpected end of JSON",
+                                  " ".join(lines), re.I)
+        else:
+            try:
+                return json.loads(out)
+            except ValueError as e:
+                said, transient = "an answer that is not whole JSON (%s)" % e, True
+        if pause is None or not transient:
+            sys.exit("cannot read %s: %s" % (path, said))
+        time.sleep(pause)
 
 
 def gh_exists(path):
