@@ -812,12 +812,24 @@ def check_repo(repo, exempt=None):
         if s:
             scripts += s
     searchable = compose + scripts
-    defines_loop = bool(re.search(r"(pg_dump|mysqldump|mariadb-dump|mongodump|tar -[a-z]*c)", searchable))
+    # What counts as a loop that writes a backup. It used to be a list of dump
+    # tools and `tar -<flags>c`, and that missed `tar -C /data ... -zcpf`: the
+    # directory flag comes first and is upper case. Ten templates write their
+    # archive that way, or dump with sqlcmd or Python's sqlite3, and every rule
+    # below skipped them: the check reported them clean without reading their
+    # loops (found 2026-10-20 while checking a blog post's claim about them).
+    # Any write to a .partial name is a backup loop too, whatever the tool.
+    defines_loop = bool(re.search(
+        r'(pg_dump|mysqldump|mariadb-dump|mongodump|sqlcmd|sqlite3'
+        r'|\btar\b[^\n]*\s-[A-Za-z]*c[A-Za-z]*f\b|\.partial")', searchable))
     if re.search(r"^  backups?:", compose, re.M) and defines_loop:
         # Both syntaxes: $$VAR in a compose command, ${VAR} in a shell script.
+        # And SQL Server's own: BACKUP DATABASE ... TO DISK = N'$$FILE.partial'
+        # is the server writing the file, and the same rules hold for it.
         wrote = set(re.findall(r'> "\$[\$\{]?([A-Z_]+)\}?\.partial"', searchable)) \
             | set(re.findall(r'--archive="\$[\$\{]?([A-Z_]+)\}?\.partial"', searchable)) \
-            | set(re.findall(r'tar [^"]*"\$[\$\{]?([A-Z_]+)\}?\.partial"', searchable))
+            | set(re.findall(r'tar [^"]*"\$[\$\{]?([A-Z_]+)\}?\.partial"', searchable)) \
+            | set(re.findall(r"TO DISK = N?'\$[\$\{]?([A-Z_]+)\}?\.partial'", searchable))
         if not wrote:
             bad.append("backup sidecar writes straight to the final name")
         for v in wrote:
@@ -917,6 +929,23 @@ def check_repo(repo, exempt=None):
         elif unrun:
             bad.append(f"CI never runs {', '.join(unrun)}: a restore script that no test invokes can be "
                        f"wrong for its stack while every run is green")
+
+    # A RESTORE MUST NOT COPY A DIRECTORY OVER THE DATA ROOT. `cp -a <dir>/.
+    # <root>/` copies <dir>'s own owner and mode onto <root>. Seven templates
+    # put their kept paths back that way; the data root became root-owned and
+    # the restored database, given the root's owner, did too. AnythingLLM runs
+    # as uid 1000 and came back from its first restore test (2026-10-19)
+    # reading everything and writing nothing. The six others ran as root or
+    # chowned on start, which is luck, not design. Comments are not code.
+    for sc in scripts:
+        for line in (repo.read(sc) or "").splitlines():
+            if line.lstrip().startswith("#"):
+                continue
+            if re.search(r"\bcp\s+-[A-Za-z]*a[A-Za-z]*\s+\S*/\.['\"]?\s", line):
+                bad.append(f"{sc} copies a directory over the data root with cp -a <dir>/. "
+                           f"(\"{line.strip()[:80]}\"): that copies the directory's owner onto the root, "
+                           f"and an unprivileged application cannot write after the restore; move kept paths back one by one")
+                break
 
     # A PRUNE THAT IS ONLY INTENDED IS NOT A PRUNE.
     #

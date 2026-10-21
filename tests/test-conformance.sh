@@ -30,7 +30,7 @@ fixture() {
   # reference does not yet, so the fixture carries a test that does; the
   # restore cases below take it away again.
   local sc; mkdir -p "$d/case-docker-compose/tests"
-  for sc in "$d"/case-docker-compose/*restore*.sh; do
+  for sc in "$d"/*restore*.sh; do
     [ -e "$sc" ] && printf './%s backup.gz\n' "$(basename "$sc")" >> "$d/case-docker-compose/tests/zz-restore-run.sh"
   done
   # Tagged as the real repository is, so every case reports only the rule it
@@ -128,6 +128,17 @@ d="$(fixture readback)"
 # shellcheck disable=SC2016  # as above: the $$ belongs to the compose file
 sed -i.bak 's| && tar -tzf "\$\$DATA_FILE\.partial" > /dev/null 2>&1||' "$d"/*.yml && rm -f "$d"/*.bak
 expect "a tar archive renamed without being read back is caught" "$WORK/readback" "never read back before it is called a backup"
+
+# The gate that decides a repository has a backup loop at all knew a list of
+# dump tools and `tar -<flags>c`. Ten templates write `tar -C /data ... -zcpf`
+# beside a dump the list did not name, and every rule under the gate skipped
+# them. Here the dump tool is renamed out of the list and the archive written
+# that way, read-back removed: the rule must still see the loop.
+d="$(fixture tarc)"
+# shellcheck disable=SC2016  # as above: the $$ belongs to the compose file
+sed -i.bak -e 's|pg_dump |pg_backup |' -e 's|tar -zcpf "\$\$DATA_FILE\.partial"|tar -C / -zcpf "$$DATA_FILE.partial"|' \
+  -e 's| \&\& tar -tzf "\$\$DATA_FILE\.partial" > /dev/null 2>\&1||' "$d"/*.yml && rm -f "$d"/*.bak
+expect "an archive written with tar -C first is still read as a backup loop" "$WORK/tarc" "never read back before it is called a backup"
 
 d="$(fixture license)";   rm -f "$d/LICENSE"
 expect "a missing LICENSE is caught" "$WORK/license" "missing LICENSE"
@@ -466,6 +477,20 @@ for sc in "$d"/*restore*.sh; do
   [ -e "$sc" ] && printf 'S="$ROOT/%s"\n"$S" backup.gz\n' "$(basename "$sc")" >> "$d/tests/zz-by-path.sh"
 done
 expect_clean "$WORK/restorebypath"
+
+# A restore that copies a directory over the data root is caught; the same
+# words in a comment are not.
+d="$(fixture restorecpdot)"; tag_all "$d"
+for sc in "$d"/*restore*.sh; do
+  # shellcheck disable=SC2016
+  [ -e "$sc" ] && printf '    cp -a /tmp/restore-keep/. "$ROOT"/\n' >> "$sc"
+done
+expect "a restore that copies a directory over the data root is caught" "$WORK/restorecpdot" "copies a directory over the data root"
+d="$(fixture restorecpdotcomment)"; tag_all "$d"
+for sc in "$d"/*restore*.sh; do
+  [ -e "$sc" ] && printf '# it used to run cp -a /tmp/restore-keep/. /data/ here\n' >> "$sc"
+done
+expect_clean "$WORK/restorecpdotcomment"
 
 # On the list and still unrun: reported as declared, not as a failure.
 d="$(fixture restorelisted)"; tag_all "$d"; strip_runs "$d"
