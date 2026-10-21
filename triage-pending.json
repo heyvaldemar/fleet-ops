@@ -1,365 +1,147 @@
 [
   {
-    "repo": "affine-traefik-letsencrypt-docker-compose",
-    "sha": "8ce825373f9c2bf1dab1e2e00b70313f8ea27283",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:30:41Z"
+    "repo": "amazon-ec2-instance-pipeline-terraform",
+    "sha": "b1484b1e8d2cc94865a678a2b001e8bd67b3e9b8",
+    "wf": "Terraform Verification",
+    "kind": "version",
+    "pushed_at": "2026-10-21T22:46:09Z",
+    "review": "\n## Upstream changes 4.4.1 -> 4.4.2\n\n**Verdict:** SAFE TO APPLY \u2014 the only change is a Go toolchain upgrade for a CVE fix; no provider behaviour, resource schema, or variable changes are noted.\n\nNote: the registry image data for `hashicorp/tls` could not be read (401 Unauthorized), so the usual cross-check against actual container configuration (user, entrypoint, command, ports, volumes, healthcheck, environment) was not possible. This does not change the verdict here since `hashicorp/tls` is a Terraform provider binary, not a service container with runtime configuration of that kind \u2014 but it is worth noting the registry check did not run.\n\n### Breaking changes\n- none found in the notes. The 4.4.2 entry contains only a NOTES item: \"Upgrade the Go toolchain to 1.26.10 to mitigate the eMudhra certificate authority vulnerability (CVE-2026-111943).\"\n\n### Variables\n- none. No provider schema, attribute, or `.env.example` variables are touched by this release.\n\n### Data and dependencies\n- none introduced by this range. No database, cache, or companion service is referenced by this provider or its notes.\n- Already true at 4.4.1 (baseline, not a change in this upgrade): the 4.4.1 release itself was also just a Go toolchain bump (\"Upgrade the Go toolchain to 1.26.8\"), so the template was already running a provider built with a recent Go toolchain before this upgrade.\n\n### Before applying\n- None required beyond the normal `terraform init -upgrade` to pick up the new provider build. The compose/Terraform version constraint `version = \"~> 4.4.1\"` in `01-providers.tf` permits 4.4.2 automatically (pessimistic constraint operator allows patch-level upgrades), so no file edit is needed unless you want to pin the patch explicitly.\n- No backup or state migration is implied: nothing in the notes touches resources, attributes, or state representation.\n\n### Notes read\n- hashicorp/terraform-provider-tls CHANGELOG.md, entries for v4.4.2 (2026-10-21) and v4.4.1 (2026-09-10, baseline).\n"
+  },
+  {
+    "repo": "amazon-ec2-nextcloud-docker-swarm-pipeline-terraform",
+    "sha": "baf85092450819885c599f457beb3581217104df",
+    "wf": "Terraform Verification",
+    "kind": "version",
+    "pushed_at": "2026-10-21T22:46:58Z",
+    "review": "\n## Upstream changes 4.4.1 -> 4.4.2\n\n**Verdict:** SAFE TO APPLY \u2014 the only change is a Go toolchain upgrade for a CVE fix; no provider behaviour, resource schema, or variable changes are noted.\n\nNote: the registry image data for `hashicorp/tls` could not be read (401 Unauthorized), so the usual cross-check against actual container configuration (user, entrypoint, command, ports, volumes, healthcheck, environment) was not possible. This does not change the verdict here since `hashicorp/tls` is a Terraform provider binary, not a service container with runtime configuration of that kind \u2014 but it is worth noting the registry check did not run.\n\n### Breaking changes\n- none found in the notes. The 4.4.2 entry contains only a NOTES item: \"Upgrade the Go toolchain to 1.26.10 to mitigate the eMudhra certificate authority vulnerability (CVE-2026-111943).\"\n\n### Variables\n- none. No provider schema, attribute, or `.env.example` variables are touched by this release.\n\n### Data and dependencies\n- none introduced by this range. No database, cache, or companion service is referenced by this provider or its notes.\n- Already true at 4.4.1 (baseline, not a change in this upgrade): the 4.4.1 release itself was also just a Go toolchain bump (\"Upgrade the Go toolchain to 1.26.8\"), so the template was already running a provider built with a recent Go toolchain before this upgrade.\n\n### Before applying\n- None required beyond the normal `terraform init -upgrade` to pick up the new provider build. The compose/Terraform version constraint `version = \"~> 4.4.1\"` in `01-providers.tf` permits 4.4.2 automatically (pessimistic constraint operator allows patch-level upgrades), so no file edit is needed unless you want to pin the patch explicitly.\n- No backup or state migration is implied: nothing in the notes touches resources, attributes, or state representation.\n\n### Notes read\n- hashicorp/terraform-provider-tls CHANGELOG.md, entries for v4.4.2 (2026-10-21) and v4.4.1 (2026-09-10, baseline).\n"
   },
   {
     "repo": "anythingllm-traefik-letsencrypt-docker-compose",
-    "sha": "8f8c1d499ee4034fa7287c8d1fef9399bc960ed1",
+    "sha": "0c4d6fac2a4d8d81cb09cb68d262242cea2b4699",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-21T12:31:16Z",
-    "review": "\n## Upstream changes 0.40.6 -> 0.40.7\n\n**Verdict:** SAFE TO APPLY \u2014 the notes describe additive features and bug fixes only, and the image configuration (user, entrypoint, ports, volumes, healthcheck, environment) is unchanged.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none \u2014 no variable additions, renames or removals are mentioned, and none are implied by the fixes listed\n\n### Data and dependencies\n- none \u2014 the notes mention no database, cache or search-engine version requirement, and this template pairs Ollama with no such companion service (AnythingLLM uses LanceDB embedded on the storage volume, not a separate pinned service)\n\n### Before applying\n- Update the pin: `OLLAMA_IMAGE_VERSION=0.40.6@sha256:265409e1d931028a8f7d5a32bcbafddd7bffbc6cc629d77efe9560adf692a5e7` in the compose file's `x-images` block to `0.40.7` with its corresponding digest.\n- No backup, migration, or config edit is called for by these notes. The stack's own backup service continues to run as before.\n\n### Notes read\n- v0.40.7 release notes (target version)\n- v0.40.6 release notes (baseline, current version \u2014 read only to establish what is already true, per the rule that a pre-existing requirement is not a change in this range)\n"
+    "pushed_at": "2026-10-21T22:47:28Z",
+    "review": "\n## Upstream changes 0.40.6 -> 0.40.7\n\n**Verdict:** SAFE TO APPLY \u2014 the notes describe additive features and bug fixes only, and the image configuration (user, entrypoint, ports, volumes, healthcheck, environment) is unchanged.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none \u2014 no variable additions, renames or removals are mentioned, and none are implied by the fixes listed\n\n### Data and dependencies\n- none \u2014 the notes mention no database, cache or search-engine version requirement, and this template pairs Ollama with no such companion service (AnythingLLM uses LanceDB embedded on the storage volume, not a separate pinned service)\n\n### Before applying\n- Update the pin: `OLLAMA_IMAGE_VERSION=0.40.6@sha256:265409e1d931028a8f7d5a32bcbafddd7bffbc6cc629d77efe9560adf692a5e7` in the compose file's `x-images` block to `0.40.7` with its corresponding digest.\n- No backup, migration, or config edit is called for by these notes. The stack's own backup service continues to run as before.\n\n### Notes read\n- v0.40.7 release notes (target version)\n- v0.40.6 release notes (baseline, current version \u2014 read only to establish what is already true, per the rule that a pre-existing requirement is not a change in this range)\n\n## Upstream changes 0.40.7 -> 0.40.8\n\n**Verdict:** SAFE TO APPLY \u2014 the notes describe one new model addition, and the image configurations are confirmed identical in all behaviourally relevant fields.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none. The v0.40.8 notes add a new model (Flint) to the library; nothing about the engine itself, its storage format, or its API changes. Note: \"Note: Flint is supported on MacOS. Other GPU support will be enabled in a subsequent release.\" \u2014 this concerns a specific new model's hardware support, not the running `llama3.2:3b` default or the Ollama service itself, so it does not affect this deployment.\n\n### Before applying\n- none required. Bump `OLLAMA_IMAGE_VERSION` (or the digest in the compose file's `x-images` block) and redeploy as normal.\n\n### Notes read\n- v0.40.8 (release notes for the version being moved to)\n- v0.40.7 (baseline, \"THE RELEASE THE TEMPLATE RUNS NOW\", read only for context \u2014 none of its content is a change introduced by this upgrade)\n- No UPGRADING/BREAKING_CHANGES/CHANGELOG section was supplied for this range; none was found to read.\n"
   },
   {
     "repo": "audiobookshelf-traefik-letsencrypt-docker-compose",
-    "sha": "545bbede60b2de70b774c624f95307323d149e63",
+    "sha": "d7ec454d41e641596265c48f8466a59fe2268034",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-21T12:31:24Z"
-  },
-  {
-    "repo": "authelia-traefik-letsencrypt-docker-compose",
-    "sha": "970e05ce2b1e48229ff5179b1ed7430608ae6879",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:31:33Z"
+    "pushed_at": "2026-10-21T22:47:35Z"
   },
   {
     "repo": "beszel-traefik-letsencrypt-docker-compose",
-    "sha": "ae58c2bc51ec9b54cd668240731beaeca1b8da71",
+    "sha": "7e560c5504e1c59b8e8cbe9a5a1ff860f01b84a6",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-21T12:31:44Z"
+    "pushed_at": "2026-10-21T22:47:46Z"
   },
   {
     "repo": "bitbucket-traefik-letsencrypt-docker-compose",
-    "sha": "c8eb021cf224f26d8a5a16fc470e2d3f09f967ca",
+    "sha": "a6ff98169bc27b297edc789c984ae82b1a8081e7",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-21T12:31:52Z"
-  },
-  {
-    "repo": "chatops-privilege-wall",
-    "sha": "e3b6af53053a43508906e34ba8fa665565e6dac7",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:32:00Z"
-  },
-  {
-    "repo": "confluence-traefik-letsencrypt-docker-compose",
-    "sha": "8b193fef84777440496f3a13f7d1a10de65aad92",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:32:07Z"
-  },
-  {
-    "repo": "dashy-traefik-letsencrypt-docker-compose",
-    "sha": "bff8538201b78f1e759306d80ad8f107c8c618b2",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:32:17Z"
-  },
-  {
-    "repo": "dify-traefik-letsencrypt-docker-compose",
-    "sha": "0dc5aa78151a7cc8795224b1abadad13b91991a1",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:32:34Z"
-  },
-  {
-    "repo": "docmost-traefik-letsencrypt-docker-compose",
-    "sha": "022c8819c3434acde520a7300af493d42be3dddf",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:32:44Z"
+    "pushed_at": "2026-10-21T22:47:53Z"
   },
   {
     "repo": "forgejo-traefik-letsencrypt-docker-compose",
-    "sha": "501bc9df30552d13e8f59b77e1fd4aeeecc0447b",
+    "sha": "8e1a371e679170be3f007d468fcecadfceb45663",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-21T12:32:55Z"
-  },
-  {
-    "repo": "gaseous-server-using-docker-compose",
-    "sha": "829c91fb813e948fc816d1ced89bb8c184dc0be2",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:33:03Z"
+    "pushed_at": "2026-10-21T22:48:13Z"
   },
   {
     "repo": "ghost-traefik-letsencrypt-docker-compose",
-    "sha": "eb14c8e2f7c8b2d72282ade4f79c36c4fd878f80",
+    "sha": "50ede04922872dde1adc969f1f86fb449bf45f68",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-21T12:33:11Z"
-  },
-  {
-    "repo": "gitea-traefik-letsencrypt-docker-compose",
-    "sha": "f8cc6148dbdaa7df87f0a48007d9592cff373384",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:33:19Z"
+    "pushed_at": "2026-10-21T22:48:22Z"
   },
   {
     "repo": "gitlab-traefik-letsencrypt-docker-compose",
-    "sha": "f591e881c7f1807272a5c27751136bbdc57e900c",
+    "sha": "db05cd0dfc1cb2b51a4d2d759a15839973939a45",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-21T12:33:28Z"
+    "pushed_at": "2026-10-21T22:48:48Z",
+    "review": "\n## Upstream changes 19.5.0 -> 19.5.1\n\n**Verdict:** SAFE TO APPLY \u2014 no release notes exist for this tag, the commit log shows only routine stable-branch backports and a VERSION bump, and the registry comparison could not be read (treated as no disagreement to report).\n\n### Breaking changes\n- none found in the notes \u2014 GitLab publishes no release notes for this tag; the only record is 20 commits, 19 of which are \"Add latest changes from gitlab-org/gitlab@19-5-stable-ee\" (routine backports) and one \"Update VERSION files\". None describes a behavioural change.\n\n### Variables\n- none \u2014 nothing in the commit list touches configuration, environment variables, or the omnibus config format.\n\n### Data and dependencies\n- none found in the notes for this range. No database version requirement, migration, or port/path change is mentioned.\n- Already true at the current version (19.5.0), not introduced by this range: the compose file's Postgres tuning comment \u2014 `GitLab's schema load and migrations exhaust PostgreSQL's default lock table ... GitLab's external-database guidance calls for a raised max_locks_per_transaction` \u2014 reflects a pre-existing requirement, pinned to `postgres:17` in `x-images`, unaffected by this upgrade.\n\n### Before applying\n- Take the normal GitLab backup before any upgrade (`gitlab-backup.sh` per the repo's README), as routine precaution \u2014 the notes give no upgrade-specific command.\n- No manual migration or config edit is indicated by the notes for this range.\n\n### Notes read\n- Compare API output for `v19.5.0...v19.5.1` on `gitlabhq/gitlabhq` (20 commits) \u2014 no tagged release notes exist for `v19.5.1`, so the commit log is the only record read.\n- Registry image comparison could not be read (404 Not Found); judged on the notes alone, as stated above.\n"
   },
   {
     "repo": "glpi-traefik-letsencrypt-docker-compose",
-    "sha": "806b6fe6085b1f9f091bbb90ab202d7bb6dd08ba",
+    "sha": "daf5480a860918f73929db87a9fcfdb31300f53c",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-21T12:33:36Z"
-  },
-  {
-    "repo": "grafana-traefik-letsencrypt-docker-compose",
-    "sha": "97f1b54525e5ff7eae9d2fd8b1c3249b5e414fb2",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:33:44Z"
-  },
-  {
-    "repo": "homeassistant-traefik-letsencrypt-docker-compose",
-    "sha": "803b97b675ea28205920e84c90f1cb07160a3964",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:33:51Z"
-  },
-  {
-    "repo": "homebox-traefik-letsencrypt-docker-compose",
-    "sha": "f5838c443a6b72795a2f88447d675f54b6faf478",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:33:58Z"
+    "pushed_at": "2026-10-21T22:48:55Z"
   },
   {
     "repo": "homepage-traefik-letsencrypt-docker-compose",
-    "sha": "a92c5e16fd6f82f2942e2825285d8c2ba20caae8",
+    "sha": "a43ad3afa1f17b91a439e3e321e64f56495895b0",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-21T12:34:07Z"
+    "pushed_at": "2026-10-21T22:49:07Z"
   },
   {
     "repo": "jellyfin-traefik-letsencrypt-docker-compose",
-    "sha": "5aa2e98b42eabbd27e41c590cddaddd2f8f3c5c9",
+    "sha": "4a5e0b8dfb23aa7edc711654b8d4f8817ecb5066",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-21T12:34:19Z"
-  },
-  {
-    "repo": "jira-traefik-letsencrypt-docker-compose",
-    "sha": "4cdc507e31dfae005a610bdc169c7792e94a05f9",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:34:27Z"
+    "pushed_at": "2026-10-21T22:49:19Z"
   },
   {
     "repo": "joomla-traefik-letsencrypt-docker-compose",
-    "sha": "081724c5842e59cebd71c2f7a13dc0addb92e0d1",
+    "sha": "17cb2048dc231140395ede93fe86626edf9a9e78",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-21T12:34:45Z"
-  },
-  {
-    "repo": "keycloak-traefik-letsencrypt-docker-compose",
-    "sha": "f6bb56804c97ca30979bba94d2ed256a4ff4311e",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:34:53Z"
-  },
-  {
-    "repo": "mailu-traefik-letsencrypt-docker-compose",
-    "sha": "6890ca2150c1f4a9b7c4a4f41f6c64b5d22a24c1",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:36:00Z",
-    "review": "\n## Upstream changes 2024.06.64 -> 2024.06.65\n\n**Verdict:** SAFE TO APPLY \u2014 the only change is a webmail (Roundcube) version bump, and the image-configuration diff confirms nothing that affects deployment (user, entrypoint, command, ports, volumes, healthcheck, environment) has changed.\n\n### Breaking changes\n- none found in the notes. The only listed change is \"+ Roundcube 1.6.20\", which is a webmail component bump bundled into this release, not a change to the admin image's behaviour.\n\n### Variables\n- none. No renamed, removed or newly required variables are mentioned, and the .env.example admin-related settings (`ADMIN`, `INITIAL_ADMIN_*`, `WEB_ADMIN`, etc.) are untouched by this release.\n\n### Data and dependencies\n- none introduced or raised by this range. (The compose file pins all companion images \u2014 redis, unbound resolver, etc. \u2014 by digest already, and nothing in these notes names a companion-service version the compose file doesn't carry.)\n\n### Before applying\n- None required beyond the standard `docker compose pull && docker compose up -d`. As always, confirm the automated backups service (SQLite + data archive) has a recent successful cycle before pulling, as general hygiene \u2014 not because this release demands it.\n\n### Notes read\n- 2024.06.65 (2026-10-20) \u2014 target release, read in full.\n- 2024.06.64 (2026-10-15) \u2014 baseline release, read in full (resolver healthcheck fix, not part of this upgrade's delta).\n- Mailu CHANGELOG.md top section (2024.06.0, 2.0.0) read for context; it predates both versions in this range and documents no additional breaking change inside 2024.06.64\u21922024.06.65.\n\n## Upstream changes 2024.06.64 -> 2024.06.65\n\n**Verdict:** SAFE TO APPLY \u2014 the only change is a webmail (Roundcube) version bump, and the image-configuration diff confirms nothing that affects deployment (user, entrypoint, command, ports, volumes, healthcheck, environment) has changed.\n\n### Breaking changes\n- none found in the notes. The only listed change is \"+ Roundcube 1.6.20\", which is a webmail component bump bundled into this release, not a change to the admin image's behaviour.\n\n### Variables\n- none. No renamed, removed or newly required variables are mentioned, and the .env.example admin-related settings (`ADMIN`, `INITIAL_ADMIN_*`, `WEB_ADMIN`, etc.) are untouched by this release.\n\n### Data and dependencies\n- none introduced or raised by this range. (The compose file pins all companion images \u2014 redis, unbound resolver, etc. \u2014 by digest already, and nothing in these notes names a companion-service version the compose file doesn't carry.)\n\n### Before applying\n- None required beyond the standard `docker compose pull && docker compose up -d`. As always, confirm the automated backups service (SQLite + data archive) has a recent successful cycle before pulling, as general hygiene \u2014 not because this release demands it.\n\n### Notes read\n- 2024.06.65 (2026-10-20) \u2014 target release, read in full.\n- 2024.06.64 (2026-10-15) \u2014 baseline release, read in full (resolver healthcheck fix, not part of this upgrade's delta).\n- Mailu CHANGELOG.md top section (2024.06.0, 2.0.0) read for context; it predates both versions in this range and documents no additional breaking change inside 2024.06.64\u21922024.06.65.\n\n## Upstream changes 2024.06.64 -> 2024.06.65\n\n**Verdict:** SAFE TO APPLY \u2014 the only change is a webmail (Roundcube) version bump, and the image-configuration diff confirms nothing that affects deployment (user, entrypoint, command, ports, volumes, healthcheck, environment) has changed.\n\n### Breaking changes\n- none found in the notes. The only listed change is \"+ Roundcube 1.6.20\", which is a webmail component bump bundled into this release, not a change to the admin image's behaviour.\n\n### Variables\n- none. No renamed, removed or newly required variables are mentioned, and the .env.example admin-related settings (`ADMIN`, `INITIAL_ADMIN_*`, `WEB_ADMIN`, etc.) are untouched by this release.\n\n### Data and dependencies\n- none introduced or raised by this range. (The compose file pins all companion images \u2014 redis, unbound resolver, etc. \u2014 by digest already, and nothing in these notes names a companion-service version the compose file doesn't carry.)\n\n### Before applying\n- None required beyond the standard `docker compose pull && docker compose up -d`. As always, confirm the automated backups service (SQLite + data archive) has a recent successful cycle before pulling, as general hygiene \u2014 not because this release demands it.\n\n### Notes read\n- 2024.06.65 (2026-10-20) \u2014 target release, read in full.\n- 2024.06.64 (2026-10-15) \u2014 baseline release, read in full (resolver healthcheck fix, not part of this upgrade's delta).\n- Mailu CHANGELOG.md top section (2024.06.0, 2.0.0) read for context; it predates both versions in this range and documents no additional breaking change inside 2024.06.64\u21922024.06.65.\n\n## Upstream changes 2024.06.64 -> 2024.06.65\n\n**Verdict:** SAFE TO APPLY \u2014 the only change is a webmail (Roundcube) version bump, and the image-configuration diff confirms nothing that affects deployment (user, entrypoint, command, ports, volumes, healthcheck, environment) has changed.\n\n### Breaking changes\n- none found in the notes. The only listed change is \"+ Roundcube 1.6.20\", which is a webmail component bump bundled into this release, not a change to the admin image's behaviour.\n\n### Variables\n- none. No renamed, removed or newly required variables are mentioned, and the .env.example admin-related settings (`ADMIN`, `INITIAL_ADMIN_*`, `WEB_ADMIN`, etc.) are untouched by this release.\n\n### Data and dependencies\n- none introduced or raised by this range. (The compose file pins all companion images \u2014 redis, unbound resolver, etc. \u2014 by digest already, and nothing in these notes names a companion-service version the compose file doesn't carry.)\n\n### Before applying\n- None required beyond the standard `docker compose pull && docker compose up -d`. As always, confirm the automated backups service (SQLite + data archive) has a recent successful cycle before pulling, as general hygiene \u2014 not because this release demands it.\n\n### Notes read\n- 2024.06.65 (2026-10-20) \u2014 target release, read in full.\n- 2024.06.64 (2026-10-15) \u2014 baseline release, read in full (resolver healthcheck fix, not part of this upgrade's delta).\n- Mailu CHANGELOG.md top section (2024.06.0, 2.0.0) read for context; it predates both versions in this range and documents no additional breaking change inside 2024.06.64\u21922024.06.65.\n\n## Upstream changes 2024.06.64 -> 2024.06.65\n\n**Verdict:** SAFE TO APPLY \u2014 the only change is a webmail (Roundcube) version bump, and the image-configuration diff confirms nothing that affects deployment (user, entrypoint, command, ports, volumes, healthcheck, environment) has changed.\n\n### Breaking changes\n- none found in the notes. The only listed change is \"+ Roundcube 1.6.20\", which is a webmail component bump bundled into this release, not a change to the admin image's behaviour.\n\n### Variables\n- none. No renamed, removed or newly required variables are mentioned, and the .env.example admin-related settings (`ADMIN`, `INITIAL_ADMIN_*`, `WEB_ADMIN`, etc.) are untouched by this release.\n\n### Data and dependencies\n- none introduced or raised by this range. (The compose file pins all companion images \u2014 redis, unbound resolver, etc. \u2014 by digest already, and nothing in these notes names a companion-service version the compose file doesn't carry.)\n\n### Before applying\n- None required beyond the standard `docker compose pull && docker compose up -d`. As always, confirm the automated backups service (SQLite + data archive) has a recent successful cycle before pulling, as general hygiene \u2014 not because this release demands it.\n\n### Notes read\n- 2024.06.65 (2026-10-20) \u2014 target release, read in full.\n- 2024.06.64 (2026-10-15) \u2014 baseline release, read in full (resolver healthcheck fix, not part of this upgrade's delta).\n- Mailu CHANGELOG.md top section (2024.06.0, 2.0.0) read for context; it predates both versions in this range and documents no additional breaking change inside 2024.06.64\u21922024.06.65.\n\n## Upstream changes 2024.06.64 -> 2024.06.65\n\n**Verdict:** SAFE TO APPLY \u2014 the only change is a webmail (Roundcube) version bump, and the image-configuration diff confirms nothing that affects deployment (user, entrypoint, command, ports, volumes, healthcheck, environment) has changed.\n\n### Breaking changes\n- none found in the notes. The only listed change is \"+ Roundcube 1.6.20\", which is a webmail component bump bundled into this release, not a change to the admin image's behaviour.\n\n### Variables\n- none. No renamed, removed or newly required variables are mentioned, and the .env.example admin-related settings (`ADMIN`, `INITIAL_ADMIN_*`, `WEB_ADMIN`, etc.) are untouched by this release.\n\n### Data and dependencies\n- none introduced or raised by this range. (The compose file pins all companion images \u2014 redis, unbound resolver, etc. \u2014 by digest already, and nothing in these notes names a companion-service version the compose file doesn't carry.)\n\n### Before applying\n- None required beyond the standard `docker compose pull && docker compose up -d`. As always, confirm the automated backups service (SQLite + data archive) has a recent successful cycle before pulling, as general hygiene \u2014 not because this release demands it.\n\n### Notes read\n- 2024.06.65 (2026-10-20) \u2014 target release, read in full.\n- 2024.06.64 (2026-10-15) \u2014 baseline release, read in full (resolver healthcheck fix, not part of this upgrade's delta).\n- Mailu CHANGELOG.md top section (2024.06.0, 2.0.0) read for context; it predates both versions in this range and documents no additional breaking change inside 2024.06.64\u21922024.06.65.\n\n## Upstream changes 2024.06.64 -> 2024.06.65\n\n**Verdict:** SAFE TO APPLY \u2014 the only change is a webmail (Roundcube) version bump, and the image-configuration diff confirms nothing that affects deployment (user, entrypoint, command, ports, volumes, healthcheck, environment) has changed.\n\n### Breaking changes\n- none found in the notes. The only listed change is \"+ Roundcube 1.6.20\", which is a webmail component bump bundled into this release, not a change to the admin image's behaviour.\n\n### Variables\n- none. No renamed, removed or newly required variables are mentioned, and the .env.example admin-related settings (`ADMIN`, `INITIAL_ADMIN_*`, `WEB_ADMIN`, etc.) are untouched by this release.\n\n### Data and dependencies\n- none introduced or raised by this range. (The compose file pins all companion images \u2014 redis, unbound resolver, etc. \u2014 by digest already, and nothing in these notes names a companion-service version the compose file doesn't carry.)\n\n### Before applying\n- None required beyond the standard `docker compose pull && docker compose up -d`. As always, confirm the automated backups service (SQLite + data archive) has a recent successful cycle before pulling, as general hygiene \u2014 not because this release demands it.\n\n### Notes read\n- 2024.06.65 (2026-10-20) \u2014 target release, read in full.\n- 2024.06.64 (2026-10-15) \u2014 baseline release, read in full (resolver healthcheck fix, not part of this upgrade's delta).\n- Mailu CHANGELOG.md top section (2024.06.0, 2.0.0) read for context; it predates both versions in this range and documents no additional breaking change inside 2024.06.64\u21922024.06.65.\n\n## Upstream changes 2024.06.64 -> 2024.06.65\n\n**Verdict:** SAFE TO APPLY \u2014 the only change is a webmail (Roundcube) version bump, and the image-configuration diff confirms nothing that affects deployment (user, entrypoint, command, ports, volumes, healthcheck, environment) has changed.\n\n### Breaking changes\n- none found in the notes. The only listed change is \"+ Roundcube 1.6.20\", which is a webmail component bump bundled into this release, not a change to the admin image's behaviour.\n\n### Variables\n- none. No renamed, removed or newly required variables are mentioned, and the .env.example admin-related settings (`ADMIN`, `INITIAL_ADMIN_*`, `WEB_ADMIN`, etc.) are untouched by this release.\n\n### Data and dependencies\n- none introduced or raised by this range. (The compose file pins all companion images \u2014 redis, unbound resolver, etc. \u2014 by digest already, and nothing in these notes names a companion-service version the compose file doesn't carry.)\n\n### Before applying\n- None required beyond the standard `docker compose pull && docker compose up -d`. As always, confirm the automated backups service (SQLite + data archive) has a recent successful cycle before pulling, as general hygiene \u2014 not because this release demands it.\n\n### Notes read\n- 2024.06.65 (2026-10-20) \u2014 target release, read in full.\n- 2024.06.64 (2026-10-15) \u2014 baseline release, read in full (resolver healthcheck fix, not part of this upgrade's delta).\n- Mailu CHANGELOG.md top section (2024.06.0, 2.0.0) read for context; it predates both versions in this range and documents no additional breaking change inside 2024.06.64\u21922024.06.65.\n\n## Upstream changes 2024.06.64 -> 2024.06.65\n\n**Verdict:** SAFE TO APPLY \u2014 the only change is a webmail (Roundcube) version bump, and the image-configuration diff confirms nothing that affects deployment (user, entrypoint, command, ports, volumes, healthcheck, environment) has changed.\n\n### Breaking changes\n- none found in the notes. The only listed change is \"+ Roundcube 1.6.20\", which is a webmail component bump bundled into this release, not a change to the admin image's behaviour.\n\n### Variables\n- none. No renamed, removed or newly required variables are mentioned, and the .env.example admin-related settings (`ADMIN`, `INITIAL_ADMIN_*`, `WEB_ADMIN`, etc.) are untouched by this release.\n\n### Data and dependencies\n- none introduced or raised by this range. (The compose file pins all companion images \u2014 redis, unbound resolver, etc. \u2014 by digest already, and nothing in these notes names a companion-service version the compose file doesn't carry.)\n\n### Before applying\n- None required beyond the standard `docker compose pull && docker compose up -d`. As always, confirm the automated backups service (SQLite + data archive) has a recent successful cycle before pulling, as general hygiene \u2014 not because this release demands it.\n\n### Notes read\n- 2024.06.65 (2026-10-20) \u2014 target release, read in full.\n- 2024.06.64 (2026-10-15) \u2014 baseline release, read in full (resolver healthcheck fix, not part of this upgrade's delta).\n- Mailu CHANGELOG.md top section (2024.06.0, 2.0.0) read for context; it predates both versions in this range and documents no additional breaking change inside 2024.06.64\u21922024.06.65.\n\n## Upstream changes 2024.06.64 -> 2024.06.65\n\n**Verdict:** SAFE TO APPLY \u2014 the only change is a webmail (Roundcube) version bump, and the image-configuration diff confirms nothing that affects deployment (user, entrypoint, command, ports, volumes, healthcheck, environment) has changed.\n\n### Breaking changes\n- none found in the notes. The only listed change is \"+ Roundcube 1.6.20\", which is a webmail component bump bundled into this release, not a change to the admin image's behaviour.\n\n### Variables\n- none. No renamed, removed or newly required variables are mentioned, and the .env.example admin-related settings (`ADMIN`, `INITIAL_ADMIN_*`, `WEB_ADMIN`, etc.) are untouched by this release.\n\n### Data and dependencies\n- none introduced or raised by this range. (The compose file pins all companion images \u2014 redis, unbound resolver, etc. \u2014 by digest already, and nothing in these notes names a companion-service version the compose file doesn't carry.)\n\n### Before applying\n- None required beyond the standard `docker compose pull && docker compose up -d`. As always, confirm the automated backups service (SQLite + data archive) has a recent successful cycle before pulling, as general hygiene \u2014 not because this release demands it.\n\n### Notes read\n- 2024.06.65 (2026-10-20) \u2014 target release, read in full.\n- 2024.06.64 (2026-10-15) \u2014 baseline release, read in full (resolver healthcheck fix, not part of this upgrade's delta).\n- Mailu CHANGELOG.md top section (2024.06.0, 2.0.0) read for context; it predates both versions in this range and documents no additional breaking change inside 2024.06.64\u21922024.06.65.\n"
-  },
-  {
-    "repo": "mattermost-traefik-letsencrypt-docker-compose",
-    "sha": "5fbd3813c8b0d241fa168af96beaeafb383a9284",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:36:09Z"
-  },
-  {
-    "repo": "minecraft-server-proxy-docker-compose",
-    "sha": "a15b10048c09e9014c2bab413cfadb1a7fa30b70",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:36:30Z",
-    "review": "\n## Upstream changes 2026.10.1 -> 2026.10.2\n\n**Verdict:** SAFE TO APPLY \u2014 the notes only bump a bundled internal dependency (mc-image-helper), and the registry comparison confirms no behavioural fields differ between the two images.\n\n### Breaking changes\n- none found in the notes. The only entry is: *\"Update dependency itzg/mc-image-helper to v1.74.0\"*\n\n### Variables\n- none\n\n### Data and dependencies\n- none. No companion service (database, cache, etc.) is named in these notes, and the compose file does not need to pin one for this range.\n\n### Before applying\n- No manual steps required. Bump `MINECRAFT_SERVER_IMAGE_VERSION` (or let the compose default move) from `2026.10.1` to `2026.10.2` and redeploy.\n\n### Notes read\n- 2026.10.2 (upstream release notes, full text above)\n- 2026.10.1 (baseline release, read only to confirm nothing in this range carries forward a new requirement)\n"
-  },
-  {
-    "repo": "mssql-server-traefik-letsencrypt-docker-compose",
-    "sha": "2286c65fcdc02849057418a8597699afb6bed040",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:36:37Z"
+    "pushed_at": "2026-10-21T22:49:27Z"
   },
   {
     "repo": "navidrome-traefik-letsencrypt-docker-compose",
-    "sha": "599b76e68c61921b9110af1bd08bf287e891371d",
+    "sha": "9ae11f5343b8d16fb9f695976a8624939cdcaba7",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-21T12:36:45Z"
-  },
-  {
-    "repo": "nextcloud-onlyoffice-traefik-letsencrypt-docker-compose",
-    "sha": "b018a42cf46f47f7930d44818b359f9fd94a52b0",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:36:59Z"
-  },
-  {
-    "repo": "nextcloud-traefik-letsencrypt-docker-compose",
-    "sha": "d6ad385eba41b60016fdbd09352e72f200976a65",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:37:08Z"
+    "pushed_at": "2026-10-21T22:49:45Z"
   },
   {
     "repo": "ollama-traefik-letsencrypt-docker-compose",
-    "sha": "c52874d2bf2edefef89c6feb8f61f3e9a94224aa",
+    "sha": "e12b460b07c1f08325cbeaa72cd9ad819fa986bb",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-21T12:37:22Z",
-    "review": "\n## Upstream changes 0.40.6 -> 0.40.7\n\n**Verdict:** SAFE TO APPLY \u2014 the notes describe additive features and bug fixes only, and the image configuration (user, entrypoint, ports, volumes, healthcheck, environment) is unchanged.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none \u2014 no variable additions, renames or removals are mentioned, and none are implied by the fixes listed\n\n### Data and dependencies\n- none \u2014 the notes mention no database, cache or search-engine version requirement, and this template pairs Ollama with no such companion service (AnythingLLM uses LanceDB embedded on the storage volume, not a separate pinned service)\n\n### Before applying\n- Update the pin: `OLLAMA_IMAGE_VERSION=0.40.6@sha256:265409e1d931028a8f7d5a32bcbafddd7bffbc6cc629d77efe9560adf692a5e7` in the compose file's `x-images` block to `0.40.7` with its corresponding digest.\n- No backup, migration, or config edit is called for by these notes. The stack's own backup service continues to run as before.\n\n### Notes read\n- v0.40.7 release notes (target version)\n- v0.40.6 release notes (baseline, current version \u2014 read only to establish what is already true, per the rule that a pre-existing requirement is not a change in this range)\n"
-  },
-  {
-    "repo": "otrs-traefik-letsencrypt-docker-compose",
-    "sha": "ee1f4d9e0b8c9e9f4430abe964bf8888bb01bef8",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:37:29Z"
+    "pushed_at": "2026-10-21T22:50:00Z",
+    "review": "\n## Upstream changes 0.40.6 -> 0.40.7\n\n**Verdict:** SAFE TO APPLY \u2014 the notes describe additive features and bug fixes only, and the image configuration (user, entrypoint, ports, volumes, healthcheck, environment) is unchanged.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none \u2014 no variable additions, renames or removals are mentioned, and none are implied by the fixes listed\n\n### Data and dependencies\n- none \u2014 the notes mention no database, cache or search-engine version requirement, and this template pairs Ollama with no such companion service (AnythingLLM uses LanceDB embedded on the storage volume, not a separate pinned service)\n\n### Before applying\n- Update the pin: `OLLAMA_IMAGE_VERSION=0.40.6@sha256:265409e1d931028a8f7d5a32bcbafddd7bffbc6cc629d77efe9560adf692a5e7` in the compose file's `x-images` block to `0.40.7` with its corresponding digest.\n- No backup, migration, or config edit is called for by these notes. The stack's own backup service continues to run as before.\n\n### Notes read\n- v0.40.7 release notes (target version)\n- v0.40.6 release notes (baseline, current version \u2014 read only to establish what is already true, per the rule that a pre-existing requirement is not a change in this range)\n\n## Upstream changes 0.40.7 -> 0.40.8\n\n**Verdict:** SAFE TO APPLY \u2014 the notes describe one new model addition, and the image configurations are confirmed identical in all behaviourally relevant fields.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none. The v0.40.8 notes add a new model (Flint) to the library; nothing about the engine itself, its storage format, or its API changes. Note: \"Note: Flint is supported on MacOS. Other GPU support will be enabled in a subsequent release.\" \u2014 this concerns a specific new model's hardware support, not the running `llama3.2:3b` default or the Ollama service itself, so it does not affect this deployment.\n\n### Before applying\n- none required. Bump `OLLAMA_IMAGE_VERSION` (or the digest in the compose file's `x-images` block) and redeploy as normal.\n\n### Notes read\n- v0.40.8 (release notes for the version being moved to)\n- v0.40.7 (baseline, \"THE RELEASE THE TEMPLATE RUNS NOW\", read only for context \u2014 none of its content is a change introduced by this upgrade)\n- No UPGRADING/BREAKING_CHANGES/CHANGELOG section was supplied for this range; none was found to read.\n"
   },
   {
     "repo": "outline-keycloak-traefik-letsencrypt-docker-compose",
-    "sha": "7600d23ff4cab82ba1ac8a2962b7d07e7107705c",
+    "sha": "a64c32280716a32dc95547cc7ac86c7035117307",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-21T12:37:43Z"
+    "pushed_at": "2026-10-21T22:50:14Z"
   },
   {
     "repo": "owncloud-traefik-letsencrypt-docker-compose",
-    "sha": "459b9d6092b4bdbc31437a535a05f8b676327dc2",
+    "sha": "44c2c02555961f038d59d88c7400c1beb4090c77",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-21T12:37:52Z"
-  },
-  {
-    "repo": "portainer-traefik-letsencrypt-docker-compose",
-    "sha": "3922363b5414085b0141eea4da543e28c6ea0c61",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:37:59Z"
-  },
-  {
-    "repo": "rocketchat-traefik-letsencrypt-docker-compose",
-    "sha": "760f7778766072934af6793ffe1121095be2ffe9",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:38:08Z"
-  },
-  {
-    "repo": "romm-traefik-letsencrypt-docker-compose",
-    "sha": "bd6f4210e397b7d976faee198c03d3bf79be5dac",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:38:16Z"
-  },
-  {
-    "repo": "seafile-traefik-letsencrypt-docker-compose",
-    "sha": "29105278d7a6020620c72edc31bc9b320ca93ac8",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:38:25Z"
-  },
-  {
-    "repo": "sftp-traefik-letsencrypt-docker-compose",
-    "sha": "101cebf4dc0cd031220eee653951555f687f81fb",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:38:32Z"
-  },
-  {
-    "repo": "sonarqube-traefik-letsencrypt-docker-compose",
-    "sha": "1d47969a61fa650d12fe7e5b02ca994970db70f8",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:38:41Z"
+    "pushed_at": "2026-10-21T22:50:22Z"
   },
   {
     "repo": "uptime-kuma-traefik-letsencrypt-docker-compose",
-    "sha": "be8560b869e102a5f154d86080fcfa8c05d86f2b",
+    "sha": "0aeeead30d2de990febcb0cd6a0079800ed4430e",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-21T12:38:51Z"
-  },
-  {
-    "repo": "vaultwarden-traefik-letsencrypt-docker-compose",
-    "sha": "34f036e864b0582f3e53bc3ab6022ad3a3f672d7",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:38:57Z"
-  },
-  {
-    "repo": "webrcade-traefik-letsencrypt-docker-compose",
-    "sha": "b819ab8a69eada1ead6066e4e3a784c57adc302a",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:39:05Z"
+    "pushed_at": "2026-10-21T22:50:40Z"
   },
   {
     "repo": "wikijs-traefik-letsencrypt-docker-compose",
-    "sha": "6f4f46fbf7cc6ebcbf001afce03391f7007e0def",
+    "sha": "992edfaeb669d73ca951c1bce4e7785b54f43065",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-21T12:39:13Z"
+    "pushed_at": "2026-10-21T22:50:51Z"
   },
   {
     "repo": "wordpress-traefik-letsencrypt-docker-compose",
-    "sha": "5dbd85d2536f28edea14199f6420dc015f0aeffc",
+    "sha": "70494b7a9e438283a1e2c4aa1cb17573f58d3b93",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-21T12:39:21Z"
-  },
-  {
-    "repo": "xwiki-traefik-letsencrypt-docker-compose",
-    "sha": "686250d029273c49fafa571553ffd5787047d43c",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:39:30Z"
-  },
-  {
-    "repo": "zabbix-docker-compose",
-    "sha": "305d81bf19123a98c11a1f8bd2bdbcf8744b6b6a",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:40:30Z",
-    "review": "\n## Upstream changes 7.0.31 -> 7.0.32\n\n**Verdict:** SAFE TO APPLY \u2014 the notes describe bug fixes and internal hardening in the agent2/server/frontend codebase, no breaking change, no variable change, and no companion-service version requirement is introduced by this range.\n\n### Breaking changes\n- none found in the notes. The commit list is agent/server/frontend bug fixes (e.g. \"[DEV-4861] fixed remote memory exhaustion in Zabbix agent and Zabbix agent2 passive checks\", \"[ZBX-27943] fixed web.page.* checks failing when server requests TLS renegotiation on Zabbix agent 2\"). None of these change configuration, startup behaviour, or defaults for the agent2 container.\n\n### Variables\n- none. Nothing in the commit list touches environment variable names, agent configuration keys, or defaults.\n\n### Data and dependencies\n- The notes mention `[ZBXNEXT-10786] updated maximum supported TimescaleDB version to 2.30` \u2014 this is a server/database-side note (TimescaleDB, used only if the deployment enables it on the Postgres side), not something this agent2 image or this compose file's plain `postgres` service uses. This template does not run TimescaleDB, so it does not apply here; flagging only because the rule requires surfacing any named companion-service version. It is not a new requirement this range introduces for this deployment, and does not affect the verdict since the compose file's `postgres` pin is unaffected by it.\n- No irreversible migrations, no removed defaults, no changed ports or paths found in the notes for zabbix-agent2.\n\n### Before applying\n- No manual migration or config edit required by the notes.\n- Standard precaution: back up the Postgres volume/dump before any Zabbix stack upgrade, as routine practice, not because this range demands it.\n- Confirm after upgrade that `ZBX_SERVER_HOST`/`ZBX_HOSTNAME` values in compose still match (unchanged in this range, but worth a quick visual check since the image config itself could not be verified \u2014 see below).\n\n### Notes read\n- Commit comparison 7.0.31 \u2192 7.0.32 from the zabbix/zabbix compare API (no formal release notes exist for these tags upstream; the commit log is the only record, as stated in the source).\n- Image registry comparison could not be performed: \"HTTPError: HTTP Error 404: Not Found\" \u2014 the WHAT THE IMAGES THEMSELVES DIFFER IN section is empty for this reason. A host applying this upgrade should independently diff the actual pulled image (user, entrypoint, exposed ports, healthcheck) against the current 7.0.31-ubuntu container before rollout, since that comparison could not be made here.\n\n## Upstream changes 7.0.31 -> 7.0.32\n\n**Verdict:** NEEDS ATTENTION \u2014 the release notes for this range are just pointers to external release pages with no content included here, so no actual change (breaking or otherwise) can be confirmed or ruled out from them.\n\n### Breaking changes\n- none found in the notes \u2014 the only line present is \"Release Notes for Zabbix 7.0.32: https://www.zabbix.com/rn/rn7.0.32\", which carries no detail. The two lines about 6.0.49 and 7.4.15 are unrelated release trains and do not describe this image's 7.0.31 \u2192 7.0.32 range.\n\n### Variables\n- none \u2014 nothing in the notes mentions a variable rename, removal, or new requirement. Compose/`.env.example` also pin `zabbix-agent` at `7.0.32-ubuntu` already, separate from the server image.\n\n### Data and dependencies\n- none identified from the notes. As a baseline already true at 7.0.31 (not introduced by this upgrade): the compose file pins PostgreSQL major version 15, and `.env.example` already carries the note \"Set this to match ZABBIX_POSTGRES_IMAGE_TAG before first start or after a planned migration\" and the path split between PostgreSQL 15-17 and 18+ \u2014 this is pre-existing, not a change in 7.0.32.\n- No companion-service version requirement is named in the 7.0.32 notes themselves, so the \"SAFE TO APPLY is not available\" rule does not trigger here \u2014 but only because the notes say nothing substantive, not because compatibility was confirmed.\n\n### Before applying\n- Read the actual upstream release notes at https://www.zabbix.com/rn/rn7.0.32 before upgrading \u2014 the text given here is a title line only, not the content.\n- Check that page by hand for: database schema changes, minimum PostgreSQL version changes, and any configuration-parameter changes to `zabbix_server.conf` equivalents (`DB_SERVER_HOST`, `ZBX_CACHESIZE`, etc. used in this compose file).\n- Take a database backup before applying, as routine practice for any Zabbix server point release (schema upgrades in Zabbix are one-way).\n- No image digest for 7.0.32 is available in this review (registry read failed, HTTP 404), so the compose file's pinned digest for `zabbix-server-pgsql:7.0.31-ubuntu@sha256:...` cannot be confirmed as updated \u2014 verify the new tag/digest against Docker Hub before changing `ZABBIX_SERVER_IMAGE_VERSION`.\n\n### Notes read\n- Attempted: 7.0.32 release notes (title/link only, no body \u2014 \"Release Notes for Zabbix 7.0.32: https://www.zabbix.com/rn/rn7.0.32\"). The 6.0.49 and 7.4.15 entries were also present but belong to unrelated release lines and were not used.\n- Baseline: 7.0.31 (title/link only, same limitation), used only to confirm it is the starting point, not as a source of changes in this range.\n- No UPGRADING, BREAKING_CHANGES, or CHANGELOG section was supplied for this range. Image registry comparison could not be read (404). Both should be checked by hand at the source URLs above before this upgrade is applied unattended.\n\n## Upstream changes 7.0.31 -> 7.0.32\n\n**Verdict:** SAFE TO APPLY \u2014 the notes describe bug fixes and internal hardening in the agent2/server/frontend codebase, no breaking change, no variable change, and no companion-service version requirement is introduced by this range.\n\n### Breaking changes\n- none found in the notes. The commit list is agent/server/frontend bug fixes (e.g. \"[DEV-4861] fixed remote memory exhaustion in Zabbix agent and Zabbix agent2 passive checks\", \"[ZBX-27943] fixed web.page.* checks failing when server requests TLS renegotiation on Zabbix agent 2\"). None of these change configuration, startup behaviour, or defaults for the agent2 container.\n\n### Variables\n- none. Nothing in the commit list touches environment variable names, agent configuration keys, or defaults.\n\n### Data and dependencies\n- The notes mention `[ZBXNEXT-10786] updated maximum supported TimescaleDB version to 2.30` \u2014 this is a server/database-side note (TimescaleDB, used only if the deployment enables it on the Postgres side), not something this agent2 image or this compose file's plain `postgres` service uses. This template does not run TimescaleDB, so it does not apply here; flagging only because the rule requires surfacing any named companion-service version. It is not a new requirement this range introduces for this deployment, and does not affect the verdict since the compose file's `postgres` pin is unaffected by it.\n- No irreversible migrations, no removed defaults, no changed ports or paths found in the notes for zabbix-agent2.\n\n### Before applying\n- No manual migration or config edit required by the notes.\n- Standard precaution: back up the Postgres volume/dump before any Zabbix stack upgrade, as routine practice, not because this range demands it.\n- Confirm after upgrade that `ZBX_SERVER_HOST`/`ZBX_HOSTNAME` values in compose still match (unchanged in this range, but worth a quick visual check since the image config itself could not be verified \u2014 see below).\n\n### Notes read\n- Commit comparison 7.0.31 \u2192 7.0.32 from the zabbix/zabbix compare API (no formal release notes exist for these tags upstream; the commit log is the only record, as stated in the source).\n- Image registry comparison could not be performed: \"HTTPError: HTTP Error 404: Not Found\" \u2014 the WHAT THE IMAGES THEMSELVES DIFFER IN section is empty for this reason. A host applying this upgrade should independently diff the actual pulled image (user, entrypoint, exposed ports, healthcheck) against the current 7.0.31-ubuntu container before rollout, since that comparison could not be made here.\n"
-  },
-  {
-    "repo": "zabbix-traefik-letsencrypt-docker-compose",
-    "sha": "7e4b63c90ecca14281fa79074d2560e65f4a9d07",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:40:51Z",
-    "review": "\n## Upstream changes 7.0.31 -> 7.0.32\n\n**Verdict:** SAFE TO APPLY \u2014 the notes describe bug fixes and internal hardening in the agent2/server/frontend codebase, no breaking change, no variable change, and no companion-service version requirement is introduced by this range.\n\n### Breaking changes\n- none found in the notes. The commit list is agent/server/frontend bug fixes (e.g. \"[DEV-4861] fixed remote memory exhaustion in Zabbix agent and Zabbix agent2 passive checks\", \"[ZBX-27943] fixed web.page.* checks failing when server requests TLS renegotiation on Zabbix agent 2\"). None of these change configuration, startup behaviour, or defaults for the agent2 container.\n\n### Variables\n- none. Nothing in the commit list touches environment variable names, agent configuration keys, or defaults.\n\n### Data and dependencies\n- The notes mention `[ZBXNEXT-10786] updated maximum supported TimescaleDB version to 2.30` \u2014 this is a server/database-side note (TimescaleDB, used only if the deployment enables it on the Postgres side), not something this agent2 image or this compose file's plain `postgres` service uses. This template does not run TimescaleDB, so it does not apply here; flagging only because the rule requires surfacing any named companion-service version. It is not a new requirement this range introduces for this deployment, and does not affect the verdict since the compose file's `postgres` pin is unaffected by it.\n- No irreversible migrations, no removed defaults, no changed ports or paths found in the notes for zabbix-agent2.\n\n### Before applying\n- No manual migration or config edit required by the notes.\n- Standard precaution: back up the Postgres volume/dump before any Zabbix stack upgrade, as routine practice, not because this range demands it.\n- Confirm after upgrade that `ZBX_SERVER_HOST`/`ZBX_HOSTNAME` values in compose still match (unchanged in this range, but worth a quick visual check since the image config itself could not be verified \u2014 see below).\n\n### Notes read\n- Commit comparison 7.0.31 \u2192 7.0.32 from the zabbix/zabbix compare API (no formal release notes exist for these tags upstream; the commit log is the only record, as stated in the source).\n- Image registry comparison could not be performed: \"HTTPError: HTTP Error 404: Not Found\" \u2014 the WHAT THE IMAGES THEMSELVES DIFFER IN section is empty for this reason. A host applying this upgrade should independently diff the actual pulled image (user, entrypoint, exposed ports, healthcheck) against the current 7.0.31-ubuntu container before rollout, since that comparison could not be made here.\n\n## Upstream changes 7.0.31 -> 7.0.32\n\n**Verdict:** NEEDS ATTENTION \u2014 the release notes for this range are just pointers to external release pages with no content included here, so no actual change (breaking or otherwise) can be confirmed or ruled out from them.\n\n### Breaking changes\n- none found in the notes \u2014 the only line present is \"Release Notes for Zabbix 7.0.32: https://www.zabbix.com/rn/rn7.0.32\", which carries no detail. The two lines about 6.0.49 and 7.4.15 are unrelated release trains and do not describe this image's 7.0.31 \u2192 7.0.32 range.\n\n### Variables\n- none \u2014 nothing in the notes mentions a variable rename, removal, or new requirement. Compose/`.env.example` also pin `zabbix-agent` at `7.0.32-ubuntu` already, separate from the server image.\n\n### Data and dependencies\n- none identified from the notes. As a baseline already true at 7.0.31 (not introduced by this upgrade): the compose file pins PostgreSQL major version 15, and `.env.example` already carries the note \"Set this to match ZABBIX_POSTGRES_IMAGE_TAG before first start or after a planned migration\" and the path split between PostgreSQL 15-17 and 18+ \u2014 this is pre-existing, not a change in 7.0.32.\n- No companion-service version requirement is named in the 7.0.32 notes themselves, so the \"SAFE TO APPLY is not available\" rule does not trigger here \u2014 but only because the notes say nothing substantive, not because compatibility was confirmed.\n\n### Before applying\n- Read the actual upstream release notes at https://www.zabbix.com/rn/rn7.0.32 before upgrading \u2014 the text given here is a title line only, not the content.\n- Check that page by hand for: database schema changes, minimum PostgreSQL version changes, and any configuration-parameter changes to `zabbix_server.conf` equivalents (`DB_SERVER_HOST`, `ZBX_CACHESIZE`, etc. used in this compose file).\n- Take a database backup before applying, as routine practice for any Zabbix server point release (schema upgrades in Zabbix are one-way).\n- No image digest for 7.0.32 is available in this review (registry read failed, HTTP 404), so the compose file's pinned digest for `zabbix-server-pgsql:7.0.31-ubuntu@sha256:...` cannot be confirmed as updated \u2014 verify the new tag/digest against Docker Hub before changing `ZABBIX_SERVER_IMAGE_VERSION`.\n\n### Notes read\n- Attempted: 7.0.32 release notes (title/link only, no body \u2014 \"Release Notes for Zabbix 7.0.32: https://www.zabbix.com/rn/rn7.0.32\"). The 6.0.49 and 7.4.15 entries were also present but belong to unrelated release lines and were not used.\n- Baseline: 7.0.31 (title/link only, same limitation), used only to confirm it is the starting point, not as a source of changes in this range.\n- No UPGRADING, BREAKING_CHANGES, or CHANGELOG section was supplied for this range. Image registry comparison could not be read (404). Both should be checked by hand at the source URLs above before this upgrade is applied unattended.\n\n## Upstream changes 7.0.31 -> 7.0.32\n\n**Verdict:** SAFE TO APPLY \u2014 the notes describe bug fixes and internal hardening in the agent2/server/frontend codebase, no breaking change, no variable change, and no companion-service version requirement is introduced by this range.\n\n### Breaking changes\n- none found in the notes. The commit list is agent/server/frontend bug fixes (e.g. \"[DEV-4861] fixed remote memory exhaustion in Zabbix agent and Zabbix agent2 passive checks\", \"[ZBX-27943] fixed web.page.* checks failing when server requests TLS renegotiation on Zabbix agent 2\"). None of these change configuration, startup behaviour, or defaults for the agent2 container.\n\n### Variables\n- none. Nothing in the commit list touches environment variable names, agent configuration keys, or defaults.\n\n### Data and dependencies\n- The notes mention `[ZBXNEXT-10786] updated maximum supported TimescaleDB version to 2.30` \u2014 this is a server/database-side note (TimescaleDB, used only if the deployment enables it on the Postgres side), not something this agent2 image or this compose file's plain `postgres` service uses. This template does not run TimescaleDB, so it does not apply here; flagging only because the rule requires surfacing any named companion-service version. It is not a new requirement this range introduces for this deployment, and does not affect the verdict since the compose file's `postgres` pin is unaffected by it.\n- No irreversible migrations, no removed defaults, no changed ports or paths found in the notes for zabbix-agent2.\n\n### Before applying\n- No manual migration or config edit required by the notes.\n- Standard precaution: back up the Postgres volume/dump before any Zabbix stack upgrade, as routine practice, not because this range demands it.\n- Confirm after upgrade that `ZBX_SERVER_HOST`/`ZBX_HOSTNAME` values in compose still match (unchanged in this range, but worth a quick visual check since the image config itself could not be verified \u2014 see below).\n\n### Notes read\n- Commit comparison 7.0.31 \u2192 7.0.32 from the zabbix/zabbix compare API (no formal release notes exist for these tags upstream; the commit log is the only record, as stated in the source).\n- Image registry comparison could not be performed: \"HTTPError: HTTP Error 404: Not Found\" \u2014 the WHAT THE IMAGES THEMSELVES DIFFER IN section is empty for this reason. A host applying this upgrade should independently diff the actual pulled image (user, entrypoint, exposed ports, healthcheck) against the current 7.0.31-ubuntu container before rollout, since that comparison could not be made here.\n"
-  },
-  {
-    "repo": "zammad-traefik-letsencrypt-docker-compose",
-    "sha": "06542069a2e22b295dc8d2c48abeae4f11494831",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-21T12:41:02Z"
+    "pushed_at": "2026-10-21T22:50:59Z"
   }
 ]
