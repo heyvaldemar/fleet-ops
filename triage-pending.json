@@ -1,409 +1,361 @@
 [
   {
     "repo": "affine-traefik-letsencrypt-docker-compose",
-    "sha": "5cf2c7318cf8227c72dff424bcf4e0ed5d968c00",
+    "sha": "eae2a2b215800f6896de3472743d93b1b3d208d2",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:34:00Z"
-  },
-  {
-    "repo": "amazon-ec2-instance-pipeline-terraform",
-    "sha": "27bd0e6d94ac88e608d4b0b84b15f48a436a94b3",
-    "wf": "Terraform Verification",
-    "kind": "version",
-    "pushed_at": "2026-10-22T12:35:07Z",
-    "review": "\n## Upstream changes 4.4.1 -> 4.4.2\n\n**Verdict:** SAFE TO APPLY \u2014 the only change is a Go toolchain upgrade for a CVE fix; no provider behaviour, resource schema, or variable changes are noted.\n\nNote: the registry image data for `hashicorp/tls` could not be read (401 Unauthorized), so the usual cross-check against actual container configuration (user, entrypoint, command, ports, volumes, healthcheck, environment) was not possible. This does not change the verdict here since `hashicorp/tls` is a Terraform provider binary, not a service container with runtime configuration of that kind \u2014 but it is worth noting the registry check did not run.\n\n### Breaking changes\n- none found in the notes. The 4.4.2 entry contains only a NOTES item: \"Upgrade the Go toolchain to 1.26.10 to mitigate the eMudhra certificate authority vulnerability (CVE-2026-111943).\"\n\n### Variables\n- none. No provider schema, attribute, or `.env.example` variables are touched by this release.\n\n### Data and dependencies\n- none introduced by this range. No database, cache, or companion service is referenced by this provider or its notes.\n- Already true at 4.4.1 (baseline, not a change in this upgrade): the 4.4.1 release itself was also just a Go toolchain bump (\"Upgrade the Go toolchain to 1.26.8\"), so the template was already running a provider built with a recent Go toolchain before this upgrade.\n\n### Before applying\n- None required beyond the normal `terraform init -upgrade` to pick up the new provider build. The compose/Terraform version constraint `version = \"~> 4.4.1\"` in `01-providers.tf` permits 4.4.2 automatically (pessimistic constraint operator allows patch-level upgrades), so no file edit is needed unless you want to pin the patch explicitly.\n- No backup or state migration is implied: nothing in the notes touches resources, attributes, or state representation.\n\n### Notes read\n- hashicorp/terraform-provider-tls CHANGELOG.md, entries for v4.4.2 (2026-10-21) and v4.4.1 (2026-09-10, baseline).\n\n## Upstream changes 6.69.1 -> 6.70.0\n\n**Verdict:** NEEDS ATTENTION \u2014 a breaking change in `aws_route53domains_delegation_signer_record` import ID format, plus the registry check itself could not be performed.\n\nThe image configuration comparison could not be read: \"The image configurations could not be read from the registry (HTTPError: HTTP Error 401: Unauthorized). Nothing below is measured; judge on the notes alone and say so.\" This review therefore rests on the release notes alone for user, entrypoint, command, ports, volumes, healthcheck and environment \u2014 none of which apply meaningfully to a Terraform provider binary anyway, but the absence of a verified image diff is noted as required.\n\n### Breaking changes\n- `resource/aws_route53domains_delegation_signer_record`: \"Change the format of the import ID from `domain_name,dnssec_key_id` to `domain_name,flags,algorithm,public_key`.\" Any existing `terraform import` commands, scripts, or documentation referencing the old ID format for this resource will fail. This only matters if the template's Route 53 domain configuration uses this resource.\n\n### Variables\n- none found in the notes or in `01-providers.tf` / `.env.example`. The provider version constraint is `version = \"~> 6.69.1\"`, which already permits 6.70.0 under the `~>` pessimistic operator (allows any 6.69.x, 6.70.x, ... up to <7.0.0 \u2014 actually `~> 6.69.1` only allows 6.69.x releases \u2265 6.69.1, so 6.70.0 is **not** satisfied by this constraint; it will need to be bumped, e.g. to `~> 6.70.0` or a broader range, for Terraform to pick up the new version).\n\n### Data and dependencies\n- none found regarding companion services (database, cache, search engine) \u2014 this provider manages AWS resources via API calls, not a pinned backend engine, so the \"companion service version\" rule does not apply here.\n- No irreversible migrations, removed defaults, or changed ports/paths are mentioned in the notes for this range.\n\n### Before applying\n- Update the version constraint in `01-providers.tf` from `version = \"~> 6.69.1\"` to allow 6.70.0 (e.g. `~> 6.70.0` or `>= 6.69.1, < 7.0.0`), then run `terraform init -upgrade`.\n- If the deployment manages any `aws_route53domains_delegation_signer_record` resources that were imported under the old ID scheme, re-import them using the new format `domain_name,flags,algorithm,public_key` before running further `terraform import` operations on them. Existing state for already-applied (non-imported) resources is unaffected by this format change per the bug-fix note for the same resource in this release.\n- Take a state backup (`terraform state pull > backup.tfstate` or rely on the S3/DynamoDB backend's versioning once enabled) before applying, as routine practice for any provider bump.\n\n### Notes read\n- v6.70.0 (2026-10-21) release notes and CHANGELOG.md entry for 6.70.0\n- v6.69.1 (2026-10-15) baseline release notes, given only as the starting point, not as a change in this range\n"
-  },
-  {
-    "repo": "amazon-ec2-nextcloud-docker-swarm-pipeline-terraform",
-    "sha": "65164bb4caccb97491b55efd151e5d4214238559",
-    "wf": "Terraform Verification",
-    "kind": "version",
-    "pushed_at": "2026-10-22T12:35:53Z",
-    "review": "\n## Upstream changes 4.4.1 -> 4.4.2\n\n**Verdict:** SAFE TO APPLY \u2014 the only change is a Go toolchain upgrade for a CVE fix; no provider behaviour, resource schema, or variable changes are noted.\n\nNote: the registry image data for `hashicorp/tls` could not be read (401 Unauthorized), so the usual cross-check against actual container configuration (user, entrypoint, command, ports, volumes, healthcheck, environment) was not possible. This does not change the verdict here since `hashicorp/tls` is a Terraform provider binary, not a service container with runtime configuration of that kind \u2014 but it is worth noting the registry check did not run.\n\n### Breaking changes\n- none found in the notes. The 4.4.2 entry contains only a NOTES item: \"Upgrade the Go toolchain to 1.26.10 to mitigate the eMudhra certificate authority vulnerability (CVE-2026-111943).\"\n\n### Variables\n- none. No provider schema, attribute, or `.env.example` variables are touched by this release.\n\n### Data and dependencies\n- none introduced by this range. No database, cache, or companion service is referenced by this provider or its notes.\n- Already true at 4.4.1 (baseline, not a change in this upgrade): the 4.4.1 release itself was also just a Go toolchain bump (\"Upgrade the Go toolchain to 1.26.8\"), so the template was already running a provider built with a recent Go toolchain before this upgrade.\n\n### Before applying\n- None required beyond the normal `terraform init -upgrade` to pick up the new provider build. The compose/Terraform version constraint `version = \"~> 4.4.1\"` in `01-providers.tf` permits 4.4.2 automatically (pessimistic constraint operator allows patch-level upgrades), so no file edit is needed unless you want to pin the patch explicitly.\n- No backup or state migration is implied: nothing in the notes touches resources, attributes, or state representation.\n\n### Notes read\n- hashicorp/terraform-provider-tls CHANGELOG.md, entries for v4.4.2 (2026-10-21) and v4.4.1 (2026-09-10, baseline).\n\n## Upstream changes 6.69.1 -> 6.70.0\n\n**Verdict:** NEEDS ATTENTION \u2014 a breaking change in `aws_route53domains_delegation_signer_record` import ID format, plus the registry check itself could not be performed.\n\nThe image configuration comparison could not be read: \"The image configurations could not be read from the registry (HTTPError: HTTP Error 401: Unauthorized). Nothing below is measured; judge on the notes alone and say so.\" This review therefore rests on the release notes alone for user, entrypoint, command, ports, volumes, healthcheck and environment \u2014 none of which apply meaningfully to a Terraform provider binary anyway, but the absence of a verified image diff is noted as required.\n\n### Breaking changes\n- `resource/aws_route53domains_delegation_signer_record`: \"Change the format of the import ID from `domain_name,dnssec_key_id` to `domain_name,flags,algorithm,public_key`.\" Any existing `terraform import` commands, scripts, or documentation referencing the old ID format for this resource will fail. This only matters if the template's Route 53 domain configuration uses this resource.\n\n### Variables\n- none found in the notes or in `01-providers.tf` / `.env.example`. The provider version constraint is `version = \"~> 6.69.1\"`, which already permits 6.70.0 under the `~>` pessimistic operator (allows any 6.69.x, 6.70.x, ... up to <7.0.0 \u2014 actually `~> 6.69.1` only allows 6.69.x releases \u2265 6.69.1, so 6.70.0 is **not** satisfied by this constraint; it will need to be bumped, e.g. to `~> 6.70.0` or a broader range, for Terraform to pick up the new version).\n\n### Data and dependencies\n- none found regarding companion services (database, cache, search engine) \u2014 this provider manages AWS resources via API calls, not a pinned backend engine, so the \"companion service version\" rule does not apply here.\n- No irreversible migrations, removed defaults, or changed ports/paths are mentioned in the notes for this range.\n\n### Before applying\n- Update the version constraint in `01-providers.tf` from `version = \"~> 6.69.1\"` to allow 6.70.0 (e.g. `~> 6.70.0` or `>= 6.69.1, < 7.0.0`), then run `terraform init -upgrade`.\n- If the deployment manages any `aws_route53domains_delegation_signer_record` resources that were imported under the old ID scheme, re-import them using the new format `domain_name,flags,algorithm,public_key` before running further `terraform import` operations on them. Existing state for already-applied (non-imported) resources is unaffected by this format change per the bug-fix note for the same resource in this release.\n- Take a state backup (`terraform state pull > backup.tfstate` or rely on the S3/DynamoDB backend's versioning once enabled) before applying, as routine practice for any provider bump.\n\n### Notes read\n- v6.70.0 (2026-10-21) release notes and CHANGELOG.md entry for 6.70.0\n- v6.69.1 (2026-10-15) baseline release notes, given only as the starting point, not as a change in this range\n"
+    "pushed_at": "2026-10-22T22:48:02Z"
   },
   {
     "repo": "anythingllm-traefik-letsencrypt-docker-compose",
-    "sha": "0574517bef4d425b24597a024a2101f3794aefb1",
+    "sha": "f4befe2bd0ac20cf9b88a7373d8dae412dcdaea9",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:36:06Z",
+    "pushed_at": "2026-10-22T22:48:18Z",
     "review": "\n## Upstream changes 0.40.6 -> 0.40.7\n\n**Verdict:** SAFE TO APPLY \u2014 the notes describe additive features and bug fixes only, and the image configuration (user, entrypoint, ports, volumes, healthcheck, environment) is unchanged.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none \u2014 no variable additions, renames or removals are mentioned, and none are implied by the fixes listed\n\n### Data and dependencies\n- none \u2014 the notes mention no database, cache or search-engine version requirement, and this template pairs Ollama with no such companion service (AnythingLLM uses LanceDB embedded on the storage volume, not a separate pinned service)\n\n### Before applying\n- Update the pin: `OLLAMA_IMAGE_VERSION=0.40.6@sha256:265409e1d931028a8f7d5a32bcbafddd7bffbc6cc629d77efe9560adf692a5e7` in the compose file's `x-images` block to `0.40.7` with its corresponding digest.\n- No backup, migration, or config edit is called for by these notes. The stack's own backup service continues to run as before.\n\n### Notes read\n- v0.40.7 release notes (target version)\n- v0.40.6 release notes (baseline, current version \u2014 read only to establish what is already true, per the rule that a pre-existing requirement is not a change in this range)\n\n## Upstream changes 0.40.7 -> 0.40.8\n\n**Verdict:** SAFE TO APPLY \u2014 the notes describe one new model addition, and the image configurations are confirmed identical in all behaviourally relevant fields.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none. The v0.40.8 notes add a new model (Flint) to the library; nothing about the engine itself, its storage format, or its API changes. Note: \"Note: Flint is supported on MacOS. Other GPU support will be enabled in a subsequent release.\" \u2014 this concerns a specific new model's hardware support, not the running `llama3.2:3b` default or the Ollama service itself, so it does not affect this deployment.\n\n### Before applying\n- none required. Bump `OLLAMA_IMAGE_VERSION` (or the digest in the compose file's `x-images` block) and redeploy as normal.\n\n### Notes read\n- v0.40.8 (release notes for the version being moved to)\n- v0.40.7 (baseline, \"THE RELEASE THE TEMPLATE RUNS NOW\", read only for context \u2014 none of its content is a change introduced by this upgrade)\n- No UPGRADING/BREAKING_CHANGES/CHANGELOG section was supplied for this range; none was found to read.\n"
   },
   {
     "repo": "audiobookshelf-traefik-letsencrypt-docker-compose",
-    "sha": "d030c8fc6e83cb10656aa19df4039c2ab3e32810",
+    "sha": "84a4bb95968fc74f248feb16aad9c98945687a09",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:36:13Z"
+    "pushed_at": "2026-10-22T22:48:25Z"
   },
   {
     "repo": "authelia-traefik-letsencrypt-docker-compose",
-    "sha": "ef52c97811c8052b02f452aec812ed0667b83ebc",
+    "sha": "9d05f709c26fbc60e80a25d82e44cd6e9d9a5991",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:36:22Z"
+    "pushed_at": "2026-10-22T22:48:33Z"
   },
   {
     "repo": "beszel-traefik-letsencrypt-docker-compose",
-    "sha": "23d6f3605d464ad28d18d8a908460e444ee2fef8",
+    "sha": "a255b113e4f0627f0480b705ceef892eb526e62a",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:36:32Z"
+    "pushed_at": "2026-10-22T22:49:10Z",
+    "review": "\n## Upstream changes 0.21.0 -> 0.21.1\n\n**Verdict:** NEEDS ATTENTION \u2014 the agent emits a changed stats payload (deprecated legacy memory/swap fields alongside new byte fields), and the hub side of this template is still pinned to 0.21.0, which does not populate the new fields; no action is strictly required but the pairing is worth checking.\n\n### Breaking changes\n- Agent stats payload shape changes. Per the notes: \"existing memory fields other than memory percentage are deprecated in favor of new fields which provide raw byte values. The deprecated fields are still populated, but will be removed from the API in a future version.\" This affects `henrygd/beszel-agent`, the image this review is scoped to. The new byte fields are \"populated on hub version 0.21.1+ for all agents\" \u2014 since this template's hub (`henrygd/beszel`) stays pinned to 0.21.0 unless separately upgraded, the new fields will simply not appear yet; nothing breaks, but the agent is not giving the hub its full new data until the hub is also moved to 0.21.1.\n- For Go-package consumers, `Agent.Start` now requires a `context.Context`. Not applicable to this template \u2014 it runs the prebuilt image, not the Go package.\n- No other breaking change in the agent's runtime behaviour is named in the notes for this range.\n\n### Variables\n- None. No renamed, removed or newly required environment variables are mentioned for the agent in these notes. `HUB_HEADERS` is a new optional variable (\"Add `HUB_HEADERS` environment variable to set custom WebSocket headers on the agent (#2585)\") \u2014 not required, not in `.env.example`, nothing to act on.\n- `CONTAINER_NAME_LABEL` is listed as new but is a hub-side convenience, not consumed by the agent service in this compose file.\n\n### Data and dependencies\n- None introduced by this range. The template's existing agent/hub pairing requirement, its socket-based hub/agent channel, and the `-alpine` variant requirement for S.M.A.R.T. are all already true at 0.21.0 and are not changes in this upgrade.\n- WHAT THE IMAGES THEMSELVES DIFFER IN confirms user, entrypoint, cmd, ports, volumes, healthcheck and environment are all identical between 0.21.0 and 0.21.1 for `henrygd/beszel-agent` \u2014 nothing in the container's run contract moved. The verdict here rests entirely on the described change to the stats payload format, which is inside the application rather than the image configuration, and the notes remain authoritative for that.\n\n### Before applying\n- No backup or manual migration step is required for the agent alone.\n- If full benefit of this release is wanted (raw byte memory/swap fields reaching the hub UI/API), plan to upgrade `BESZEL_IMAGE_VERSION` (hub) to 0.21.1 as well, in the same change window. Until then the agent will keep sending the deprecated GB fields that the 0.21.0 hub expects, which is the supported fallback path per the notes (\"still populated ... for older hubs\").\n- No `.env` or compose edits are needed for this agent bump specifically.\n\n### Notes read\n- v0.21.1 (2026-10-22) \u2014 upgrade target, read in full.\n- v0.21.0 (2026-10-02) \u2014 given as the current-baseline release, read only to exclude already-true requirements from this verdict.\n- No UPGRADING, BREAKING_CHANGES or CHANGELOG document was supplied beyond the release notes above; none was available to cross-check.\n\n## Upstream changes 0.21.0 -> 0.21.1\n\n**Verdict:** NEEDS ATTENTION \u2014 the agent emits a changed stats payload (deprecated legacy memory/swap fields alongside new byte fields), and the hub side of this template is still pinned to 0.21.0, which does not populate the new fields; no action is strictly required but the pairing is worth checking.\n\n### Breaking changes\n- Agent stats payload shape changes. Per the notes: \"existing memory fields other than memory percentage are deprecated in favor of new fields which provide raw byte values. The deprecated fields are still populated, but will be removed from the API in a future version.\" This affects `henrygd/beszel-agent`, the image this review is scoped to. The new byte fields are \"populated on hub version 0.21.1+ for all agents\" \u2014 since this template's hub (`henrygd/beszel`) stays pinned to 0.21.0 unless separately upgraded, the new fields will simply not appear yet; nothing breaks, but the agent is not giving the hub its full new data until the hub is also moved to 0.21.1.\n- For Go-package consumers, `Agent.Start` now requires a `context.Context`. Not applicable to this template \u2014 it runs the prebuilt image, not the Go package.\n- No other breaking change in the agent's runtime behaviour is named in the notes for this range.\n\n### Variables\n- None. No renamed, removed or newly required environment variables are mentioned for the agent in these notes. `HUB_HEADERS` is a new optional variable (\"Add `HUB_HEADERS` environment variable to set custom WebSocket headers on the agent (#2585)\") \u2014 not required, not in `.env.example`, nothing to act on.\n- `CONTAINER_NAME_LABEL` is listed as new but is a hub-side convenience, not consumed by the agent service in this compose file.\n\n### Data and dependencies\n- None introduced by this range. The template's existing agent/hub pairing requirement, its socket-based hub/agent channel, and the `-alpine` variant requirement for S.M.A.R.T. are all already true at 0.21.0 and are not changes in this upgrade.\n- WHAT THE IMAGES THEMSELVES DIFFER IN confirms user, entrypoint, cmd, ports, volumes, healthcheck and environment are all identical between 0.21.0 and 0.21.1 for `henrygd/beszel-agent` \u2014 nothing in the container's run contract moved. The verdict here rests entirely on the described change to the stats payload format, which is inside the application rather than the image configuration, and the notes remain authoritative for that.\n\n### Before applying\n- No backup or manual migration step is required for the agent alone.\n- If full benefit of this release is wanted (raw byte memory/swap fields reaching the hub UI/API), plan to upgrade `BESZEL_IMAGE_VERSION` (hub) to 0.21.1 as well, in the same change window. Until then the agent will keep sending the deprecated GB fields that the 0.21.0 hub expects, which is the supported fallback path per the notes (\"still populated ... for older hubs\").\n- No `.env` or compose edits are needed for this agent bump specifically.\n\n### Notes read\n- v0.21.1 (2026-10-22) \u2014 upgrade target, read in full.\n- v0.21.0 (2026-10-02) \u2014 given as the current-baseline release, read only to exclude already-true requirements from this verdict.\n- No UPGRADING, BREAKING_CHANGES or CHANGELOG document was supplied beyond the release notes above; none was available to cross-check.\n"
   },
   {
     "repo": "bitbucket-traefik-letsencrypt-docker-compose",
-    "sha": "f8f894e7fbf22c77406c4104a3839275d4595784",
+    "sha": "f605c3a5721a555a6cf427ac12dc1ffa99d00a84",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:36:41Z"
+    "pushed_at": "2026-10-22T22:49:17Z"
   },
   {
     "repo": "chatops-privilege-wall",
-    "sha": "890e898eb6612a5215d07c51f728a9449186c2af",
+    "sha": "95ecef8cb496e9757947a7e9639fb5db152b5c88",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:36:49Z"
+    "pushed_at": "2026-10-22T22:49:24Z"
   },
   {
     "repo": "confluence-traefik-letsencrypt-docker-compose",
-    "sha": "d0897ea2d0940c55cf4e9facdd9d784fde5641eb",
+    "sha": "7298a27a47fc524d789f99eb6f993d175b4c8c77",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:36:57Z"
+    "pushed_at": "2026-10-22T22:49:31Z"
   },
   {
     "repo": "dashy-traefik-letsencrypt-docker-compose",
-    "sha": "a8fc6d67b90b41da01f7a1e91dbdc89b62f078a4",
+    "sha": "1e5d9cd63df610e80b23d076c330d898fc7645ad",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:37:21Z",
+    "pushed_at": "2026-10-22T22:49:40Z",
     "review": "\n## Upstream changes 4.8.7 -> 4.8.8\n\n**Verdict:** SAFE TO APPLY \u2014 only translation changes in the notes, and the registry diff shows nothing but an internal Node runtime patch bump.\n\n### Breaking changes\n- none found in the notes. The only recorded commits are:\n  - \"\ud83c\udf10 (i18n): Sync missing Chinese (zh-CN) translations\"\n  - \"\ud83c\udf10 (i18n): Polish Chinese (zh-CN) translations\"\n  - \"\ud83d\udd00 Merge pull request #2399 ... Complete and polish Chinese (zh-CN) translations\"\n  - \"\ud83d\udd16 Bump version to 4.8.8\"\n\n### Variables\n- none. No variable in the compose file or .env.example is affected.\n\n### Data and dependencies\n- The registry diff shows `env NODE_VERSION: '24.22.0' -> '24.22.1'` \u2014 an internal Node.js patch bump baked into the image, not a host-facing dependency change. No action needed.\n- No companion service version is named in the notes, so the SAFE TO APPLY block is not withheld on that account.\n\n### Before applying\n- None required beyond the normal pin bump: update `DASHY_IMAGE_VERSION`/digest default in the compose file's `x-images` block (or override via `.env` as documented) to the 4.8.8 digest, then redeploy.\n\n### Notes read\n- Compare-API commit list between the `4.8.7` and `4.8.8` tags of Lissy93/dashy (no GitHub Release notes exist for either tag, so the commit log was used as the record, as stated in the supplied notes).\n"
   },
   {
     "repo": "dify-traefik-letsencrypt-docker-compose",
-    "sha": "75484a152b1e10e89a3fd05cac4a912edd844e09",
+    "sha": "f0610d012979d9106878a6f7e2f497ab8dbf9c45",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:37:38Z"
-  },
-  {
-    "repo": "diun-docker-compose",
-    "sha": "74c8fdc71a386c3665dee74a15d5645c1798b4ce",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-22T12:37:47Z"
+    "pushed_at": "2026-10-22T22:49:57Z"
   },
   {
     "repo": "docmost-traefik-letsencrypt-docker-compose",
-    "sha": "2bf2818b48daeee4290c67fa8ce66fd322ae76e1",
+    "sha": "970e892856a6e95b9a35a8e058a22c0e1918ced2",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:37:56Z"
+    "pushed_at": "2026-10-22T22:50:07Z"
   },
   {
     "repo": "dozzle-traefik-letsencrypt-docker-compose",
-    "sha": "eee96f137ac3f9bb511432e0d085c58beaa633b4",
+    "sha": "61cf7f46a731c9289641cbed7fa8f7041d42e808",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:38:06Z"
+    "pushed_at": "2026-10-22T22:50:16Z"
   },
   {
     "repo": "forgejo-traefik-letsencrypt-docker-compose",
-    "sha": "a8cf6a8a383162c5989ec51007d293cff0794ddf",
+    "sha": "dd17a7523a907cfc8083e6022a92e789e2768dd3",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:38:15Z"
-  },
-  {
-    "repo": "game-server-wireguard-relay-docker-compose",
-    "sha": "877280d87e8081d67dfb2a5c5b90d35a0f65a747",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-22T12:38:21Z"
+    "pushed_at": "2026-10-22T22:50:25Z"
   },
   {
     "repo": "gaseous-server-using-docker-compose",
-    "sha": "464c0294dbce78635576d18c4a11976e30b2f09a",
+    "sha": "49ba455f03c90bd5b882b02c574c35a46e4705f4",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:38:29Z"
+    "pushed_at": "2026-10-22T22:50:32Z"
   },
   {
     "repo": "ghost-traefik-letsencrypt-docker-compose",
-    "sha": "a064a954bca84032714ad4c2a35234720567f2ea",
+    "sha": "d755618b110a360750ece599afc6c528b56c95c7",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:38:36Z"
+    "pushed_at": "2026-10-22T22:50:39Z"
   },
   {
     "repo": "gitea-traefik-letsencrypt-docker-compose",
-    "sha": "f5ca6664f804c5fd294a100d5771646363b78e85",
+    "sha": "3723c997d5c55e77b7bb8bf87e419b3a7252f980",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:38:44Z"
+    "pushed_at": "2026-10-22T22:50:46Z"
   },
   {
     "repo": "gitlab-traefik-letsencrypt-docker-compose",
-    "sha": "420e42ad73d81a5f9887309f5660b8d1792162e7",
+    "sha": "eeeeb10204190df572b197e3d9742507d78653e5",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:38:53Z",
+    "pushed_at": "2026-10-22T22:50:54Z",
     "review": "\n## Upstream changes 19.5.0 -> 19.5.1\n\n**Verdict:** SAFE TO APPLY \u2014 no release notes exist for this tag, the commit log shows only routine stable-branch backports and a VERSION bump, and the registry comparison could not be read (treated as no disagreement to report).\n\n### Breaking changes\n- none found in the notes \u2014 GitLab publishes no release notes for this tag; the only record is 20 commits, 19 of which are \"Add latest changes from gitlab-org/gitlab@19-5-stable-ee\" (routine backports) and one \"Update VERSION files\". None describes a behavioural change.\n\n### Variables\n- none \u2014 nothing in the commit list touches configuration, environment variables, or the omnibus config format.\n\n### Data and dependencies\n- none found in the notes for this range. No database version requirement, migration, or port/path change is mentioned.\n- Already true at the current version (19.5.0), not introduced by this range: the compose file's Postgres tuning comment \u2014 `GitLab's schema load and migrations exhaust PostgreSQL's default lock table ... GitLab's external-database guidance calls for a raised max_locks_per_transaction` \u2014 reflects a pre-existing requirement, pinned to `postgres:17` in `x-images`, unaffected by this upgrade.\n\n### Before applying\n- Take the normal GitLab backup before any upgrade (`gitlab-backup.sh` per the repo's README), as routine precaution \u2014 the notes give no upgrade-specific command.\n- No manual migration or config edit is indicated by the notes for this range.\n\n### Notes read\n- Compare API output for `v19.5.0...v19.5.1` on `gitlabhq/gitlabhq` (20 commits) \u2014 no tagged release notes exist for `v19.5.1`, so the commit log is the only record read.\n- Registry image comparison could not be read (404 Not Found); judged on the notes alone, as stated above.\n"
   },
   {
     "repo": "glpi-traefik-letsencrypt-docker-compose",
-    "sha": "2ac10a58d76eda439b4b11253d8e7342f40447bb",
+    "sha": "2f0a1e2fab9d2106944f6728555d6159ead63861",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:39:00Z"
+    "pushed_at": "2026-10-22T22:51:01Z"
   },
   {
     "repo": "grafana-traefik-letsencrypt-docker-compose",
-    "sha": "5ac9673e76432c4ec0d4c64fc616f8d13313ec99",
+    "sha": "965178752fcf3d1eca47bf3166b92a434e8a4044",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:39:08Z"
+    "pushed_at": "2026-10-22T22:51:09Z"
   },
   {
     "repo": "homeassistant-traefik-letsencrypt-docker-compose",
-    "sha": "6c59ceb0da392349f9b3e51edd4e9fa1dcb53eda",
+    "sha": "db94bf862ebda3a510f0e627497a3e7200ca7395",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:39:15Z"
+    "pushed_at": "2026-10-22T22:51:15Z"
   },
   {
     "repo": "homebox-traefik-letsencrypt-docker-compose",
-    "sha": "5026b85f38fa811cb3005e38a0b6d5ec7ed78075",
+    "sha": "737b016622fd7250e5999befc86b012d4b158eb2",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:39:21Z"
+    "pushed_at": "2026-10-22T22:51:20Z"
   },
   {
     "repo": "homepage-traefik-letsencrypt-docker-compose",
-    "sha": "d43e68aa8fcc7d992828b6b2f5752ec40168b82f",
+    "sha": "a357562f5334c82ae5d000875dcf8446b2712980",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:39:30Z"
+    "pushed_at": "2026-10-22T22:51:28Z"
   },
   {
     "repo": "immich-traefik-letsencrypt-docker-compose",
-    "sha": "bbdb1a53f2e7916a91e41a7ebd4fb385eaafc823",
+    "sha": "a960a683a70b4796304a64d807ffffdabb9bdbcf",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:40:06Z",
+    "pushed_at": "2026-10-22T22:51:37Z",
     "review": "\n## Upstream changes v3.3.4 -> v3.3.5\n\n**Verdict:** SAFE TO APPLY \u2014 a security-only patch release (dependency/digest updates and Node.js security patches), with only cosmetic/build-metadata differences between the images.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none. The registry diff shows only build metadata and an internal Python bump: `PYTHON_VERSION`: '3.13.15' -> '3.13.16' and the corresponding `PYTHON_SHA256` change. This is inside the machine-learning image's base layer, not a new external dependency or a version requirement the compose file needs to track.\n- No user, entrypoint, command, port, volume, healthcheck, or environment-variable differences were reported between the two image configurations beyond the build/version metadata above.\n\n### Before applying\n- None beyond the normal pull-and-recreate. As the compose file's own comment states, \"The server and the machine-learning image are one release split across two containers: Immich supports no combination where they differ\" \u2014 bump `IMMICH_SERVER_IMAGE_VERSION` and `IMMICH_ML_IMAGE_VERSION` (or the corresponding digests in the `x-images` block) together to v3.3.5.\n- No backup or manual migration step is indicated by these notes.\n\n### Notes read\n- v3.3.5 (release notes for this upgrade)\n- v3.3.4 (baseline, \"the release the template runs now\" \u2014 read only to confirm no carried-over requirement applies)\n\n## Upstream changes v3.3.4 -> v3.3.5\n\n**Verdict:** SAFE TO APPLY \u2014 a security-only patch release (dependency/digest updates and Node.js security patches), with only cosmetic/build-metadata differences between the images.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none. The registry diff shows only build metadata and an internal Python bump: `PYTHON_VERSION`: '3.13.15' -> '3.13.16' and the corresponding `PYTHON_SHA256` change. This is inside the machine-learning image's base layer, not a new external dependency or a version requirement the compose file needs to track.\n- No user, entrypoint, command, port, volume, healthcheck, or environment-variable differences were reported between the two image configurations beyond the build/version metadata above.\n\n### Before applying\n- None beyond the normal pull-and-recreate. As the compose file's own comment states, \"The server and the machine-learning image are one release split across two containers: Immich supports no combination where they differ\" \u2014 bump `IMMICH_SERVER_IMAGE_VERSION` and `IMMICH_ML_IMAGE_VERSION` (or the corresponding digests in the `x-images` block) together to v3.3.5.\n- No backup or manual migration step is indicated by these notes.\n\n### Notes read\n- v3.3.5 (release notes for this upgrade)\n- v3.3.4 (baseline, \"the release the template runs now\" \u2014 read only to confirm no carried-over requirement applies)\n"
   },
   {
     "repo": "jellyfin-traefik-letsencrypt-docker-compose",
-    "sha": "a27cc1223711d11da598e1d3c1e115af730cdf8a",
+    "sha": "6e4e7bd719e9e563d22088bd8564ab8af614e45c",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:40:15Z"
+    "pushed_at": "2026-10-22T22:51:47Z"
   },
   {
     "repo": "jira-traefik-letsencrypt-docker-compose",
-    "sha": "b34df6901a74958f34fa910f5b332761b44dc027",
+    "sha": "e9364a5fdd80c63d2229ed5ea60d8e4e8175d1ae",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:40:23Z"
+    "pushed_at": "2026-10-22T22:51:54Z"
   },
   {
     "repo": "joomla-traefik-letsencrypt-docker-compose",
-    "sha": "76bc81d7f0ad0a5cf6ed48e881b23d9080c2e75d",
+    "sha": "f863458641ec863a97232b45bd04adce708863ed",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:40:30Z"
+    "pushed_at": "2026-10-22T22:52:01Z"
   },
   {
     "repo": "keycloak-traefik-letsencrypt-docker-compose",
-    "sha": "79a11d5cd94b9d98e5673778148f7d4446a89a4a",
+    "sha": "a32d8aef5502d2e566af0a752acd235574aa255f",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:40:38Z"
+    "pushed_at": "2026-10-22T22:52:08Z"
   },
   {
     "repo": "mailu-traefik-letsencrypt-docker-compose",
-    "sha": "7cb7ddbf90d26e353f0da8138b929ba0aa388ce1",
+    "sha": "da61ab97d6ef0535a8ebc7d0cf803cc678af4d21",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:40:58Z"
+    "pushed_at": "2026-10-22T22:53:06Z",
+    "review": "\n## Upstream changes 2024.06.65 -> 2024.06.66\n\n**Verdict:** SAFE TO APPLY \u2014 the one change in this release is a mitigation inside the webmail image, not the admin image under review, and it introduces no new companion-service version requirement.\n\n### Breaking changes\n- none found in the notes. The only entry for this release is: \"Mitigate known PHP2Shell attack paths (CVE-2026-109618 and CVE-2026-109619) in webmail pending a patched PHP runtime.\" This affects the `webmail` image's PHP runtime, not `ghcr.io/mailu/admin`, which is the image this review covers.\n\n### Variables\n- none\n\n### Data and dependencies\n- none. No database, cache or search-engine version is named anywhere in the 2024.06.66 notes.\n\n### Before applying\n- No admin-specific action. Since the mitigated CVEs are in webmail (PHP), confirm the `webmail` image is pinned to the same 2024.06.66 release tag when that component is upgraded, so the mitigation actually lands; this template pins `WEBMAIL_IMAGE_VERSION` independently via `x-images` / `.env`.\n- Per the WHAT THE IMAGES THEMSELVES DIFFER IN section, the admin image's user, entrypoint, command, ports, volumes, healthcheck and environment are unchanged \u2014 no compose or .env edits are needed for this bump.\n\n### Notes read\n- 2024.06.66 (2026-10-22) \u2014 release notes, read in full.\n- 2024.06.65 (2026-10-20) \u2014 baseline release notes, read in full (Roundcube 1.6.20 bump, already in effect, not a change in this range).\n- CHANGELOG.md \u2014 top portion read (2024.06.0 entry and 2.0.0 entry); no entries exist for 2024.06.65 or 2024.06.66 specifically, so nothing from it applies to this range beyond what the release notes already state.\n\n## Upstream changes 2024.06.65 -> 2024.06.66\n\n**Verdict:** SAFE TO APPLY \u2014 the one change in this release is a mitigation inside the webmail image, not the admin image under review, and it introduces no new companion-service version requirement.\n\n### Breaking changes\n- none found in the notes. The only entry for this release is: \"Mitigate known PHP2Shell attack paths (CVE-2026-109618 and CVE-2026-109619) in webmail pending a patched PHP runtime.\" This affects the `webmail` image's PHP runtime, not `ghcr.io/mailu/admin`, which is the image this review covers.\n\n### Variables\n- none\n\n### Data and dependencies\n- none. No database, cache or search-engine version is named anywhere in the 2024.06.66 notes.\n\n### Before applying\n- No admin-specific action. Since the mitigated CVEs are in webmail (PHP), confirm the `webmail` image is pinned to the same 2024.06.66 release tag when that component is upgraded, so the mitigation actually lands; this template pins `WEBMAIL_IMAGE_VERSION` independently via `x-images` / `.env`.\n- Per the WHAT THE IMAGES THEMSELVES DIFFER IN section, the admin image's user, entrypoint, command, ports, volumes, healthcheck and environment are unchanged \u2014 no compose or .env edits are needed for this bump.\n\n### Notes read\n- 2024.06.66 (2026-10-22) \u2014 release notes, read in full.\n- 2024.06.65 (2026-10-20) \u2014 baseline release notes, read in full (Roundcube 1.6.20 bump, already in effect, not a change in this range).\n- CHANGELOG.md \u2014 top portion read (2024.06.0 entry and 2.0.0 entry); no entries exist for 2024.06.65 or 2024.06.66 specifically, so nothing from it applies to this range beyond what the release notes already state.\n\n## Upstream changes 2024.06.65 -> 2024.06.66\n\n**Verdict:** SAFE TO APPLY \u2014 the one change in this release is a mitigation inside the webmail image, not the admin image under review, and it introduces no new companion-service version requirement.\n\n### Breaking changes\n- none found in the notes. The only entry for this release is: \"Mitigate known PHP2Shell attack paths (CVE-2026-109618 and CVE-2026-109619) in webmail pending a patched PHP runtime.\" This affects the `webmail` image's PHP runtime, not `ghcr.io/mailu/admin`, which is the image this review covers.\n\n### Variables\n- none\n\n### Data and dependencies\n- none. No database, cache or search-engine version is named anywhere in the 2024.06.66 notes.\n\n### Before applying\n- No admin-specific action. Since the mitigated CVEs are in webmail (PHP), confirm the `webmail` image is pinned to the same 2024.06.66 release tag when that component is upgraded, so the mitigation actually lands; this template pins `WEBMAIL_IMAGE_VERSION` independently via `x-images` / `.env`.\n- Per the WHAT THE IMAGES THEMSELVES DIFFER IN section, the admin image's user, entrypoint, command, ports, volumes, healthcheck and environment are unchanged \u2014 no compose or .env edits are needed for this bump.\n\n### Notes read\n- 2024.06.66 (2026-10-22) \u2014 release notes, read in full.\n- 2024.06.65 (2026-10-20) \u2014 baseline release notes, read in full (Roundcube 1.6.20 bump, already in effect, not a change in this range).\n- CHANGELOG.md \u2014 top portion read (2024.06.0 entry and 2.0.0 entry); no entries exist for 2024.06.65 or 2024.06.66 specifically, so nothing from it applies to this range beyond what the release notes already state.\n\n## Upstream changes 2024.06.65 -> 2024.06.66\n\n**Verdict:** SAFE TO APPLY \u2014 the one change in this release is a mitigation inside the webmail image, not the admin image under review, and it introduces no new companion-service version requirement.\n\n### Breaking changes\n- none found in the notes. The only entry for this release is: \"Mitigate known PHP2Shell attack paths (CVE-2026-109618 and CVE-2026-109619) in webmail pending a patched PHP runtime.\" This affects the `webmail` image's PHP runtime, not `ghcr.io/mailu/admin`, which is the image this review covers.\n\n### Variables\n- none\n\n### Data and dependencies\n- none. No database, cache or search-engine version is named anywhere in the 2024.06.66 notes.\n\n### Before applying\n- No admin-specific action. Since the mitigated CVEs are in webmail (PHP), confirm the `webmail` image is pinned to the same 2024.06.66 release tag when that component is upgraded, so the mitigation actually lands; this template pins `WEBMAIL_IMAGE_VERSION` independently via `x-images` / `.env`.\n- Per the WHAT THE IMAGES THEMSELVES DIFFER IN section, the admin image's user, entrypoint, command, ports, volumes, healthcheck and environment are unchanged \u2014 no compose or .env edits are needed for this bump.\n\n### Notes read\n- 2024.06.66 (2026-10-22) \u2014 release notes, read in full.\n- 2024.06.65 (2026-10-20) \u2014 baseline release notes, read in full (Roundcube 1.6.20 bump, already in effect, not a change in this range).\n- CHANGELOG.md \u2014 top portion read (2024.06.0 entry and 2.0.0 entry); no entries exist for 2024.06.65 or 2024.06.66 specifically, so nothing from it applies to this range beyond what the release notes already state.\n\n## Upstream changes 2024.06.65 -> 2024.06.66\n\n**Verdict:** SAFE TO APPLY \u2014 the one change in this release is a mitigation inside the webmail image, not the admin image under review, and it introduces no new companion-service version requirement.\n\n### Breaking changes\n- none found in the notes. The only entry for this release is: \"Mitigate known PHP2Shell attack paths (CVE-2026-109618 and CVE-2026-109619) in webmail pending a patched PHP runtime.\" This affects the `webmail` image's PHP runtime, not `ghcr.io/mailu/admin`, which is the image this review covers.\n\n### Variables\n- none\n\n### Data and dependencies\n- none. No database, cache or search-engine version is named anywhere in the 2024.06.66 notes.\n\n### Before applying\n- No admin-specific action. Since the mitigated CVEs are in webmail (PHP), confirm the `webmail` image is pinned to the same 2024.06.66 release tag when that component is upgraded, so the mitigation actually lands; this template pins `WEBMAIL_IMAGE_VERSION` independently via `x-images` / `.env`.\n- Per the WHAT THE IMAGES THEMSELVES DIFFER IN section, the admin image's user, entrypoint, command, ports, volumes, healthcheck and environment are unchanged \u2014 no compose or .env edits are needed for this bump.\n\n### Notes read\n- 2024.06.66 (2026-10-22) \u2014 release notes, read in full.\n- 2024.06.65 (2026-10-20) \u2014 baseline release notes, read in full (Roundcube 1.6.20 bump, already in effect, not a change in this range).\n- CHANGELOG.md \u2014 top portion read (2024.06.0 entry and 2.0.0 entry); no entries exist for 2024.06.65 or 2024.06.66 specifically, so nothing from it applies to this range beyond what the release notes already state.\n\n## Upstream changes 2024.06.65 -> 2024.06.66\n\n**Verdict:** SAFE TO APPLY \u2014 the one change in this release is a mitigation inside the webmail image, not the admin image under review, and it introduces no new companion-service version requirement.\n\n### Breaking changes\n- none found in the notes. The only entry for this release is: \"Mitigate known PHP2Shell attack paths (CVE-2026-109618 and CVE-2026-109619) in webmail pending a patched PHP runtime.\" This affects the `webmail` image's PHP runtime, not `ghcr.io/mailu/admin`, which is the image this review covers.\n\n### Variables\n- none\n\n### Data and dependencies\n- none. No database, cache or search-engine version is named anywhere in the 2024.06.66 notes.\n\n### Before applying\n- No admin-specific action. Since the mitigated CVEs are in webmail (PHP), confirm the `webmail` image is pinned to the same 2024.06.66 release tag when that component is upgraded, so the mitigation actually lands; this template pins `WEBMAIL_IMAGE_VERSION` independently via `x-images` / `.env`.\n- Per the WHAT THE IMAGES THEMSELVES DIFFER IN section, the admin image's user, entrypoint, command, ports, volumes, healthcheck and environment are unchanged \u2014 no compose or .env edits are needed for this bump.\n\n### Notes read\n- 2024.06.66 (2026-10-22) \u2014 release notes, read in full.\n- 2024.06.65 (2026-10-20) \u2014 baseline release notes, read in full (Roundcube 1.6.20 bump, already in effect, not a change in this range).\n- CHANGELOG.md \u2014 top portion read (2024.06.0 entry and 2.0.0 entry); no entries exist for 2024.06.65 or 2024.06.66 specifically, so nothing from it applies to this range beyond what the release notes already state.\n\n## Upstream changes 2024.06.65 -> 2024.06.66\n\n**Verdict:** SAFE TO APPLY \u2014 the one change in this release is a mitigation inside the webmail image, not the admin image under review, and it introduces no new companion-service version requirement.\n\n### Breaking changes\n- none found in the notes. The only entry for this release is: \"Mitigate known PHP2Shell attack paths (CVE-2026-109618 and CVE-2026-109619) in webmail pending a patched PHP runtime.\" This affects the `webmail` image's PHP runtime, not `ghcr.io/mailu/admin`, which is the image this review covers.\n\n### Variables\n- none\n\n### Data and dependencies\n- none. No database, cache or search-engine version is named anywhere in the 2024.06.66 notes.\n\n### Before applying\n- No admin-specific action. Since the mitigated CVEs are in webmail (PHP), confirm the `webmail` image is pinned to the same 2024.06.66 release tag when that component is upgraded, so the mitigation actually lands; this template pins `WEBMAIL_IMAGE_VERSION` independently via `x-images` / `.env`.\n- Per the WHAT THE IMAGES THEMSELVES DIFFER IN section, the admin image's user, entrypoint, command, ports, volumes, healthcheck and environment are unchanged \u2014 no compose or .env edits are needed for this bump.\n\n### Notes read\n- 2024.06.66 (2026-10-22) \u2014 release notes, read in full.\n- 2024.06.65 (2026-10-20) \u2014 baseline release notes, read in full (Roundcube 1.6.20 bump, already in effect, not a change in this range).\n- CHANGELOG.md \u2014 top portion read (2024.06.0 entry and 2.0.0 entry); no entries exist for 2024.06.65 or 2024.06.66 specifically, so nothing from it applies to this range beyond what the release notes already state.\n\n## Upstream changes 2024.06.65 -> 2024.06.66\n\n**Verdict:** SAFE TO APPLY \u2014 the one change in this release is a mitigation inside the webmail image, not the admin image under review, and it introduces no new companion-service version requirement.\n\n### Breaking changes\n- none found in the notes. The only entry for this release is: \"Mitigate known PHP2Shell attack paths (CVE-2026-109618 and CVE-2026-109619) in webmail pending a patched PHP runtime.\" This affects the `webmail` image's PHP runtime, not `ghcr.io/mailu/admin`, which is the image this review covers.\n\n### Variables\n- none\n\n### Data and dependencies\n- none. No database, cache or search-engine version is named anywhere in the 2024.06.66 notes.\n\n### Before applying\n- No admin-specific action. Since the mitigated CVEs are in webmail (PHP), confirm the `webmail` image is pinned to the same 2024.06.66 release tag when that component is upgraded, so the mitigation actually lands; this template pins `WEBMAIL_IMAGE_VERSION` independently via `x-images` / `.env`.\n- Per the WHAT THE IMAGES THEMSELVES DIFFER IN section, the admin image's user, entrypoint, command, ports, volumes, healthcheck and environment are unchanged \u2014 no compose or .env edits are needed for this bump.\n\n### Notes read\n- 2024.06.66 (2026-10-22) \u2014 release notes, read in full.\n- 2024.06.65 (2026-10-20) \u2014 baseline release notes, read in full (Roundcube 1.6.20 bump, already in effect, not a change in this range).\n- CHANGELOG.md \u2014 top portion read (2024.06.0 entry and 2.0.0 entry); no entries exist for 2024.06.65 or 2024.06.66 specifically, so nothing from it applies to this range beyond what the release notes already state.\n\n## Upstream changes 2024.06.65 -> 2024.06.66\n\n**Verdict:** SAFE TO APPLY \u2014 the one change in this release is a mitigation inside the webmail image, not the admin image under review, and it introduces no new companion-service version requirement.\n\n### Breaking changes\n- none found in the notes. The only entry for this release is: \"Mitigate known PHP2Shell attack paths (CVE-2026-109618 and CVE-2026-109619) in webmail pending a patched PHP runtime.\" This affects the `webmail` image's PHP runtime, not `ghcr.io/mailu/admin`, which is the image this review covers.\n\n### Variables\n- none\n\n### Data and dependencies\n- none. No database, cache or search-engine version is named anywhere in the 2024.06.66 notes.\n\n### Before applying\n- No admin-specific action. Since the mitigated CVEs are in webmail (PHP), confirm the `webmail` image is pinned to the same 2024.06.66 release tag when that component is upgraded, so the mitigation actually lands; this template pins `WEBMAIL_IMAGE_VERSION` independently via `x-images` / `.env`.\n- Per the WHAT THE IMAGES THEMSELVES DIFFER IN section, the admin image's user, entrypoint, command, ports, volumes, healthcheck and environment are unchanged \u2014 no compose or .env edits are needed for this bump.\n\n### Notes read\n- 2024.06.66 (2026-10-22) \u2014 release notes, read in full.\n- 2024.06.65 (2026-10-20) \u2014 baseline release notes, read in full (Roundcube 1.6.20 bump, already in effect, not a change in this range).\n- CHANGELOG.md \u2014 top portion read (2024.06.0 entry and 2.0.0 entry); no entries exist for 2024.06.65 or 2024.06.66 specifically, so nothing from it applies to this range beyond what the release notes already state.\n\n## Upstream changes 2024.06.65 -> 2024.06.66\n\n**Verdict:** SAFE TO APPLY \u2014 the one change in this release is a mitigation inside the webmail image, not the admin image under review, and it introduces no new companion-service version requirement.\n\n### Breaking changes\n- none found in the notes. The only entry for this release is: \"Mitigate known PHP2Shell attack paths (CVE-2026-109618 and CVE-2026-109619) in webmail pending a patched PHP runtime.\" This affects the `webmail` image's PHP runtime, not `ghcr.io/mailu/admin`, which is the image this review covers.\n\n### Variables\n- none\n\n### Data and dependencies\n- none. No database, cache or search-engine version is named anywhere in the 2024.06.66 notes.\n\n### Before applying\n- No admin-specific action. Since the mitigated CVEs are in webmail (PHP), confirm the `webmail` image is pinned to the same 2024.06.66 release tag when that component is upgraded, so the mitigation actually lands; this template pins `WEBMAIL_IMAGE_VERSION` independently via `x-images` / `.env`.\n- Per the WHAT THE IMAGES THEMSELVES DIFFER IN section, the admin image's user, entrypoint, command, ports, volumes, healthcheck and environment are unchanged \u2014 no compose or .env edits are needed for this bump.\n\n### Notes read\n- 2024.06.66 (2026-10-22) \u2014 release notes, read in full.\n- 2024.06.65 (2026-10-20) \u2014 baseline release notes, read in full (Roundcube 1.6.20 bump, already in effect, not a change in this range).\n- CHANGELOG.md \u2014 top portion read (2024.06.0 entry and 2.0.0 entry); no entries exist for 2024.06.65 or 2024.06.66 specifically, so nothing from it applies to this range beyond what the release notes already state.\n"
   },
   {
     "repo": "mattermost-traefik-letsencrypt-docker-compose",
-    "sha": "cdec8efc81b2160b332c8ead24353b5dd813d004",
+    "sha": "b14d370413e8ccb064d6743ec9ca1812581a565a",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:41:06Z"
-  },
-  {
-    "repo": "modernuo-docker",
-    "sha": "d7d5b1725acb7cd6fc4c066d16ee5e9c009fbf31",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-22T12:41:14Z"
+    "pushed_at": "2026-10-22T22:53:30Z",
+    "review": "\n## Upstream changes 12.0.0 -> 12.0.1\n\n**Verdict:** SAFE TO APPLY \u2014 a single security-fix point release, no config or image-behaviour differences found.\n\n### Breaking changes\n- none found in the notes. The only entry for this version reads: \"Mattermost Platform Release 12.0.1 contains Medium severity level security fixes.\" No further detail on what was fixed is given.\n\n### Variables\n- none. No variable is renamed, removed, or newly required by this range.\n\n### Data and dependencies\n- none introduced by this range. (At the current version, 12.0.0 already requires Postgres \u2014 already pinned in the compose file at `postgres:16` \u2014 this is a pre-existing fact, not a change in this upgrade.)\n\n### Before applying\n- Bump `MATTERMOST_IMAGE_VERSION` (or the pinned digest in the compose file's `x-images` block) from `12.0.0` to `12.0.1`.\n- Take the usual backup before any Mattermost upgrade (the `backups` service in the compose file already runs this on a schedule \u2014 confirm a recent successful backup exists in `mattermost-database-backups` / `mattermost-data-backups` before restarting).\n- No manual migration command or config edit is indicated by the notes.\n\n### Notes read\n- v12.0.1, v12.0.0 (baseline). Also present in the supplied release-notes feed but out of range for this upgrade (different major/minor lines, not part of 12.0.0 \u2192 12.0.1): v10.11.25, v11.11.3, v11.10.4, v11.7.14, v12.1.0-rc1, v11.7.13, v11.11.2, v11.10.3 \u2014 not applicable to this template's version.\n- CHANGELOG.md contains no content beyond a pointer to external documentation; it was not usable as a source for this range.\n"
   },
   {
     "repo": "mssql-server-traefik-letsencrypt-docker-compose",
-    "sha": "93c6b3734cf2e88834ef460cbc2d98e255ed4f39",
+    "sha": "53acf9ece32fea873a2029c9dd5c3ef5c0013a91",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:41:20Z"
+    "pushed_at": "2026-10-22T22:53:38Z"
   },
   {
     "repo": "navidrome-traefik-letsencrypt-docker-compose",
-    "sha": "704ab8a1387d635b01175182358819205f2254af",
+    "sha": "445c1bdb908e459a2429107dee4009b5d549d148",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:41:28Z"
-  },
-  {
-    "repo": "nextcloud-onlyoffice-traefik-letsencrypt-docker-compose",
-    "sha": "e1dbeb5e16b8d61b60c8c9018f49ac64a04df867",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-22T12:41:42Z"
+    "pushed_at": "2026-10-22T22:53:46Z"
   },
   {
     "repo": "nextcloud-traefik-letsencrypt-docker-compose",
-    "sha": "9b7788a665adc62710eb19a46fb267d2c038762b",
+    "sha": "dccf155c24e03ddfb2463115b5472da79552f3e3",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:41:52Z"
+    "pushed_at": "2026-10-22T22:53:56Z"
   },
   {
     "repo": "ollama-traefik-letsencrypt-docker-compose",
-    "sha": "bb54e3022db7326493df36cb69711d04cf571612",
+    "sha": "cc3c0293347798ed6a339f6f65f6670b4af48716",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:41:59Z",
+    "pushed_at": "2026-10-22T22:54:03Z",
     "review": "\n## Upstream changes 0.40.6 -> 0.40.7\n\n**Verdict:** SAFE TO APPLY \u2014 the notes describe additive features and bug fixes only, and the image configuration (user, entrypoint, ports, volumes, healthcheck, environment) is unchanged.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none \u2014 no variable additions, renames or removals are mentioned, and none are implied by the fixes listed\n\n### Data and dependencies\n- none \u2014 the notes mention no database, cache or search-engine version requirement, and this template pairs Ollama with no such companion service (AnythingLLM uses LanceDB embedded on the storage volume, not a separate pinned service)\n\n### Before applying\n- Update the pin: `OLLAMA_IMAGE_VERSION=0.40.6@sha256:265409e1d931028a8f7d5a32bcbafddd7bffbc6cc629d77efe9560adf692a5e7` in the compose file's `x-images` block to `0.40.7` with its corresponding digest.\n- No backup, migration, or config edit is called for by these notes. The stack's own backup service continues to run as before.\n\n### Notes read\n- v0.40.7 release notes (target version)\n- v0.40.6 release notes (baseline, current version \u2014 read only to establish what is already true, per the rule that a pre-existing requirement is not a change in this range)\n\n## Upstream changes 0.40.7 -> 0.40.8\n\n**Verdict:** SAFE TO APPLY \u2014 the notes describe one new model addition, and the image configurations are confirmed identical in all behaviourally relevant fields.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none. The v0.40.8 notes add a new model (Flint) to the library; nothing about the engine itself, its storage format, or its API changes. Note: \"Note: Flint is supported on MacOS. Other GPU support will be enabled in a subsequent release.\" \u2014 this concerns a specific new model's hardware support, not the running `llama3.2:3b` default or the Ollama service itself, so it does not affect this deployment.\n\n### Before applying\n- none required. Bump `OLLAMA_IMAGE_VERSION` (or the digest in the compose file's `x-images` block) and redeploy as normal.\n\n### Notes read\n- v0.40.8 (release notes for the version being moved to)\n- v0.40.7 (baseline, \"THE RELEASE THE TEMPLATE RUNS NOW\", read only for context \u2014 none of its content is a change introduced by this upgrade)\n- No UPGRADING/BREAKING_CHANGES/CHANGELOG section was supplied for this range; none was found to read.\n"
   },
   {
     "repo": "otrs-traefik-letsencrypt-docker-compose",
-    "sha": "24faafe6c89be6392e30ada513687c06f589746a",
+    "sha": "8bdea4c0cea063378e841f0429f651bf211c4c38",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:42:06Z"
+    "pushed_at": "2026-10-22T22:54:09Z"
   },
   {
     "repo": "outline-keycloak-traefik-letsencrypt-docker-compose",
-    "sha": "4764393dd3062cf29110cbddc0d877a1101c0960",
+    "sha": "c1c283838c6990788d2a17ce857790e9476d654b",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:42:19Z"
+    "pushed_at": "2026-10-22T22:54:23Z"
   },
   {
     "repo": "owncloud-traefik-letsencrypt-docker-compose",
-    "sha": "0df6080c93ed54630ccb69b5403ac34e58773dd4",
+    "sha": "db19ef231598be5ff12bec11c4cf8f4f4e57bca4",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:42:28Z"
+    "pushed_at": "2026-10-22T22:54:30Z"
   },
   {
     "repo": "portainer-traefik-letsencrypt-docker-compose",
-    "sha": "d5d5959f43fb2dd10a79d14146949727446b0bf8",
+    "sha": "98beef9b3e11d965c0979888fab845a1c9e76633",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:42:56Z",
+    "pushed_at": "2026-10-22T22:54:36Z",
     "review": "\n## Upstream changes 2.45.2 -> 2.45.3\n\n**Verdict:** NEEDS ATTENTION \u2014 the notes carry a breaking change around trust of TLS certificates issued by a compromised CA, which can lock out SSO/LDAP authentication after the upgrade; no companion-service version requirement is introduced, and the image-level diff confirms no container-config change.\n\n### Breaking changes\n- \"Portainer no longer trusts TLS certificates issued by eMudhra (emSign), following the compromise of eight eMudhra intermediate CAs (CVE-2026-111943). Connections to services that present an affected certificate, including OAuth/OIDC and LDAPS providers, registries and Git hosts, will fail after the upgrade. If your single sign-on or LDAP provider is affected, only the initial admin will be able to sign in. Check your services before upgrading.\"\n- Related: \"Removed the eMudhra emSign root certificates from the CA bundle in Linux images, and rejected certificate chains that contain the compromised eMudhra intermediates (CVE-2026-111943).\"\n- \"Restricted kubeconfig tokens to the /api/endpoints/{id}/kubernetes proxy, so they are rejected with a 403 on every other API route, including admin-only routes and the Docker proxy. Kubeconfigs downloaded after upgrading carry a separate token per environment, limited to that environment\" \u2014 not relevant to this template (no Kubernetes environments configured here), but worth knowing if the operator later connects one.\n\n### Variables\n- none \u2014 no compose or .env.example variable is renamed, removed, or newly required by this release.\n\n### Data and dependencies\n- none \u2014 the notes name no database, cache, or other companion-service version requirement for this range. (The compose file has no such companion service for Portainer itself; `traefik` and `backups` are unaffected by this image's release notes.)\n\n### Before applying\n- Check whether your OAuth/OIDC provider, LDAPS provider, container registries, or Git hosting use certificates issued through eMudhra/emSign intermediates. If any do, replace or re-issue those certificates before upgrading, since after the upgrade only the initial admin account will be able to sign in if SSO/LDAP breaks.\n- No database migration, backup step, or config edit is called for beyond the operator's standard pre-upgrade backup (the `backups` service in this compose already covers that on its normal schedule \u2014 verify a recent backup exists before upgrading as routine practice).\n\n### Notes read\n- 2.45.3 (2026-10-21) \u2014 target version, read in full.\n- 2.45.2 (2026-10-08) \u2014 baseline version, read for context only; its listed fixes/features are already in effect and not part of this upgrade's delta.\n"
   },
   {
     "repo": "rocketchat-traefik-letsencrypt-docker-compose",
-    "sha": "4754a3cff1dc42e2140bfb9c57f09111c6a21dbd",
+    "sha": "b4364b8ede7950960ecb0252356ab0dea733e177",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:43:05Z"
+    "pushed_at": "2026-10-22T22:54:45Z"
   },
   {
     "repo": "romm-traefik-letsencrypt-docker-compose",
-    "sha": "6ece39a8b1db7aa949e9a3d28bbbcbad14821894",
+    "sha": "3ce7d16ce06acfa189779d3aee00928ad1498aa0",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:43:13Z"
+    "pushed_at": "2026-10-22T22:54:52Z"
   },
   {
     "repo": "seafile-traefik-letsencrypt-docker-compose",
-    "sha": "65926572f247973996607b122933e7efd00253e9",
+    "sha": "9687737dbf51363b4f5d768b704bea9c62951ce3",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:43:21Z"
+    "pushed_at": "2026-10-22T22:55:00Z"
   },
   {
     "repo": "sftp-traefik-letsencrypt-docker-compose",
-    "sha": "c8fc9cbcb60b827d85faae06e60fc2207415eaeb",
+    "sha": "9ba2a7f14cf95bea95a946be070b5c61e1da7ccb",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:43:28Z"
+    "pushed_at": "2026-10-22T22:55:06Z"
   },
   {
     "repo": "sonarqube-traefik-letsencrypt-docker-compose",
-    "sha": "5b626aab5150b252000a84eac05db18999b75063",
+    "sha": "83244382dda4279773ec13e6a8b89e6611c7063d",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:43:37Z"
+    "pushed_at": "2026-10-22T22:55:15Z"
   },
   {
     "repo": "uptime-kuma-traefik-letsencrypt-docker-compose",
-    "sha": "7412030bf99161738c0b4361e98d2fc842222f60",
+    "sha": "43f803a5e62f1a486e86ce76b44e1152583b16b3",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:43:45Z"
+    "pushed_at": "2026-10-22T22:55:23Z"
   },
   {
     "repo": "vaultwarden-traefik-letsencrypt-docker-compose",
-    "sha": "846a956db68af57fa4b7071b2397999dbf82da87",
+    "sha": "db4546e43bb36319f75b74283142fea77da02171",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:43:52Z"
+    "pushed_at": "2026-10-22T22:55:29Z"
   },
   {
     "repo": "webrcade-traefik-letsencrypt-docker-compose",
-    "sha": "67f162ab0207124fa6c373835f499c85479237f6",
+    "sha": "25e570d86b63a54658509b817acbd8d1079d029c",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:43:59Z"
+    "pushed_at": "2026-10-22T22:55:36Z"
   },
   {
     "repo": "wikijs-traefik-letsencrypt-docker-compose",
-    "sha": "39acbf19209ccd0504ae7e75f439181a5623a467",
+    "sha": "ffd2e971467001a8c4147ee7717f50c77150b7a6",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:44:06Z"
+    "pushed_at": "2026-10-22T22:55:43Z"
   },
   {
     "repo": "wordpress-traefik-letsencrypt-docker-compose",
-    "sha": "474a75c387a52176be9f19c694a5395d951fd0e9",
+    "sha": "e19b442af1ca7e1bfb3c206c3df4fb82d88a8f8a",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:44:14Z"
+    "pushed_at": "2026-10-22T22:55:50Z"
   },
   {
     "repo": "xwiki-traefik-letsencrypt-docker-compose",
-    "sha": "29e11ed2b605f62c3fe3706b4574c429f3623074",
+    "sha": "8ee4b4e1101c8421ec11b85cfc2e079c2593ef4e",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:44:21Z"
-  },
-  {
-    "repo": "zabbix-docker-compose",
-    "sha": "7382ff4dccecb4b293f456115d3b87db64a044ec",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-22T12:44:31Z"
+    "pushed_at": "2026-10-22T22:55:57Z"
   },
   {
     "repo": "zabbix-traefik-letsencrypt-docker-compose",
-    "sha": "8263e8df3fe6f5715ed58bf2075488dc00583cfb",
+    "sha": "0440ccd7886cb3a1e201db0e0ec14f5ca95534be",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:44:40Z"
+    "pushed_at": "2026-10-22T22:56:08Z"
   },
   {
     "repo": "zammad-traefik-letsencrypt-docker-compose",
-    "sha": "204d863f1a60728c1b7a758a5b640c34554eec74",
+    "sha": "7ea9544896214dd1d1d7a4b46212f1f4e33623b2",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-22T12:44:52Z"
+    "pushed_at": "2026-10-22T22:56:18Z"
   }
 ]
