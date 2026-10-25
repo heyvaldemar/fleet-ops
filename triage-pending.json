@@ -1,17 +1,91 @@
 [
   {
-    "repo": "homeassistant-traefik-letsencrypt-docker-compose",
-    "sha": "bfa5d76df57e1ec94da8e1d22a3d0041252adea8",
+    "repo": "anythingllm-traefik-letsencrypt-docker-compose",
+    "sha": "d05dd1dd1babba302a1c1a7fce172956276f4e4d",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-24T21:50:35Z",
-    "review": "\n## Upstream changes 2026.10.2 -> 2026.10.3\n\n**Verdict:** SAFE TO APPLY \u2014 a patch release with bug fixes and dependency bumps, no breaking changes in the notes, and the image config itself is unchanged in every field that matters.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none \u2014 no renamed, removed or newly required variables in this range\n\n### Data and dependencies\n- none. The notes mention only internal dependency bumps (base image to 2026.10.1, Python to 3.14.8, uv, frontend to 20260930.5, various integration libraries) \u2014 none of these are companion services the compose file pins, so they don't affect the verdict.\n- \"WHAT THE IMAGES THEMSELVES DIFFER IN\" confirms `User`, `Entrypoint`, `Cmd`, `WorkingDir`, `ExposedPorts`, `Volumes`, `Healthcheck`, and environment are identical between 2026.10.2 and 2026.10.3, so the compose file's healthcheck (`curl -f http://localhost:8123/`) and volume mounts remain valid as-is.\n\n### Before applying\n- None required beyond the normal update path. Bump `HOMEASSISTANT_IMAGE_VERSION` (or let the compose default move) to `2026.10.3` with its correct digest and redeploy.\n- The `backups` service already takes a consistent SQLite backup each cycle; no manual pre-upgrade backup step is introduced by this release, but as always, letting one cycle complete before upgrading is good practice.\n\n### Notes read\n- `2026.10.3` (release notes, full text provided)\n- `2026.10.2` (baseline release notes, provided for context only, not treated as a change in this range)\n\n## Upstream changes 2026.10.3 -> 2026.10.4\n\n**Verdict:** SAFE TO APPLY \u2014 two small items, no breaking changes, no variable or dependency shifts, and the image configurations do not differ in anything behaviourally relevant.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none. The notes list a client-library bump (\"Bump pylutron-caseta to 0.30.0\") affecting only the `lutron_caseta` integration, and a protocol-level change (\"Raise aiohttp client header limits to 64 KiB\"). Neither touches a companion service version, a port, a path, or a migration.\n\n### Before applying\n- No manual steps required beyond the normal `docker compose pull && docker compose up -d` for the `homeassistant` service. The compose file's pin (`HOMEASSISTANT_IMAGE_VERSION:-2026.10.3`) and the `.env.example` comment showing `2026.10.3` should both be bumped to `2026.10.4` (with the matching digest) as part of landing this upgrade, since nothing else in the template changes.\n\n### Notes read\n- 2026.10.4 (home-assistant/core release notes, full text provided)\n- 2026.10.3 (home-assistant/core release notes, provided as baseline only, per instructions not treated as part of this upgrade's changes)\n"
+    "pushed_at": "2026-10-25T12:04:29Z",
+    "review": "\n## Upstream changes 0.40.10 -> 0.40.11\n\n**Verdict:** SAFE TO APPLY \u2014 the notes describe additive features only, and the registry comparison shows no change to user, entrypoint, command, ports, volumes, healthcheck or environment.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none \u2014 no variable is renamed, removed, or newly required by this range. `.env.example`'s `OLLAMA_IMAGE_VERSION=0.40.10` comment is a stale default to bump when pinning the new version, not a required edit.\n\n### Data and dependencies\n- none. The notes describe new capabilities (macOS speech generation via `/v1/audio/speech`, new `d3` decision models) and carry no database/engine version requirement, no migration, no removed default, no port or path change.\n- Per the registry comparison, \"the two image configurations are identical in every field that changes behaviour: `User`, `Entrypoint`, `Cmd`, `WorkingDir`, `ExposedPorts`, `Volumes`, `Healthcheck`, and the environment,\" confirming the notes' account of no infrastructure-level change.\n\n### Before applying\n- None required beyond the normal pin bump: update `OLLAMA_IMAGE_VERSION` (or the `ollama` line in the compose file's `x-images` block) to `0.40.11` with its new digest, and let the standing backup job (already configured) cover the routine pull.\n\n### Notes read\n- v0.40.11 (2026-10-24) \u2014 upstream release notes for the version being moved to.\n- v0.40.10 (2026-10-23) \u2014 baseline, read only to confirm nothing in it is newly introduced by this range.\n- No UPGRADING, BREAKING_CHANGES or CHANGELOG section was supplied for this range; none was available to read.\n"
+  },
+  {
+    "repo": "confluence-traefik-letsencrypt-docker-compose",
+    "sha": "53b33aaee7d112f6e1d40bc4e4e20f2195020ff9",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-25T12:04:39Z"
+  },
+  {
+    "repo": "diun-docker-compose",
+    "sha": "46367b6281aefdfe8f25061efd3af43a22ceab82",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-25T12:05:01Z",
+    "review": "\n## Upstream changes 4.33.0 -> 4.33.1\n\n**Verdict:** SAFE TO APPLY \u2014 a security-only rebuild (Go toolchain bump + revoked-CA rejection); the notes state \"There are no functional changes in Diun itself compared to v4.33.0,\" and the image comparison confirms user, entrypoint, command, ports, volumes, healthcheck and environment are all unchanged.\n\n### Breaking changes\n- none found in the notes. The notes explicitly say: \"There are no functional changes in Diun itself compared to v4.33.0.\"\n\n### Variables\n- none. No variable is added, renamed or removed, and nothing in the compose file or .env.example needs edits.\n\n### Data and dependencies\n- none introduced or raised by this range. The only dependency-relevant content is the Go toolchain bump (\"built with Go 1.26.10\") and the rejection of eight named revoked eMudhra intermediate certificates during TLS verification \u2014 this affects outbound TLS connections Diun makes (e.g. to notification webhooks or registries) if any of them chain through those specific intermediates, which is an operational fact to be aware of, not a configuration requirement.\n- No companion service (database, cache, search engine) version is named in these notes, so the \"no companion version named but unpinned\" rule does not apply here.\n\n### Before applying\n- None required. This is a drop-in image bump: update the pin (`DIUN_IMAGE_VERSION` or the `x-images` default) and redeploy.\n- Optional sanity check: if any configured notifier endpoint (webhook, SMTP relay, etc.) presents a certificate from one of the eight listed revoked eMudhra intermediates, it will now fail TLS verification post-upgrade \u2014 worth a quick check if notifications stop arriving after the bump.\n\n### Notes read\n- v4.33.1 release notes (crazy-max/diun)\n- v4.33.0 release notes, read only as the baseline already running\n- CHANGELOG.md entries for 4.33.1 and 4.33.0 (the portion covering this range)\n"
+  },
+  {
+    "repo": "docmost-traefik-letsencrypt-docker-compose",
+    "sha": "a8c3ab20c6be610929173db5c2ee439f083dd2d8",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-25T12:05:24Z",
+    "review": "\n## Upstream changes 0.96.0 -> 0.97.0\n\n**Verdict:** NEEDS ATTENTION \u2014 no upstream release notes could be found for this range, so the upgrade is going in blind; the only verified fact is a Node.js bump inside the image.\n\n### Breaking changes\n- none found in the notes \u2014 the notes themselves are missing (see below). This is not the same as \"none exist\"; treat the application-level change log as unread.\n\n### Variables\n- none \u2014 nothing in the compose file or .env.example changes for this image bump. `DOCMOST_IMAGE_VERSION` default moves from `0.96.0` to `0.97.0` (and the digest changes to match), but no new variable is introduced or required.\n\n### Data and dependencies\n- The registry diff shows only: `env NODE_VERSION: '26.8.1' -> '26.12.1'` \u2014 a Node.js runtime bump baked into the image, not a change to Postgres, Redis, or any variable the operator sets.\n- Postgres (16), Redis (7.4) pins in the compose file are unaffected and already matched by the 0.96.0 release line \u2014 this is a pre-existing requirement, not something this range introduces.\n- No port, path, volume, healthcheck, user, entrypoint or command differences were reported between the two images.\n\n### Before applying\n- Take the normal precaution for an unread upgrade: snapshot/verify the `backups` service has produced a recent good Postgres + data backup before pulling.\n- After pulling, watch the `docmost` container's logs and healthcheck on first start for anything the missing release notes might have hidden (migrations run automatically on boot for this image historically; confirm the container reaches healthy and the UI loads).\n- No manual migration command, variable rename, or config edit is indicated by anything available here.\n\n### Notes read\n- No releases between 0.96.0 and 0.97.0 were found under `docmost/docmost` (60 releases scanned, no matching tag range). Upstream release notes for this exact range could not be read.\n- Because UPGRADING/BREAKING_CHANGES/CHANGELOG content for this range was not supplied, check by hand before applying:\n  - the GitHub \"Releases\" page for `docmost/docmost` filtered to any tag that actually corresponds to 0.97.0 (naming may differ from what was queried)\n  - the repository's `CHANGELOG.md` at the 0.97.0 tag\n  - any pinned \"Upgrade notes\" discussion/issue for 0.97.0 on the docmost repo\n"
+  },
+  {
+    "repo": "dozzle-traefik-letsencrypt-docker-compose",
+    "sha": "1d9bf40a738d251434e435d76e31907b7c27e35c",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-25T12:05:44Z",
+    "review": "\n## Upstream changes v11.3.4 -> v11.3.5\n\n**Verdict:** SAFE TO APPLY \u2014 purely additive features and bug fixes; the two image configurations are confirmed identical in every behaviour-relevant field, and no companion-service version requirement is introduced.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none \u2014 no new, renamed or removed environment variables are mentioned in the v11.3.5 notes, and the image configuration comparison confirms the environment is unchanged between the two versions.\n\n### Data and dependencies\n- none \u2014 no database, cache or other companion-service version requirement appears in the v11.3.5 notes. (The compose file pins no such companion for Dozzle itself, and none is named, so this does not affect the verdict.)\n- The image diff states: \"The two image configurations are identical in every field that changes behaviour: `User`, `Entrypoint`, `Cmd`, `WorkingDir`, `ExposedPorts`, `Volumes`, `Healthcheck`, and the environment.\" This confirms the compose file's `dozzle` service definition (healthcheck `[\"CMD\", \"/dozzle\", \"healthcheck\"]`, port 8080, volume `dozzle-data:/data`, env block) needs no changes for this upgrade.\n\n### Before applying\n- None beyond the routine: bump `DOZZLE_IMAGE_VERSION` (or the pin in `x-images`) to `v11.3.5` with its digest, pull, and restart the `dozzle` service. No data migration, variable edit, or companion-service change is called for.\n\n### Notes read\n- v11.3.5 (2026-10-24) \u2014 the release being moved to, full body above.\n- v11.3.4 (2026-10-20) \u2014 the baseline release the template currently runs, read only to confirm nothing it requires is new in this range (its own notable item, serving the 2026-07-28 MCP protocol, is already in effect and not part of this upgrade).\n"
+  },
+  {
+    "repo": "game-server-wireguard-relay-docker-compose",
+    "sha": "32339c616b3f548f5b6ece4022611a3d3e5a8e3d",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-25T12:05:51Z"
+  },
+  {
+    "repo": "glpi-traefik-letsencrypt-docker-compose",
+    "sha": "b2c16d7ddfc2dbfeae127d0d791c7614b2578735",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-25T12:06:00Z"
+  },
+  {
+    "repo": "jira-traefik-letsencrypt-docker-compose",
+    "sha": "148c52e7d6fde5975a0d5e224623f56b1a310e8d",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-25T12:06:12Z"
+  },
+  {
+    "repo": "ollama-traefik-letsencrypt-docker-compose",
+    "sha": "74177c31602a15c695f3efd20abf3a3eed754ece",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-25T12:06:33Z",
+    "review": "\n## Upstream changes 0.40.10 -> 0.40.11\n\n**Verdict:** SAFE TO APPLY \u2014 the notes describe additive features only, and the registry comparison shows no change to user, entrypoint, command, ports, volumes, healthcheck or environment.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none \u2014 no variable is renamed, removed, or newly required by this range. `.env.example`'s `OLLAMA_IMAGE_VERSION=0.40.10` comment is a stale default to bump when pinning the new version, not a required edit.\n\n### Data and dependencies\n- none. The notes describe new capabilities (macOS speech generation via `/v1/audio/speech`, new `d3` decision models) and carry no database/engine version requirement, no migration, no removed default, no port or path change.\n- Per the registry comparison, \"the two image configurations are identical in every field that changes behaviour: `User`, `Entrypoint`, `Cmd`, `WorkingDir`, `ExposedPorts`, `Volumes`, `Healthcheck`, and the environment,\" confirming the notes' account of no infrastructure-level change.\n\n### Before applying\n- None required beyond the normal pin bump: update `OLLAMA_IMAGE_VERSION` (or the `ollama` line in the compose file's `x-images` block) to `0.40.11` with its new digest, and let the standing backup job (already configured) cover the routine pull.\n\n### Notes read\n- v0.40.11 (2026-10-24) \u2014 upstream release notes for the version being moved to.\n- v0.40.10 (2026-10-23) \u2014 baseline, read only to confirm nothing in it is newly introduced by this range.\n- No UPGRADING, BREAKING_CHANGES or CHANGELOG section was supplied for this range; none was available to read.\n"
   },
   {
     "repo": "owncloud-traefik-letsencrypt-docker-compose",
-    "sha": "8dc5c7caae2fe9c2f9bd3c0b442707530579f674",
+    "sha": "35a15e86541d804089131a37bafa309d040fe3eb",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-24T21:51:00Z"
+    "pushed_at": "2026-10-25T12:06:41Z"
+  },
+  {
+    "repo": "sftp-traefik-letsencrypt-docker-compose",
+    "sha": "4241536e201badfb6a07280d754c59a97b47e21e",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-25T12:06:51Z"
+  },
+  {
+    "repo": "zammad-traefik-letsencrypt-docker-compose",
+    "sha": "eb0d44301aef859dda1e41495f04bf7494ea00a1",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-25T12:07:08Z"
   }
 ]
