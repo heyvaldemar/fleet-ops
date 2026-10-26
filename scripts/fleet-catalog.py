@@ -511,7 +511,7 @@ def collect_live_status(names):
 
 
 UPSTREAM_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "upstream.json")
-GH_URL = re.compile(r"^https://github\.com/([^/]+)/([^/]+)/(issues|pull|discussions)/(\d+)(?:#issuecomment-(\d+))?$")
+GH_URL = re.compile(r"^https://github\.com/([^/]+)/([^/]+)/(issues|pull|discussions)/(\d+)(?:#issuecomment-(\d+)|#discussion_r(\d+))?$")
 
 
 def graphql_discussion(owner, repo, number):
@@ -527,6 +527,7 @@ def upstream_one(item, discussion=graphql_discussion):
     if not m:
         return dict(item, state="unreadable")
     owner, repo, kind, number, comment = m.group(1), m.group(2), m.group(3), int(m.group(4)), m.group(5)
+    review = m.group(6)
     out = {"url": item["url"], "role": item.get("role"), "found_in": item.get("found_in"),
            "project": "%s/%s" % (owner, repo)}
     try:
@@ -539,6 +540,11 @@ def upstream_one(item, discussion=graphql_discussion):
             pr = gh("repos/%s/%s/pulls/%d" % (owner, repo, number))
             out.update(title=pr["title"], posted=pr["created_at"][:10], updated=pr["updated_at"][:10],
                        state="merged" if pr.get("merged_at") else pr["state"])
+            if review:
+                # A review comment on someone else's pull request: dated by the
+                # comment, and the pull request's state is the outcome, not ours.
+                c = gh("repos/%s/%s/pulls/comments/%s" % (owner, repo, review))
+                out.update(posted=c["created_at"][:10], state="on a pull request that is " + out["state"])
         else:
             issue = gh("repos/%s/%s/issues/%d" % (owner, repo, number))
             state = issue["state"] + (": " + issue["state_reason"] if issue.get("state_reason") else "")

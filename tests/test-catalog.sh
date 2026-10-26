@@ -307,6 +307,8 @@ def fake_up(path):
     if path == "repos/o/r/pulls/8":
         return {"title": "The fix", "state": "closed", "merged_at": "2026-10-15T14:46:54Z",
                 "created_at": "2026-10-13T00:00:00Z", "updated_at": "2026-10-15T00:00:00Z"}
+    if path == "repos/o/r/pulls/comments/77":
+        return {"created_at": "2026-10-14T21:05:00Z"}
     raise sp.CalledProcessError(1, "gh")
 m.gh = fake_up
 c = m.upstream_one({"url": "https://github.com/o/r/issues/7#issuecomment-99", "role": "comment", "found_in": "x",
@@ -316,6 +318,9 @@ check("and says the state of the issue it is on", c["state"], "on an issue close
 check("the related fix says merged, with the day", (c["related"]["state"], c["related"]["merged"]), ("merged", "2026-10-15"))
 p = m.upstream_one({"url": "https://github.com/o/r/pull/8", "role": "pull request"})
 check("a merged pull request reads merged", (p["state"], p["title"]), ("merged", "The fix"))
+r = m.upstream_one({"url": "https://github.com/o/r/pull/8#discussion_r77", "role": "review suggestion"})
+check("a review comment is dated by the comment, not the pull request", r["posted"], "2026-10-14")
+check("and says the state of the pull request it is on", (r["state"], r["title"]), ("on a pull request that is merged", "The fix"))
 d = m.upstream_one({"url": "https://github.com/o/r/discussions/5", "role": "discussion"},
                    discussion=lambda o, r, n: {"title": "Q", "closed": False, "isAnswered": True, "createdAt": "2026-10-13T00:00:00Z",
                                                "updatedAt": "2026-10-13T00:00:00Z", "comments": {"totalCount": 1}})

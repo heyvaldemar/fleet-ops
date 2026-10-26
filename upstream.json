@@ -42,6 +42,22 @@
    "url": "https://github.com/kyverno/kyverno/pull/17555#issuecomment-6245868388",
    "role": "comment with a tested workaround",
    "found_in": "kubernetes-air-gapped-ai-agent"
+  },
+  {
+   "url": "https://github.com/kyverno/kyverno/issues/18172#issuecomment-6378001319",
+   "role": "comment",
+   "found_in": "kubernetes-supply-chain-admission",
+   "related": "https://github.com/kyverno/kyverno/pull/18222"
+  },
+  {
+   "url": "https://github.com/kyverno/website/pull/2217#discussion_r4372415231",
+   "role": "review suggestion, applied as written",
+   "found_in": "kubernetes-supply-chain-admission"
+  },
+  {
+   "url": "https://github.com/kyverno/kyverno/issues/18272",
+   "role": "feature request",
+   "found_in": "kubernetes-supply-chain-admission"
   }
  ]
 }
