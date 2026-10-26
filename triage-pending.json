@@ -1,81 +1,66 @@
 [
   {
-    "repo": "amazon-ec2-keycloak-docker-swarm-pipeline-terraform",
-    "sha": "6c6963d05cf9519f294ead982a6b6046585abdb6",
-    "wf": "Terraform Verification",
-    "kind": "version",
-    "pushed_at": "2026-10-26T13:41:09Z",
-    "review": "\n## Upstream changes 6.69.1 -> 6.70.0\n\n**Verdict:** NEEDS ATTENTION \u2014 a plan-time breaking change affects `aws_route53domains_delegation_signer_record` if that resource is used, and the provider pin in the template must be widened to receive this release at all.\n\n### Breaking changes\n- `resource/aws_route53domains_delegation_signer_record: Change the format of the import ID from domain_name,dnssec_key_id to domain_name,flags,algorithm,public_key. This is acceptable in a minor version because AWS no longer return DNSKEY flags and delegation signer records can no longer reliably be found by domain name and key ID` \u2014 only relevant if this resource is declared in the Terraform configuration; if present, any existing `import` blocks or documentation referencing the old ID format need updating.\n\n### Variables\n- none found in the notes or .env.example (the .env.example provided is empty for this template)\n\n### Data and dependencies\n- none found. No companion service (database, cache, search engine) version requirement is named in these notes.\n\n### Before applying\n- The compose/providers file pins `version = \"~> 6.69.1\"`, which under Terraform's pessimistic operator constraint excludes 6.70.0. The constraint must be widened (e.g. to `~> 6.69` or `~> 6.70.0`) before `terraform init -upgrade` will pick up this release.\n- If `aws_route53domains_delegation_signer_record` resources are imported or managed, re-derive import IDs in the new `domain_name,flags,algorithm,public_key` format before re-running `terraform import` or refreshing state; test affected `.uk`/`.co.uk` domain state against the bug fix noted (`Fix handling of null Flags and PublicKey fields for .uk/.co.uk domain registries which caused resources to be removed from state when they existed at AWS`) since that fix changes that resource's read behavior.\n- Run `terraform plan` after upgrading and inspect any diffs on `aws_route53domains_delegation_signer_record`, `aws_guardduty_detector_feature`, `aws_guardduty_member_detector_feature`, and `aws_guardduty_organization_configuration_feature` resources (the notes describe fixed perpetual diffs / forced replacements tied to `additional_configuration` defaults such as `RDS_DATA_RISK`) to confirm no unexpected destructive actions are proposed.\n- No backup or manual data migration is indicated by the notes; this is a provider (control-plane) upgrade, not an application data change.\n\n### Notes read\n- hashicorp/terraform-provider-aws release notes for v6.70.0 (2026-10-21) and the CHANGELOG.md section covering 6.70.0, read against the stated baseline v6.69.1 (2026-10-15).\n- Registry image metadata for hashicorp/aws could not be read (HTTP 401 Unauthorized), so the \"WHAT THE IMAGES THEMSELVES DIFFER IN\" comparison could not be performed; container user, entrypoint, command, ports, volumes, healthcheck and environment for the two image versions should be checked by hand once registry access is available.\n\n## Upstream changes 4.4.1 -> 4.4.2\n\n**Verdict:** SAFE TO APPLY \u2014 the only change is a Go toolchain upgrade to patch a CVE; no functional, variable, or dependency changes are noted.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none \u2014 this is not a docker-compose/.env-driven image but a Terraform provider pinned in `01-providers.tf`; there is no `.env.example` entry for it\n\n### Data and dependencies\n- none. The notes state only: \"Upgrade the Go toolchain to 1.26.10 to mitigate the eMudhra certificate authority vulnerability (CVE-2026-111943).\" No provider schema, resource, or data source changes are mentioned.\n- Note on the version constraint: `01-providers.tf` pins `version = \"~> 4.4.1\"`, which under Terraform's pessimistic operator allows any `4.4.x` release, so `4.4.2` is already permitted without editing the file.\n\n### Before applying\n- Run `terraform init -upgrade` to pull 4.4.2 under the existing `~> 4.4.1` constraint.\n- No state migration, no backup beyond your normal `terraform.tfstate` precautions, and no config edits are required.\n- Optional: bump the constraint to `~> 4.4.2` for clarity, though not functionally necessary.\n\n### Notes read\n- v4.4.2 (2026-10-21) and v4.4.1 (2026-09-10) release notes, plus the full CHANGELOG.md back to 0.1.0 (read for context; nothing in the 4.4.1\u21924.4.2 range beyond the Go toolchain/CVE note applies).\n- Registry image comparison could not be read: \"HTTPError: HTTP Error 401: Unauthorized\" \u2014 verdict and findings rest on the release notes alone; no container-level user/entrypoint/port/volume/healthcheck/env comparison was possible. (Note: `hashicorp/tls` is a Terraform provider, not an application container, so this is not expected to carry runtime image semantics regardless.)\n"
-  },
-  {
     "repo": "bitbucket-traefik-letsencrypt-docker-compose",
-    "sha": "0742e17201f32ccb119aba8846624b34d1b79634",
+    "sha": "013c625b6f9098437726bf95f78b9772e0dd63e4",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-26T13:41:27Z"
+    "pushed_at": "2026-10-26T23:19:53Z"
   },
   {
     "repo": "confluence-traefik-letsencrypt-docker-compose",
-    "sha": "6e5e3c210e6bf329bf0e03868352524b276d6aa8",
+    "sha": "09a5cb5cf41addac3ac5a17aa3c811857c265a20",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-26T13:41:35Z"
+    "pushed_at": "2026-10-26T23:20:00Z"
   },
   {
     "repo": "dify-traefik-letsencrypt-docker-compose",
-    "sha": "c3b7a8a0440aefd73caa23e6221dda78b17624f1",
+    "sha": "d425c2cb475722a66c0eafc1097e7f3eb510e74b",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-26T13:41:51Z"
-  },
-  {
-    "repo": "game-server-wireguard-relay-docker-compose",
-    "sha": "739e90852ba1be587f856958c2612b8f1e301db0",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-26T13:42:00Z"
+    "pushed_at": "2026-10-26T23:20:15Z"
   },
   {
     "repo": "grafana-traefik-letsencrypt-docker-compose",
-    "sha": "e4082a4a0adc5991392a9f8a7d3d04fd9cd85f28",
+    "sha": "3297656755530b51659084dec88ef79eb840de36",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-26T13:42:10Z"
+    "pushed_at": "2026-10-26T23:20:29Z"
   },
   {
     "repo": "mailu-traefik-letsencrypt-docker-compose",
-    "sha": "09684baf6a83797e1e82c835b762cd324c370970",
+    "sha": "6633e5fae8adb6dd65d822c08b73da27707ae7df",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-26T13:42:33Z"
+    "pushed_at": "2026-10-26T23:20:50Z"
   },
   {
     "repo": "minecraft-server-docker-compose",
-    "sha": "f1f3fbf75b6a85a118cb0a763f5feee33d2a2a26",
+    "sha": "bed8c6d039c62a402c0f83a4ffe4e9ece4750a7f",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-26T13:42:57Z",
-    "review": "\n## Upstream changes 2026.10.0 -> 2026.10.1\n\n**Verdict:** NEEDS ATTENTION \u2014 the pinned minecraft-server version in the compose file still reads `2026.10.0`, not `2026.10.1`; this upgrade requires editing the pin, and one plugin-resolution behaviour change touches a config this template actively uses.\n\n### Breaking changes\n- none found in the notes. The fixes and features listed are additive or bug-level (new server types, new JVM agent env vars, Cleanroom/Forge handling, download-link fixes). No removal or incompatible behaviour change is stated.\n\n### Variables\n- none renamed or removed. New optional variables were added upstream: \"Add JAVA_AGENTS and JVM_AGENTS to load agents from URLs and paths\" (#4356) \u2014 not referenced by this compose file or .env.example, so no action needed unless the operator wants to use them.\n\n### Data and dependencies\n- none found in the notes regarding a companion database/cache/search engine \u2014 this image has no such dependency, so the \"SAFE TO APPLY unavailable\" rule does not apply here.\n- Worth noting for operators using Modrinth-sourced CurseForge/Forge plugins: \"Resolve Modrinth projects for NeoForge servers with the NeoForge loader\" (#4358) is a bug fix to project resolution logic, not a breaking change, but since this template sets `MODRINTH_PROJECTS` and `TYPE: PAPER` (not NeoForge), it does not apply to this deployment's current `TYPE`.\n- The compose file's own pin is still `2026.10.0@sha256:5a2ab7...` for `itzg/minecraft-server` \u2014 this is a template bookkeeping issue, not an upstream one, but it means the upgrade described here has not actually been applied to the file under review.\n\n### Before applying\n- Update the `x-images` default in `minecraft-server-docker-compose.yml` from `2026.10.0@sha256:5a2ab74ae179c11e2dbbce67f307cdcf2c1257b3abb0f654d3a310b3d8ea57da` to the `2026.10.1` tag and its correct sha256 digest (look it up on the registry; do not reuse the old digest).\n- No database/world migration steps are indicated by the notes. Take the normal pre-upgrade world backup as a precaution since the `mc-backup` sidecar is already running \u2014 confirm a recent backup exists under `./minecraft-server-data-backups` before restarting.\n- No `.env` edits are required.\n\n### Notes read\n- 2026.10.1 (2026-10-25) \u2014 upgrade target, read in full.\n- 2026.10.0 (2026-10-10) \u2014 baseline release the template currently runs, read only to confirm nothing in it is miscounted as new in this range.\n"
+    "pushed_at": "2026-10-26T23:21:08Z",
+    "review": "\n## Upstream changes 2026.10.0 -> 2026.10.1\n\n**Verdict:** NEEDS ATTENTION \u2014 the pinned minecraft-server version in the compose file still reads `2026.10.0`, not `2026.10.1`; this upgrade requires editing the pin, and one plugin-resolution behaviour change touches a config this template actively uses.\n\n### Breaking changes\n- none found in the notes. The fixes and features listed are additive or bug-level (new server types, new JVM agent env vars, Cleanroom/Forge handling, download-link fixes). No removal or incompatible behaviour change is stated.\n\n### Variables\n- none renamed or removed. New optional variables were added upstream: \"Add JAVA_AGENTS and JVM_AGENTS to load agents from URLs and paths\" (#4356) \u2014 not referenced by this compose file or .env.example, so no action needed unless the operator wants to use them.\n\n### Data and dependencies\n- none found in the notes regarding a companion database/cache/search engine \u2014 this image has no such dependency, so the \"SAFE TO APPLY unavailable\" rule does not apply here.\n- Worth noting for operators using Modrinth-sourced CurseForge/Forge plugins: \"Resolve Modrinth projects for NeoForge servers with the NeoForge loader\" (#4358) is a bug fix to project resolution logic, not a breaking change, but since this template sets `MODRINTH_PROJECTS` and `TYPE: PAPER` (not NeoForge), it does not apply to this deployment's current `TYPE`.\n- The compose file's own pin is still `2026.10.0@sha256:5a2ab7...` for `itzg/minecraft-server` \u2014 this is a template bookkeeping issue, not an upstream one, but it means the upgrade described here has not actually been applied to the file under review.\n\n### Before applying\n- Update the `x-images` default in `minecraft-server-docker-compose.yml` from `2026.10.0@sha256:5a2ab74ae179c11e2dbbce67f307cdcf2c1257b3abb0f654d3a310b3d8ea57da` to the `2026.10.1` tag and its correct sha256 digest (look it up on the registry; do not reuse the old digest).\n- No database/world migration steps are indicated by the notes. Take the normal pre-upgrade world backup as a precaution since the `mc-backup` sidecar is already running \u2014 confirm a recent backup exists under `./minecraft-server-data-backups` before restarting.\n- No `.env` edits are required.\n\n### Notes read\n- 2026.10.1 (2026-10-25) \u2014 upgrade target, read in full.\n- 2026.10.0 (2026-10-10) \u2014 baseline release the template currently runs, read only to confirm nothing in it is miscounted as new in this range.\n\n## Upstream changes 2026.10.1 -> 2026.10.2\n\n**Verdict:** SAFE TO APPLY \u2014 the only change is a bump of the bundled `rcon-cli` dependency, and the image configuration itself (user, entrypoint, command, ports, volumes, healthcheck, environment) is unchanged between the two versions.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none. The only line in the release notes is: `chore(deps): update dependency itzg/rcon-cli to v1.7.9 by @renovate[bot]`. This affects the `rcon-cli` binary bundled inside the `mc-backup` image, used internally for RCON save-off/save-on around backups; no externally visible port, path, or database/companion-service version is involved.\n\n### Before applying\n- none. Update the pin (`MINECRAFT_SERVER_BACKUP_IMAGE_VERSION` / the `x-images` default for `mc-backup-image`) and redeploy as usual. No backup, migration, or config edit is required for this range.\n\n### Notes read\n- `2026.10.2` (upstream release notes, itzg/docker-mc-backup)\n- `2026.10.1` (baseline release notes, itzg/docker-mc-backup, read only to confirm the requirement set the template already runs against \u2014 rcon-cli v1.7.8, not changed by this range beyond the version bump itself)\n"
   },
   {
     "repo": "owncloud-traefik-letsencrypt-docker-compose",
-    "sha": "a1c589ed7732ccd7babfbc3e6916a0a33abd1ba1",
+    "sha": "e0042a2a749413307d64eadaabb1788868bf3df4",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-26T13:43:13Z"
+    "pushed_at": "2026-10-26T23:21:23Z"
   },
   {
     "repo": "sonarqube-traefik-letsencrypt-docker-compose",
-    "sha": "52587f6f81f8465f549f6df638a59e3eeef607a4",
+    "sha": "59ffd061985ca320597b267afd2292b072d6bba9",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-26T13:43:27Z"
+    "pushed_at": "2026-10-26T23:21:34Z"
   },
   {
     "repo": "zammad-traefik-letsencrypt-docker-compose",
-    "sha": "7b9cb6fccff7c4b7e9e2f5ea8b15097c11b8a3a7",
+    "sha": "8e420699d6f023b6608767e3832a1da157304a84",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-26T13:43:45Z"
+    "pushed_at": "2026-10-26T23:21:49Z"
   }
 ]
