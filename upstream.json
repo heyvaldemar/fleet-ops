@@ -77,6 +77,11 @@
    "url": "https://github.com/Pryaxis/TShock/issues/3323",
    "role": "issue with a reproduction",
    "found_in": "terraria-server-docker-compose"
+  },
+  {
+   "url": "https://github.com/cypress-io/cypress-documentation/pull/7035",
+   "role": "pull request",
+   "found_in": "cypress-cloud-triage-agent"
   }
  ]
 }
