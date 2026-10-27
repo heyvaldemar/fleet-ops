@@ -58,6 +58,10 @@
    "url": "https://github.com/kyverno/kyverno/issues/18272",
    "role": "feature request",
    "found_in": "kubernetes-supply-chain-admission"
+  },
+  {
+   "url": "https://github.com/kyverno/policies/pull/1622#discussion_r4384374440",
+   "role": "review suggestion"
   }
  ]
 }
