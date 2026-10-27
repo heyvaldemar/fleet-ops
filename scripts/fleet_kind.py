@@ -39,6 +39,9 @@ NAMED = {
     "kubernetes-supply-chain-admission": "focused",
     "kubernetes-postgres-recovery": "focused",
     "kubernetes-air-gapped-ai-agent": "focused",
+    # The same question as the sandbox, asked of a Cypress Cloud triage
+    # agent: what it can do with a failed run's text as its input.
+    "cypress-cloud-triage-agent": "focused",
     "helm-charts": "helm",
 }
 
