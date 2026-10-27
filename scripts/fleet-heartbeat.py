@@ -4,6 +4,7 @@
     fleet-heartbeat.py [--repo owner/name] [--tolerance 2.0] [--json beat.json]
     fleet-heartbeat.py --failing       this repository's own jobs that run and fail
     fleet-heartbeat.py --fleet          the same question asked of every public repository
+    fleet-heartbeat.py --private        the private half, in the house copy only (FLEET_ROLE=house)
 
 Everything here is scheduled: the catalog daily, triage twice a day,
 conformance daily, the scout and the lifecycle review on Mondays. Each one
@@ -601,7 +602,23 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fleet_kind  # noqa: E402
 
 
-def list_owned(include_private):
+# WHICH COPY IS SPEAKING, AND WHO READS IT.
+#
+# The fleet runs from the public heyvaldemar/fleet-ops: its run log, its step
+# summary and its heartbeat issue are readable by anyone. The private copy
+# (FLEET_ROLE=house) prints into its own. A finding about a private repository
+# carries that repository's name, and a stuck pull request the title of the
+# update, so only the house copy may produce one. Until 2026-10-27 the public
+# sweep asked the private half too; nothing had leaked yet, and the first
+# private Dependabot pull request left open for a day would have published both.
+#
+# Unset reads as public. A new copy, a rehearsal, a fork: none of them has
+# been told it is the house, and the safe default is to say less.
+def house():
+    return os.environ.get("FLEET_ROLE") == "house"
+
+
+def list_owned(include_private, private_only=False):
     """Repositories this token owns, newest naming first.
 
     /user/repos, not /users/OWNER/repos: the second is PUBLIC ONLY, whatever
@@ -616,6 +633,8 @@ def list_owned(include_private):
             if r["archived"] or r["fork"]:
                 continue
             if r["private"] and not include_private:
+                continue
+            if private_only and not r["private"]:
                 continue
             out.append(r["full_name"])
             DEFAULT_BRANCH[r["full_name"]] = r.get("default_branch") or "main"
@@ -743,9 +762,10 @@ def unverified_heads(owner, repos, now, hours=3):
     return out
 
 
-def waiting_on_us(owner, now, hours=48):
+def waiting_on_us(owner, now, only, hours=48):
     """Issues and pull requests a person outside the fleet opened, still
-    waiting for its maintainer to say something.
+    waiting for its maintainer to say something, in the repositories `only`
+    names.
 
     Everything else here watches the machinery, and the machinery never
     watched the people it serves. On 2026-09-23 a Keycloak user asked for a
@@ -758,6 +778,11 @@ def waiting_on_us(owner, now, hours=48):
 
     Waiting means: opened by someone who is not the owner and not a bot, open
     longer than `hours`, and either never answered or answered last by them.
+
+    `only` is not an optimisation. The search answers for every repository the
+    token can see, private ones included, and each finding carries the
+    repository in its link; which repositories a copy may name is decided by
+    its caller (see house()), and anything outside that list is dropped here.
     """
     # One query per kind: since late September 2026 the search API answers
     # 422 to a query that names neither is:issue nor is:pull-request, and the
@@ -771,11 +796,13 @@ def waiting_on_us(owner, now, hours=48):
         who = (it.get("user") or {})
         if who.get("type") == "Bot" or who.get("login", "").endswith("[bot]"):
             continue
+        full = it["repository_url"].split("/repos/", 1)[1]
+        if full not in only:
+            continue
         opened = datetime.datetime.fromisoformat(it["created_at"].replace("Z", "+00:00"))
         age = (now - opened).total_seconds() / 3600
         if age < hours:
             continue
-        full = it["repository_url"].split("/repos/", 1)[1]
         kind = "pull request" if "pull_request" in it else "issue"
         if it.get("comments", 0):
             thread = gh("repos/%s/issues/%d/comments?per_page=100" % (full, it["number"]))
@@ -1018,27 +1045,37 @@ def fleet(owner, tolerance, now):
             checked += seen
             if late:
                 findings.append(late)
-    # THE PRIVATE HALF TOO, for this one check.
-    #
-    # Whether a pull request is stuck applies to every repository a person
-    # owns. The schedule and standard-files checks above stay public-only on
-    # purpose: a private config repository is not expected to carry Scorecard,
-    # and reporting that every morning would be noise. But on 2026-09-18 two
-    # Dependabot pull requests had been sitting on heyvaldemar-com, the live
-    # website, for four and seven days, one of them green and mergeable the
-    # whole time, and nothing here had ever looked at them — not because a
-    # check failed but because the listing never handed them over.
+    # The private half is private_half()'s, in the house copy (see house()).
     pr_stats = {}
-    owned = list_owned(include_private=True)
-    findings += stuck_dependabot(owner, owned, now, stats=pr_stats)
-    findings += waiting_on_us(owner, now)
-    # AND THE PRIVATE HALF'S SCHEDULES, only those two questions: is a schedule
-    # disabled, and has one stopped firing. heyvaldemar-com, the live website,
-    # carries the daily job that copies the fleet's numbers into its HTML, and
-    # GitHub switches off a private repository's schedule after sixty quiet days
-    # as readily as a public one's. The public-only checks above stay public:
-    # a private config repository is not expected to carry Scorecard.
-    for full in [r for r in owned if r not in repos]:
+    findings += stuck_dependabot(owner, repos, now, stats=pr_stats)
+    findings += waiting_on_us(owner, now, only=set(repos))
+    findings += unverified_heads(owner, repos, now)
+    return findings, len(repos), checked, disabled, pr_stats
+
+
+def private_half(owner, tolerance, now):
+    """The private repositories, asked the questions that apply to them, and
+    only ever in the house copy.
+
+    Whether a pull request is stuck applies to every repository a person owns.
+    On 2026-09-18 two Dependabot pull requests had been sitting on
+    heyvaldemar-com, the live website, for four and seven days, one of them
+    green and mergeable the whole time, and nothing here had ever looked at
+    them — not because a check failed but because the listing never handed
+    them over. The same repository carries the daily job that copies the
+    fleet's numbers into its HTML, and GitHub switches off a private
+    repository's schedule after sixty quiet days as readily as a public one's.
+
+    So: stuck pull requests, people waiting, and two questions of each
+    schedule, is it disabled and has it stopped firing. Not the standard files:
+    a private config repository is not expected to carry Scorecard, and
+    reporting that every morning would be noise.
+    """
+    private = list_owned(include_private=True, private_only=True)
+    findings, checked, disabled, pr_stats = [], 0, 0, {}
+    findings += stuck_dependabot(owner, private, now, stats=pr_stats)
+    findings += waiting_on_us(owner, now, only=set(private))
+    for full in private:
         listing = gh_or_none("repos/%s/actions/workflows?per_page=100" % full)
         if listing is None:
             continue                          # unreadable here is reported above, as standing
@@ -1053,8 +1090,12 @@ def fleet(owner, tolerance, now):
             checked += seen
             if late:
                 findings.append(late)
-    findings += unverified_heads(owner, repos, now)
-    return findings, len(repos), checked, disabled, pr_stats
+    if private and not checked and not disabled:
+        # Said as a finding, not as an exit: the report reads the JSON, and a
+        # half that judged nothing must not file itself as a quiet one.
+        findings.append("not one live schedule was judged across %d private repositories — that is this "
+                        "check being blind, not the private half being quiet" % len(private))
+    return findings, len(private), checked, disabled, pr_stats
 
 
 def token_expiry():
@@ -1112,11 +1153,21 @@ def watch_drift(keep=("heyvaldemar/fleet-ops", "heyvaldemar/fleet-ops-private"))
         if len(b) < 100:
             break
         page += 1
-    mine = [r["full_name"] for r in subs
-            if r["owner"]["login"] == "heyvaldemar" and r["full_name"] not in keep]
-    if mine:
+    drift = [r for r in subs if r["owner"]["login"] == "heyvaldemar" and r["full_name"] not in keep]
+    # COUNTED, NOT NAMED, OUTSIDE THE HOUSE. GitHub subscribes the creator of a
+    # new private repository as readily as a public one, and this line goes
+    # into the public copy's log. The fix is the same click either way, on the
+    # watching page, so the count is all a person needs from here. A repository
+    # whose answer leaves its visibility out is taken to be private.
+    mine = [r["full_name"] for r in drift if house() or r.get("private") is False]
+    hidden = len(drift) - len(mine)
+    if drift:
+        named = sorted(mine)[:6]
+        listed = ", ".join(named) + (" …" if len(mine) > 6 else "")
+        if hidden:
+            listed += "%s%d private repository(ies), not named in this copy" % ("; and " if named else "", hidden)
         out.append("watching %d of its own repositories beyond %s, so their Dependabot threads will mail again: %s"
-                   % (len(mine), ", ".join(keep), ", ".join(sorted(mine)[:6]) + (" …" if len(mine) > 6 else "")))
+                   % (len(drift), ", ".join(keep), listed))
     return out
 
 
@@ -1263,6 +1314,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--failing", action="store_true", help="this repository's own jobs that run and fail")
     ap.add_argument("--fleet", action="store_true", help="ask the same question of every public repository")
+    ap.add_argument("--private", action="store_true",
+                    help="the private repositories' pull requests and schedules; house copy only")
     ap.add_argument("--owner", default="heyvaldemar")
     ap.add_argument("--repo", default=os.environ.get("GITHUB_REPOSITORY", "heyvaldemar/fleet-ops"))
     ap.add_argument("--root", default=".")
@@ -1319,6 +1372,25 @@ def main():
                      scheduled_workflows=checked, findings=findings), indent=2) + "\n")
         if not checked:
             sys.exit("not one scheduled workflow found across %d repositories - that is this check being broken, not the fleet being quiet" % repos)
+        sys.exit(1 if report(findings) else 0)
+
+    if a.private:
+        # Refused before the first request, not filtered after the last one:
+        # a copy that never asks has nothing to print by mistake.
+        if not house():
+            sys.exit("the private half is named only in the house copy (FLEET_ROLE=house); this one is public")
+        findings, repos, checked, disabled, pr_stats = private_half(a.owner, a.tolerance, now)
+        print("%d private repositories, %d live schedules among them, %d disabled by GitHub"
+              % (repos, checked, disabled))
+        print("stuck pull requests: %d of %d repositories read, %d open pull requests seen "
+              "(%d refused the list; read credential: %s)"
+              % (pr_stats.get("read", 0), pr_stats.get("given", 0), pr_stats.get("prs", 0),
+                 pr_stats.get("denied", 0),
+                 "present" if os.environ.get(READ_TOKEN) else "absent"))
+        if a.js:
+            open(a.js, "w", encoding="utf-8").write(json.dumps(
+                dict(owner=a.owner, checked=now.strftime("%Y-%m-%dT%H:%M:%SZ"), repositories=repos,
+                     scheduled_workflows=checked, findings=findings), indent=2) + "\n")
         sys.exit(1 if report(findings) else 0)
 
     states = {w["path"].split("/")[-1]: w for w in gh("repos/%s/actions/workflows?per_page=100" % a.repo)["workflows"]}

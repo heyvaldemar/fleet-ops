@@ -122,7 +122,7 @@ print("=== the watch list drifting back ===")
 # notification page and from the documentation. So the policy is asserted here
 # rather than remembered.
 def subs(*names):
-    return lambda path: [{"full_name": n, "owner": {"login": n.split("/")[0]}} for n in names]
+    return lambda path: [{"full_name": n, "owner": {"login": n.split("/")[0]}, "private": False} for n in names]
 
 hb.gh = subs("heyvaldemar/fleet-ops")
 check("watching only fleet-ops is the intended state", hb.watch_drift(), [])
@@ -857,7 +857,8 @@ print("=== the private half's schedules ===")
 # heyvaldemar-com, the live website, carries the daily job that copies the
 # fleet's numbers into its HTML. The schedule checks were public-only, so a
 # private repository's schedule could be switched off after sixty quiet days
-# and nothing here would say so.
+# and nothing here would say so. Since 2026-10-27 the house copy asks
+# (private_half); what the public copy may print is tests/test-heartbeat-privacy.sh.
 import importlib.util as _il5, datetime as _dt5, subprocess as _sp5
 spec5 = _il5.spec_from_file_location("hb5", "scripts/fleet-heartbeat.py")
 hb5 = _il5.module_from_spec(spec5); spec5.loader.exec_module(hb5)
@@ -876,31 +877,36 @@ def gh5(path):
 hb5.gh = gh5
 hb5.gh_or_none = gh5
 hb5.last_changed = lambda full, path: None
-hb5.list_owned = lambda include_private: ["o/pub"] + (["o/site", "o/secret"] if include_private else [])
+hb5.list_owned = lambda include_private, private_only=False: (
+    ([] if private_only else ["o/pub"]) + (["o/site", "o/secret"] if include_private else []))
 hb5.stuck_dependabot = lambda owner, repos, now, stats=None: []
 hb5.unverified_heads = lambda owner, repos, now: []
 hb5.missing_standard_files = lambda *a: []
 hb5.gh_exists = lambda path: True
 hb5.last_fired = lambda full, ident, settled=None: {2: now5 - _dt5.timedelta(hours=80), 3: now5 - _dt5.timedelta(hours=5)}.get(ident)
 hb5.declared_period = lambda full, path: 24.0
-found5, n5, checked5, disabled5, _ = hb5.fleet("o", 2.0, now5)
+found5, n5, checked5, disabled5, _ = hb5.private_half("o", 2.0, now5)
 check("a disabled schedule in a private repository is a finding",
       any("o/site: fleet-numbers.yml is disabled_inactivity" in f for f in found5), True)
 check("and one that stopped firing is too",
       any("o/site: late.yml last fired 80 hours ago" in f for f in found5), True)
-check("a private repository this token cannot read is skipped, not a crash", n5, 1)
+check("a private repository this token cannot read is skipped, not a crash",
+      (n5, [f for f in found5 if "o/secret" in f]), (2, []))
 check("the public-only checks do not reach it",
       [f for f in found5 if "carries none of" in f or "is missing" in f], [])
 check("its schedules are counted as checked", checked5, 2)
+pub5, _, _, _, _ = hb5.fleet("o", 2.0, now5)
+check("and the public sweep does not reach the private half at all",
+      [f for f in pub5 if "o/site" in f or "o/secret" in f], [])
 
 # A cron changed since the last run starts the clock again: weekly to daily at
 # 15:41 is not "62 hours late" the next morning.
 hb5.last_changed = lambda full, path: now5 - _dt5.timedelta(hours=10) if path.endswith("late.yml") else None
-found6, _, _, _, _ = hb5.fleet("o", 2.0, now5)
+found6, _, _, _, _ = hb5.private_half("o", 2.0, now5)
 check("a schedule changed since its last run is not late yet",
       any("late.yml" in f for f in found6), False)
 hb5.last_changed = lambda full, path: now5 - _dt5.timedelta(hours=79)
-found7, _, _, _, _ = hb5.fleet("o", 2.0, now5)
+found7, _, _, _, _ = hb5.private_half("o", 2.0, now5)
 check("but a change long ago does not excuse a schedule that stopped",
       any("late.yml last fired 79 hours ago" in f for f in found7), True)
 
@@ -911,7 +917,7 @@ def dying(path):
     raise SystemExit("cannot read " + path)
 hb5.gh = lambda path: dying(path) if "o/secret" in path else gh5(path)
 try:
-    hb5.fleet("o", 2.0, now5)
+    hb5.private_half("o", 2.0, now5)
     survived = True
 except SystemExit:
     survived = False
@@ -1013,7 +1019,7 @@ def wait_gh(path):
     return THREADS[int(path.split("/issues/")[1].split("/")[0])]
 keep_gh = hb.gh
 hb.gh = wait_gh
-waiting = hb.waiting_on_us("o", now)
+waiting = hb.waiting_on_us("o", now, only={"o/a"})
 hb.gh = keep_gh
 check("an issue with no reply after three days is a finding", len([w for w in waiting if w.startswith("o/a#1:") and "no reply at all" in w]), 1)
 check("one the owner answered last is not",                   len([w for w in waiting if w.startswith("o/a#2:")]), 0)
@@ -1022,6 +1028,9 @@ check("one ten hours old is given time",                      len([w for w in wa
 check("a bot is not a person waiting",                        len([w for w in waiting if w.startswith("o/a#5:")]), 0)
 check("a pull request from outside counts too",               len([w for w in waiting if w.startswith("o/a#6:") and "pull request" in w]), 1)
 check("and nothing else was invented",                        len(waiting), 3)
+hb.gh = wait_gh
+check("a repository the caller did not hand over is not named", hb.waiting_on_us("o", now, only={"o/b"}), [])
+hb.gh = keep_gh
 
 print("passed: %d   failed: %d" % (passed, failed))
 sys.exit(1 if failed else 0)

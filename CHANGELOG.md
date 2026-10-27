@@ -87,6 +87,21 @@ check or a job, a patch fixes one.
   that the unregistered ones hold no code to rate.
 
 ### Fixed
+- **The public heartbeat no longer asks about private repositories.** Its
+  sweep looked for stuck Dependabot pull requests and dead schedules in the
+  private repositories too, and a finding there carries the repository's name
+  and the title of the update, into a run log, a step summary and an issue
+  anyone can read. Nothing had leaked by 2026-10-27; the first private pull
+  request left open for a day would have. The public sweep now lists public
+  repositories only, a person waiting is reported only where that copy may
+  name the repository, and a watched private repository is counted rather
+  than named. The private half moved to the private copy (`--private`, which
+  refuses to run unless `FLEET_ROLE=house`), so the alarm for the private
+  website's pull requests still reaches a person, by name, in that copy's
+  own heartbeat issue. `tests/test-heartbeat-privacy.sh` runs the whole
+  script against a fake `gh` with a private repository planted and fails on
+  its name or title in the public output.
+
 - **A pin to a release line gets its baseline too.** Open WebUI is pinned as
   `0.11`, a tag the image carries for the newest 0.11.x, and no GitHub release
   has that name, so on 2026-10-11 the move to 0.12.0 was reviewed with no
