@@ -529,5 +529,31 @@ expect "dependencies excluded from the cooldown are caught" "$WORK/cooldownexclu
 d="$(fixture cooldownlonger)"; tag_all "$d"; dependabot_with "$d" "      default-days: 7"
 expect_clean "$WORK/cooldownlonger"
 
+# A HEAP THE CONTAINER CANNOT HOLD: the limits rollout gave Confluence 2g under
+# a 12G heap. Each case puts a heap setting into the first service's
+# environment (postgres in the reference, limited to 1g); the rule must read
+# the default out of ${VAR:-...}, read -Xmx out of *_JAVA_OPTS, leave a heap
+# that fits alone, and leave MEMORY alone on an image that is not itzg's.
+heap_in() {          # heap_in <repo-dir> < line: under the first environment:
+  local f add; f="$(compose_of "$1")"; add="$(cat)"
+  awk -v add="$add" '{ print } !done && /^    environment:$/ { print add; done = 1 }' "$f" > "$f.new" && mv "$f.new" "$f"
+}
+d="$(fixture heapunder)"; tag_all "$d"; heap_in "$d" <<'YML'
+      JVM_MAXIMUM_MEMORY: ${CASE_JVM_MAXIMUM_MEMORY:-8G}
+YML
+expect "a container limit under its JVM heap is caught" "$WORK/heapunder" "memory limit 1g cannot hold the 8G JVM heap"
+d="$(fixture heapxmx)"; tag_all "$d"; heap_in "$d" <<'YML'
+      ES_JAVA_OPTS: -Xms2g -Xmx2g
+YML
+expect "an -Xmx in JAVA_OPTS above the limit is caught" "$WORK/heapxmx" "memory limit 1g cannot hold the 2g JVM heap"
+d="$(fixture heapfits)"; tag_all "$d"; heap_in "$d" <<'YML'
+      JVM_MAXIMUM_MEMORY: ${CASE_JVM_MAXIMUM_MEMORY:-512m}
+YML
+expect_clean "$WORK/heapfits"
+d="$(fixture heapnotitzg)"; tag_all "$d"; heap_in "$d" <<'YML'
+      MEMORY: 4G
+YML
+expect_clean "$WORK/heapnotitzg"
+
 echo "passed: $PASSED   failed: $FAILED"
 [ "$FAILED" -eq 0 ]

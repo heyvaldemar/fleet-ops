@@ -203,6 +203,69 @@ def changelog_claims(repo):
             % (len(missing), ", ".join(missing))]
 
 
+_SIZE = re.compile(r"^\s*([0-9]+(?:\.[0-9]+)?)\s*([kmgtKMGT])?[bB]?\s*$")
+
+
+def default_of(expr):
+    """The value a ${VAR:-default} expression has when nothing is set: the
+    innermost default, or None when the variable is required or has none."""
+    expr = expr.strip().strip("'\"")
+    while True:
+        m = re.search(r"\$\{[A-Za-z0-9_]+:-([^${}]*)\}", expr)
+        if not m:
+            break
+        expr = expr[:m.start()] + m.group(1) + expr[m.end():]
+    return None if "${" in expr else expr
+
+
+def size_bytes(text):
+    """'2g', '2560m', '12G' as bytes; None when it is not a size."""
+    m = _SIZE.match(text or "")
+    if not m:
+        return None
+    unit = (m.group(2) or "").lower()
+    return float(m.group(1)) * {"": 1, "k": 1 << 10, "m": 1 << 20, "g": 1 << 30, "t": 1 << 40}[unit]
+
+
+def jvm_heap(block, compose):
+    """The largest maximum heap a service gives a JVM, as (bytes, text), or None.
+
+    Atlassian images read JVM_MAXIMUM_MEMORY; itzg's Minecraft images read
+    MAX_MEMORY, else MEMORY, for both -Xms and -Xmx; anything else passes -Xmx
+    in a *_JAVA_OPTS variable. MEMORY is only a heap on an itzg image, so the
+    service's image (often an x-images anchor) is resolved first."""
+    found = []
+    for key, val in re.findall(r"^\s*-?\s*(JVM_MAXIMUM_MEMORY|MAX_MEMORY|MEMORY)\s*[:=]\s*(\S+)", block, re.M):
+        if key != "JVM_MAXIMUM_MEMORY":
+            img = re.search(r"^\s*image:\s*(\S+)", block, re.M)
+            ref = img.group(1) if img else ""
+            if ref.startswith("*"):
+                a = re.search(r"&%s\s+(\S+)" % re.escape(ref[1:]), compose)
+                ref = a.group(1) if a else ""
+            if "itzg/" not in ref:
+                continue
+            if key == "MEMORY" and re.search(r"^\s*-?\s*MAX_MEMORY\s*[:=]", block, re.M):
+                continue
+        d = default_of(val)
+        b = size_bytes(d)
+        if b:
+            found.append((b, d))
+    for d in re.findall(r"-Xmx([0-9.]+[kKmMgG])", block):
+        found.append((size_bytes(d), d))
+    return max(found) if found else None
+
+
+def memory_limit(block):
+    """The default memory limit of a service, as (bytes, text), or None."""
+    m = (re.search(r"limits:\s*\n(?:\s+cpus:[^\n]*\n)?\s+memory:\s*(\S+)", block)
+         or re.search(r"^\s*mem_limit:\s*(\S+)", block, re.M))
+    if not m:
+        return None
+    d = default_of(m.group(1))
+    b = size_bytes(d)
+    return (b, d) if b else None
+
+
 def required_env(text):
     """Variables the compose file cannot do without: every ${VAR} occurrence
     that carries no default of its own.
@@ -790,6 +853,20 @@ def check_repo(repo, exempt=None):
                 bad.append(f"{name}: no resource limits")
         if STATEFUL.search(block) and not SKIP_SVC.search(name) and "stop_grace_period" not in block:
             bad.append(f"{name}: data-owning service with no stop_grace_period")
+        # A HEAP THE CONTAINER CANNOT HOLD. The resource-limits rollout of
+        # 2026-09-02 set every service's memory limit without reading the heap
+        # the same file gives its JVM: Confluence got 2g under an 8G minimum
+        # and 12G maximum heap, Jira 2g under 8G, Bitbucket 2g under 4G, the
+        # Minecraft proxy 1g under 2G. The kernel counts everything in the
+        # container and a JVM keeps memory outside its heap, so each was an OOM
+        # kill waiting for real load; CI runs small heaps with no load and
+        # never saw one. The image documentation asks for a quarter on top
+        # (itzg's in so many words), and that is the bar here.
+        heap = jvm_heap(block, compose)
+        limit = memory_limit(block) if heap else None
+        if heap and limit and limit[0] < heap[0] * 1.25:
+            bad.append(f"{name}: memory limit {limit[1]} cannot hold the {heap[1]} JVM heap it is given "
+                       f"and a quarter more for what the JVM keeps outside it")
 
     # 2. the backup loop writes somewhere else first and renames on success
     #
