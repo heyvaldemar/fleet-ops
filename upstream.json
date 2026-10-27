@@ -67,6 +67,11 @@
    "url": "https://github.com/GameServerManagers/LinuxGSM/pull/5108",
    "role": "pull request",
    "found_in": "kf2-server-docker-compose"
+  },
+  {
+   "url": "https://github.com/GameServerManagers/docker-linuxgsm/pull/113",
+   "role": "pull request",
+   "found_in": "kf2-server-docker-compose"
   }
  ]
 }
