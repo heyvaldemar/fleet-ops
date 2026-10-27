@@ -72,6 +72,11 @@
    "url": "https://github.com/GameServerManagers/docker-linuxgsm/pull/113",
    "role": "pull request",
    "found_in": "kf2-server-docker-compose"
+  },
+  {
+   "url": "https://github.com/Pryaxis/TShock/issues/3323",
+   "role": "issue with a reproduction",
+   "found_in": "terraria-server-docker-compose"
   }
  ]
 }
