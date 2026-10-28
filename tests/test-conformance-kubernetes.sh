@@ -210,8 +210,13 @@ expect "Terraform without a test is caught" "$WORK/tftest" "terraform/ has no te
 d="$(fixture tfplants)"; rm -f "$d/terraform/tests/plants.tsv"
 expect "a Terraform test never shown a violation is caught" "$WORK/tfplants" "the Terraform test is never shown a violation in CI"
 
-d="$(fixture range)"; edit "$d/platform/appsets/kyverno.yaml" 's/targetRevision: 3\.9\.1$/targetRevision: 3.9.*/'
-expect "a chart version range is caught" "$WORK/range" "targetRevision 3.9.* is not one exact version"
+# The plant follows the pin wherever it moves. Written against 3.9.1, it
+# planted nothing once the platform's Kyverno chart went to 3.9.2 on
+# 2026-10-27, and this check failed on a rule that still worked.
+d="$(fixture range)"; f="$d/platform/appsets/kyverno.yaml"
+minor="$(sed -n 's/^ *targetRevision: \([0-9][0-9]*\.[0-9][0-9]*\)\.[0-9][0-9]*$/\1/p' "$f" | head -1)"
+edit "$f" "s/targetRevision: ${minor}\.[0-9][0-9]*$/targetRevision: ${minor}.*/"
+expect "a chart version range is caught" "$WORK/range" "targetRevision ${minor:-<no chart pin found>}.* is not one exact version"
 
 # Whichever ApplicationSet carries a Git source: the file names change, the
 # rule does not.
