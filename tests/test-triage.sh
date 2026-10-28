@@ -404,6 +404,18 @@ lagcase "a v prefix survives on both sides" \
 lagcase "a lag that names its variable keeps it and still parses" \
   "::error::MINECRAFT_SERVER_BACKUP_IMAGE_TAG is behind: pinned 2026.9.2, latest itzg/docker-mc-backup release is 2026.9.3" 2026.9.2 2026.9.3
 
+# A TERRAFORM TEMPLATE WRITES THREE SHAPES, AND A CHART IS ONE OF THEM. The
+# chart line says "latest is"; on 2026-10-28 nothing read it.
+tfl() { printf '%s\n' "$1" | tf_lag_lines; }
+same "a provider lag is read" "hashicorp/aws is behind: pinned 6.70.0, latest release is 6.71.0" \
+  "$(tfl "::error::hashicorp/aws is behind: pinned 6.70.0, latest release is 6.71.0")"
+same "the image lag is read" "TERRAFORM_IMAGE is behind: pinned 1.17, latest release is 1.18" \
+  "$(tfl "::error::TERRAFORM_IMAGE is behind: pinned 1.17, latest release is 1.18")"
+same "a chart lag is read, named as a chart" "helm_release aws-ebs-csi-driver is behind: pinned 2.67.0, latest is 2.67.2" \
+  "$(tfl "::error::helm_release aws-ebs-csi-driver is behind: pinned 2.67.0, latest is 2.67.2")"
+same "a chart that is current is not a lag" "" \
+  "$(tfl "helm_release aws-ebs-csi-driver 2.67.2 is the latest release")"
+
 # ONE VERSION STRING, TWO IMAGES THAT DO NOT MOVE TOGETHER. The server and its
 # backup sidecar both pinned 2026.9.2 on 2026-10-01; only the sidecar lagged.
 # shellcheck disable=SC2016  # ${...} is compose interpolation, written literally

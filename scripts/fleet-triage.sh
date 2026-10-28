@@ -450,14 +450,21 @@ terraform_refresh() {
     TF_CHANGED=1
   done
 
-  # Version lag, named by subject: a provider source or TERRAFORM_IMAGE.
-  lags="$( (gh run view "$frid" --repo "$OWNER/$repo" --log 2>/dev/null || true) \
-      | { grep -oE '[A-Za-z0-9_/.-]+ is behind: pinned [0-9][^,]*, latest ([^ ]+ )?release is [0-9][^ "]*' || true; } | sort -u)"
+  # Version lag, named by subject: a provider source, TERRAFORM_IMAGE or a
+  # helm_release chart.
+  lags="$( (gh run view "$frid" --repo "$OWNER/$repo" --log 2>/dev/null || true) | tf_lag_lines)"
   while IFS= read -r line; do
     [ -n "$line" ] || continue
     subject="${line%% is behind*}"
     oldv="$(sed -E 's/.*pinned ([0-9][^,]*),.*/\1/' <<<"$line")"
     newv="$(sed -E 's/.* is ([0-9][^ "]*)$/\1/' <<<"$line")"
+    # A chart moves the workloads it installs, and its notes say what that
+    # costs; nothing here reads them yet. Named, so it is not left unsaid.
+    case "$subject" in
+      "helm_release "*)
+        note "$repo: Helm chart ${subject#helm_release } $oldv -> $newv — read the chart's notes and move it by hand, needs a human"
+        continue ;;
+    esac
     if [ "${oldv%%.*}" != "${newv%%.*}" ]; then
       note "$repo: $subject $oldv -> $newv crosses a major — prepared for a human, not applied"
       terraform_major_branch "$dir" "$repo" "$subject" "$oldv" "$newv"
@@ -1086,6 +1093,14 @@ lag_lines() {        # stdin: a workflow log -> one line per lag it names
   # The pin's variable is kept when the alarm names one ("X_IMAGE_TAG is
   # behind: ..."), so the bump below can move that pin and no other.
   { grep -oE '([A-Z0-9_]+_IMAGE_TAG )?is behind[^:]*: pinned ([a-z]+ )?v?[0-9][^,]*, (latest|newest)[^,]* is v?[0-9][^ "]*' || true; } | sort -u
+}
+
+tf_lag_lines() {     # stdin: a terraform template's log -> one line per lag it names
+  # The chart check writes "latest is", the provider and image checks "latest
+  # release is". Until 2026-10-28 only the second was read, so the EBS CSI
+  # chart in amazon-eks-cluster-pipeline-terraform sat five days behind a
+  # security release while this run reported the repository as handled.
+  { grep -oE '(helm_release )?[A-Za-z0-9_/.-]+ is behind: pinned [0-9][^,]*, latest (([^ ]+ )?release )?is [0-9][^ "]*' || true; } | sort -u
 }
 
 lag_var() {          # lag_var <line> -> the pin variable the alarm names, or nothing
