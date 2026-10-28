@@ -1,194 +1,40 @@
 [
   {
-    "repo": "affine-traefik-letsencrypt-docker-compose",
-    "sha": "21c07b51cd2e7f3dee95461a702a5a46a22329e9",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-28T13:37:51Z"
+    "repo": "amazon-ec2-instance-pipeline-terraform",
+    "sha": "c027596c0bea9bdfe2f43f2f4d87b3203ac2c4f5",
+    "wf": "Terraform Verification",
+    "kind": "version",
+    "pushed_at": "2026-10-28T23:31:37Z",
+    "review": "\n## Upstream changes 6.70.0 -> 6.71.0\n\n**Verdict:** SAFE TO APPLY \u2014 no breaking changes in this range, and the registry lookup failure (noted below) does not change that: this is a Terraform provider, not a long-running service, and the compose-equivalent here is the version constraint in `01-providers.tf`, which already permits this release.\n\n### Breaking changes\n- none found in the notes for 6.71.0. (6.70.0 had one, but that is the baseline already running, not something this upgrade introduces.)\n\n### Variables\n- none. No provider arguments are renamed or removed. `.env.example` is empty/not provided and this image exposes no environment-driven configuration of its own \u2014 nothing to check there.\n\n### Data and dependencies\n- The version pin in `01-providers.tf` is `version = \"~> 6.70.0\"`, a pessimistic constraint that only allows `6.70.x`. **It must be widened (e.g. to `~> 6.71.0` or `>= 6.70.0, < 7.0.0`) for `terraform init -upgrade` to actually pick up 6.71.0.** This is a mechanical step, not a behavioral risk, but without it the \"upgrade\" silently does nothing.\n- \"provider: Update the minimum Go version required to build the provider to 1.27.3. Go 1.27 requires macOS 13 Ventura or later\" \u2014 this only affects building the provider from source; irrelevant to a pulled binary/plugin install.\n- No companion service (database, cache, search engine) version is named anywhere in these notes, so the rule requiring a pinned companion-service version does not apply here.\n\n### Before applying\n- Edit `01-providers.tf` to widen the `aws` provider version constraint past `6.70.0` (currently `~> 6.70.0`), then run `terraform init -upgrade`.\n- Run `terraform plan` and review the diff before applying, as routine practice \u2014 the notes report no forced replacements or state-breaking changes for this range, but `resource/aws_instance` behavior around `placement_group*` arguments changed from replace to in-place stop/start, which is worth confirming matches expectations if you use those arguments.\n- No state migration, manual import-ID changes, or backup step is required by these notes for this range (the import-ID format change for `aws_route53domains_delegation_signer_record` was introduced in 6.70.0, the baseline, not in this move).\n\n### Notes read\n- `v6.71.0` (2026-10-28) \u2014 full release notes and CHANGELOG.md entry.\n- `v6.70.0` (2026-10-21) \u2014 read only as the stated baseline, to confirm nothing in it is miscounted as a change in this range.\n- Registry image comparison could not be read (`HTTP Error 401: Unauthorized`); verdict and findings rest on the release notes alone.\n"
   },
   {
-    "repo": "authelia-traefik-letsencrypt-docker-compose",
-    "sha": "b25bf7f3eb6aee05db9b2f8a0c636d20a71a06f7",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-28T13:38:16Z"
-  },
-  {
-    "repo": "bitbucket-traefik-letsencrypt-docker-compose",
-    "sha": "bed34783ed6ceb6cb28cf9da3f773d95c34c1d51",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-28T13:38:25Z"
-  },
-  {
-    "repo": "confluence-traefik-letsencrypt-docker-compose",
-    "sha": "87ead51c33c895aaa151953205be5114846c445d",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-28T13:38:35Z"
-  },
-  {
-    "repo": "docmost-traefik-letsencrypt-docker-compose",
-    "sha": "2290e8c2086d0b948e6a592703ffb0a8c973ecdc",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-28T13:38:50Z"
-  },
-  {
-    "repo": "game-server-wireguard-relay-docker-compose",
-    "sha": "49746d9c7e440107f7ebbb3a9a19879ad6eb9384",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-28T13:38:58Z"
-  },
-  {
-    "repo": "ghost-traefik-letsencrypt-docker-compose",
-    "sha": "b884c39069c17ea23ff21c66c41de9b5672c8ec7",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-28T13:39:06Z",
-    "review": "\n## Upstream changes 6.72.0 -> 6.73.0\n\n**Verdict:** SAFE TO APPLY \u2014 this is a patch release containing only bug fixes, and the image diff shows no change to user, entrypoint, command, ports, volumes, healthcheck or environment beyond the version string itself.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none. The release notes list bug fixes only (member imports, gallery reordering, tag filters, `{{encode}}` helper, member tier handling, fetch/jsdom, checkout redirect, Transistor card embeds, email click tracking). No database version requirement, migration, or schema change is mentioned.\n- MySQL 8.4-oracle is the companion engine already pinned in the compose file at the baseline (6.72.0); this upgrade does not introduce or raise that requirement.\n\n### Before applying\n- None required beyond the normal good practice of taking a database/content backup before any image bump \u2014 the `backups` service already does this on schedule, but confirm a recent dump exists (`ghost-database-backups` / `ghost-data-backups` volumes) before pulling.\n- Update the pin: change `GHOST_IMAGE_VERSION`/`GHOST_IMAGE_TAG` default in the compose `x-images` block (or `.env` override) from `6.72.0` to `6.73.0` with the matching digest, then `docker compose up -d`.\n\n### Notes read\n- v6.73.0 (2026-10-27) \u2014 the release being moved to\n- v6.72.0 (2026-10-20) \u2014 baseline, read only to confirm no requirement already in force is being misreported as new\n"
-  },
-  {
-    "repo": "gitea-traefik-letsencrypt-docker-compose",
-    "sha": "4ed05ad8060b306afaef7c3e6eed42406861d947",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-28T13:39:14Z"
-  },
-  {
-    "repo": "gitlab-traefik-letsencrypt-docker-compose",
-    "sha": "499b1508170bfcaeacdf29b62b35efdfbdeb2fd5",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-28T13:39:23Z"
-  },
-  {
-    "repo": "glpi-traefik-letsencrypt-docker-compose",
-    "sha": "5efa45e45534a00f18b169ed45699aba8dc7a545",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-28T13:39:50Z",
-    "review": "\n## Upstream changes 11.0.11 -> 11.0.12\n\n**Verdict:** SAFE TO APPLY \u2014 a security bugfix release with no breaking changes in the notes or changelog, and the image configuration itself is unchanged apart from the application code.\n\n### Breaking changes\n- none found in the notes. The CHANGELOG's `[11.0.12]` entry lists only behavioural changes, not breaking ones in the compose-relevant sense (container user, entrypoint, ports, volumes, env vars untouched \u2014 confirmed by the image diff below). Worth flagging to the operator as application-level behaviour changes, per the rule that code-level breaking changes are still reportable:\n  - \"Default behavior when submitting a Form that has only one destination is now redirecting to created item instead of showing the feedback page.\" \u2014 changes a user-facing workflow; reversible via General configuration.\n  - \"Webhooks on ITIL tasks now match the entity of their parent item. A non-recursive task webhook defined in the root entity is no longer triggered by tasks of sub-entities\" \u2014 will silently stop firing some existing webhooks unless \"Sub-entities\" is enabled.\n  - \"The 'Refused equipments' setting of the logs purge now purges the history of refused equipments instead of the refused equipments themselves.\" \u2014 changes what a purge job deletes.\n\n### Variables\n- none. No variable renames, removals, or new requirements in the notes or .env.example for this range.\n\n### Data and dependencies\n- none introduced by this range. The release notes state this is a security bugfix release; no database version requirement change, no irreversible migration mentioned for 11.0.12.\n- Already true at the current version (11.0.11 baseline, not a change in this upgrade): the compose file pins `mariadb:11.4`, matching GLPI's general MariaDB/MySQL requirements; nothing in either release's notes raises this requirement.\n\n### Before applying\n- Take the normal database and `glpi-data` volume backup the `backups` service already performs before pulling \u2014 this is a routine precaution, not something the notes specifically call for.\n- If any ITIL task webhooks are defined non-recursively on the root entity and are relied upon to fire for sub-entity tasks, enable \"Sub-entities\" on those webhooks after the upgrade to preserve existing behaviour (per the Changed note above).\n- Update the pin: change `GLPI_IMAGE_VERSION`/`GLPI_IMAGE_TAG` (compose default and/or `.env`) from `11.0.11` to `11.0.12` with the correct digest.\n\n### Notes read\n- `11.0.12` (2026-10-28) release notes and CHANGELOG.md `[11.0.12]` entry \u2014 the version being moved to.\n- `11.0.11` (2026-10-01) release notes \u2014 given as the baseline, read only to confirm no requirement already existed there.\n- `12.0.0` release notes included in the upstream text were not read as part of this range \u2014 the upgrade in question stops at 11.0.12, not 12.0.0; that major version is out of scope for this report.\n"
-  },
-  {
-    "repo": "jira-traefik-letsencrypt-docker-compose",
-    "sha": "43e849f31ff257aa18726f7fb474d5bc6929d42e",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-28T13:40:06Z"
+    "repo": "amazon-ec2-nextcloud-docker-swarm-pipeline-terraform",
+    "sha": "5b93399af44d3ff8a384d45e3d46fb7710a6a053",
+    "wf": "Terraform Verification",
+    "kind": "version",
+    "pushed_at": "2026-10-28T23:32:17Z",
+    "review": "\n## Upstream changes 6.70.0 -> 6.71.0\n\n**Verdict:** SAFE TO APPLY \u2014 no breaking changes in this range, and the registry lookup failure (noted below) does not change that: this is a Terraform provider, not a long-running service, and the compose-equivalent here is the version constraint in `01-providers.tf`, which already permits this release.\n\n### Breaking changes\n- none found in the notes for 6.71.0. (6.70.0 had one, but that is the baseline already running, not something this upgrade introduces.)\n\n### Variables\n- none. No provider arguments are renamed or removed. `.env.example` is empty/not provided and this image exposes no environment-driven configuration of its own \u2014 nothing to check there.\n\n### Data and dependencies\n- The version pin in `01-providers.tf` is `version = \"~> 6.70.0\"`, a pessimistic constraint that only allows `6.70.x`. **It must be widened (e.g. to `~> 6.71.0` or `>= 6.70.0, < 7.0.0`) for `terraform init -upgrade` to actually pick up 6.71.0.** This is a mechanical step, not a behavioral risk, but without it the \"upgrade\" silently does nothing.\n- \"provider: Update the minimum Go version required to build the provider to 1.27.3. Go 1.27 requires macOS 13 Ventura or later\" \u2014 this only affects building the provider from source; irrelevant to a pulled binary/plugin install.\n- No companion service (database, cache, search engine) version is named anywhere in these notes, so the rule requiring a pinned companion-service version does not apply here.\n\n### Before applying\n- Edit `01-providers.tf` to widen the `aws` provider version constraint past `6.70.0` (currently `~> 6.70.0`), then run `terraform init -upgrade`.\n- Run `terraform plan` and review the diff before applying, as routine practice \u2014 the notes report no forced replacements or state-breaking changes for this range, but `resource/aws_instance` behavior around `placement_group*` arguments changed from replace to in-place stop/start, which is worth confirming matches expectations if you use those arguments.\n- No state migration, manual import-ID changes, or backup step is required by these notes for this range (the import-ID format change for `aws_route53domains_delegation_signer_record` was introduced in 6.70.0, the baseline, not in this move).\n\n### Notes read\n- `v6.71.0` (2026-10-28) \u2014 full release notes and CHANGELOG.md entry.\n- `v6.70.0` (2026-10-21) \u2014 read only as the stated baseline, to confirm nothing in it is miscounted as a change in this range.\n- Registry image comparison could not be read (`HTTP Error 401: Unauthorized`); verdict and findings rest on the release notes alone.\n"
   },
   {
     "repo": "joomla-traefik-letsencrypt-docker-compose",
-    "sha": "e9a4e7808e6dcb41bdeef4212a9549843d4c4407",
+    "sha": "30ba02904223f551d3b77dd501a20f85f0ad0848",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-28T13:40:14Z"
-  },
-  {
-    "repo": "keycloak-traefik-letsencrypt-docker-compose",
-    "sha": "827d7658f3ff2798613ceb71ea0f90237eef5f5a",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-28T13:40:22Z"
-  },
-  {
-    "repo": "mailu-traefik-letsencrypt-docker-compose",
-    "sha": "8756a4ab5baedcc077bb2d8a6ae836d48feb8701",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-28T13:40:44Z"
-  },
-  {
-    "repo": "mattermost-traefik-letsencrypt-docker-compose",
-    "sha": "c4d08e042a6ac835bae2d08317cadbecc48729d4",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-28T13:40:53Z"
+    "pushed_at": "2026-10-28T23:32:52Z"
   },
   {
     "repo": "nextcloud-onlyoffice-traefik-letsencrypt-docker-compose",
-    "sha": "57c2c3bc6f55265491ec7815c24cc854d9dbf91f",
+    "sha": "69a13b6106425b8f29c500e07299990dc5372214",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-28T13:41:11Z"
-  },
-  {
-    "repo": "nextcloud-traefik-letsencrypt-docker-compose",
-    "sha": "cb46af6b3d7b46fd1c44799765cfb2a37c8a2c98",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-28T13:41:20Z"
-  },
-  {
-    "repo": "nocodb-traefik-letsencrypt-docker-compose",
-    "sha": "be0674ecf9502d7d5daf2c5d1f70864d90117ec0",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-28T13:41:29Z"
-  },
-  {
-    "repo": "outline-keycloak-traefik-letsencrypt-docker-compose",
-    "sha": "afb5b53dbc938e8164ac4672e79edcaaaa405b60",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-28T13:41:44Z"
-  },
-  {
-    "repo": "owncloud-traefik-letsencrypt-docker-compose",
-    "sha": "842b5bd08915e63e600fe4e5ea90e7c8697f8eec",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-28T13:41:52Z"
-  },
-  {
-    "repo": "seafile-traefik-letsencrypt-docker-compose",
-    "sha": "3ad0230f2c36e13e2e4961205dbaea58ac5dc83d",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-28T13:42:06Z"
-  },
-  {
-    "repo": "wikijs-traefik-letsencrypt-docker-compose",
-    "sha": "f4b3256e4eccd02df67f3744de4cf21d30920aec",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-28T13:42:26Z"
+    "pushed_at": "2026-10-28T23:33:11Z"
   },
   {
     "repo": "wordpress-traefik-letsencrypt-docker-compose",
-    "sha": "064bd0724c10105d42bcaf7e4be3bac815aa97c1",
+    "sha": "9b94a95a7507cb5b7a74730e3eaf11d7ac403de3",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-28T13:42:34Z"
-  },
-  {
-    "repo": "xwiki-traefik-letsencrypt-docker-compose",
-    "sha": "c1e7728b25538a5098c3ec42a8ce2282d3d153cd",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-28T13:42:41Z",
-    "review": "\n## Upstream changes 18.8.0-postgres-tomcat -> 18.9.0-postgres-tomcat\n\n**Verdict:** NEEDS ATTENTION \u2014 no upstream release notes are available for this move, so the application-level changes between 18.8.0 and 18.9.0 cannot be verified from text; the image diff itself is minor and consistent with a routine point release.\n\n### Breaking changes\n- Not available. XWiki does not publish release notes in this packaging repository (`xwiki/xwiki-docker is the packaging and tags no versions`). No UPGRADING, BREAKING_CHANGES or CHANGELOG section was supplied either. Check the XWiki release notes on xwiki.org for 18.9.0 by hand before applying \u2014 in particular for any noted data migration, extension-compatibility break, or configuration change between 18.8.0 and 18.9.0.\n\n### Variables\n- none \u2014 no compose variables, .env.example entries, or container environment variable names changed. The only environment differences are internal build-time values baked into the image (`XWIKI_VERSION`, `XWIKI_DOWNLOAD_SHA256`, `XWIKI_URL_PREFIX`, `POSTGRES_JDBC_*`), none of which are read from `.env` or overridable by the deployer.\n\n### Data and dependencies\n- The bundled PostgreSQL JDBC driver moves from 42.7.13 to 42.7.14 (`POSTGRES_JDBC_VERSION: '42.7.13' -> '42.7.14'`), a patch-level driver bump baked into the image, not something the host configures.\n- The compose file pins PostgreSQL 15 (`postgres:${XWIKI_POSTGRES_IMAGE_VERSION:-15@sha256:...}`); the image diff does not mention any required PostgreSQL version change, so this pin is unaffected by the move.\n- No ports, paths, volumes, or healthchecks differ between the two image configurations.\n- Already true at the current version (not part of this upgrade): the postgres-tomcat image already requires PostgreSQL and a JDBC driver, both already running under 18.8.0.\n\n### Before applying\n- Take the usual backup before any XWiki version bump: this template already runs a scheduled backup job (`backups` service), confirm a recent dump exists (`POSTGRES_BACKUPS_PATH`, `DATA_BACKUPS_PATH`) before pulling 18.9.0.\n- Manually check the XWiki 18.9.0 release notes on xwiki.org for any required extension updates, database migrations triggered on first startup, or deprecated configuration, since none of that is available from this image-diff/packaging source.\n- No `.env` or compose edits are required; the version bump is driven entirely by the `XWIKI_IMAGE_VERSION`/digest pin in `x-images`.\n\n### Notes read\n- No upstream release notes were available for 18.8.0-postgres-tomcat -> 18.9.0-postgres-tomcat (packaging repository does not carry version-specific notes). No UPGRADING/BREAKING_CHANGES/CHANGELOG section was provided. Only the registry image-configuration diff was read.\n"
-  },
-  {
-    "repo": "zabbix-docker-compose",
-    "sha": "49e2ee8de5bf6fe670a8178bfd8af599a7759593",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-28T13:42:50Z"
-  },
-  {
-    "repo": "zabbix-traefik-letsencrypt-docker-compose",
-    "sha": "1a203295ebc89e4870a900bd5b41404e2119d2d5",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-28T13:43:01Z"
-  },
-  {
-    "repo": "zammad-traefik-letsencrypt-docker-compose",
-    "sha": "87bc54770ee206de104d0ba70211deeee6120b62",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-10-28T13:43:13Z"
+    "pushed_at": "2026-10-28T23:33:48Z",
+    "review": "\n## Upstream changes 7.1.3 -> 7.1.4\n\n**Verdict:** NEEDS ATTENTION \u2014 no release notes exist for this image tag, so the actual code change behind 7.1.4 cannot be verified before applying.\n\nNo release-notes source was available: \"(not available: WordPress publishes release notes on wordpress.org; docker-library/wordpress is the packaging and tags no versions)\". The registry comparison found no differences in anything it tracks: \"The two image configurations are identical in every field that changes behaviour: `User`, `Entrypoint`, `Cmd`, `WorkingDir`, `ExposedPorts`, `Volumes`, `Healthcheck`, and the environment.\" That rules out a container-level change, but it says nothing about WordPress core/plugin behaviour inside the image, which is exactly what this version bump is for and exactly what cannot be checked here.\n\n### Breaking changes\n- none found in the notes \u2014 no notes were available to read. Treat this as unknown, not as confirmed-safe.\n\n### Variables\n- none \u2014 no renamed, removed, or newly-required variables indicated by either the compose file or .env.example for this bump.\n\n### Data and dependencies\n- Already true at 7.1.3, not introduced by this upgrade: MariaDB is pinned at `11.4@sha256:d1891ede...` and the compose file requires `WORDPRESS_DB_PASSWORD` / `WORDPRESS_DB_ADMIN_PASSWORD` to be set with no default. This range does not raise or change that requirement.\n- No new database version requirement, port change, path change, or irreversible migration is indicated by anything available for 7.1.3 -> 7.1.4.\n\n### Before applying\n- Take a database backup and a data-volume backup before pulling the new tag (the `backups` service in this compose file does both; run it or wait for a cycle, or snapshot `mariadb-data` and `wordpress-data` manually).\n- Check the WordPress core version bundled in `wordpress:7.1.4` against the WordPress.org changelog/security advisories yourself (https://wordpress.org/news/category/releases/) before rolling this out to production, since no packaging-level release notes exist for docker-library tags.\n- Since the image's `User`, `Entrypoint`, `Cmd`, `Volumes`, `Healthcheck` and environment handling are unchanged between the two tags, no compose-file edits are required for this bump.\n\n### Notes read\n- No release notes could be read for this image. docker-library/wordpress does not publish per-tag release notes; WordPress core release/security notes live on wordpress.org and were not supplied. The only verified input was the registry image-configuration diff, which showed no behavioural differences in container-level fields.\n"
   }
 ]
