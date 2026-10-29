@@ -440,6 +440,12 @@ RUNBOOKS = ("upgrade", "rollback", "restore", "incident")
 CLAIMS = re.compile(r"\b(in production at|used in production|runs in production|production[- ]proven|"
                     r"battle[- ]tested|trusted by|certified)\b", re.I)
 CLOUD_LOGIN = re.compile(r"configure-aws-credentials|role-to-assume|azure/login|google-github-actions/auth")
+# The delete-only identity a sweeper logs in as, one per cloud, and the
+# creation identity or apply that would make a run anything but delete-only.
+SWEEP_IDENTITY = re.compile(r"(role-to-assume|service_account|client-id):\s*\$\{\{\s*vars\."
+                            r"(AWS_SWEEP_ROLE_ARN|GKE_SWEEP_SERVICE_ACCOUNT|AZURE_SWEEP_CLIENT_ID)\s*\}\}")
+CREATE_IDENTITY = re.compile(r"vars\.(AWS_CREATE_ROLE_ARN|GKE_CREATE_SERVICE_ACCOUNT|AZURE_CREATE_CLIENT_ID)"
+                             r"|terraform[^\n]*\bapply\b|eks-up")
 
 
 def claim_findings(repo, paths):
@@ -464,17 +470,59 @@ def weekly_or_rarer(cron):
     return (dom == "*" and bool(one_dow)) or (bool(re.fullmatch(r"\d{1,2}", dom)) and dow == "*")
 
 
+def jobs_of(text):
+    """{job id: its text} for a workflow's jobs, read by indentation: a job is
+    a two-space key under the top-level jobs: key."""
+    m = re.search(r"^jobs:\s*$", text, re.M)
+    if not m:
+        return {}
+    jobs, name, lines = {}, None, []
+    for line in text[m.end():].splitlines():
+        head = re.match(r"^  ([A-Za-z0-9_-]+):\s*$", line)
+        if head or (line and not line.startswith(" ") and not line.startswith("#")):
+            if name:
+                jobs[name] = "\n".join(lines)
+            if not head:
+                break
+            name, lines = head.group(1), []
+        elif name:
+            lines.append(line)
+    if name:
+        jobs[name] = "\n".join(lines)
+    return jobs
+
+
+def branch_only_push(text):
+    """True when the workflow's push trigger ignores main and every job that
+    logs in to a cloud runs on main only: a push to any other branch can then
+    start nothing that logs in. The flagship's GKE run (ADR 22) uses this to
+    prove from a branch that the federation refuses it."""
+    on = re.search(r"^on:\s*$(.*?)^(?=\S)", text, re.M | re.S)
+    if not on or re.search(r"^\s+pull_request(_target)?:", on.group(1), re.M):
+        return False
+    push = re.search(r"^  push:\s*$((?:\n(?:    .*|\s*))*)", on.group(1), re.M)
+    if not push or not re.search(r"branches-ignore:\s*(\[\s*['\"]?main['\"]?\s*\]|\n\s+-\s*['\"]?main['\"]?\s*$)",
+                                 push.group(1), re.M):
+        return False
+    cloud_jobs = [j for j in jobs_of(text).values() if CLOUD_LOGIN.search(j)]
+    main_only = re.compile(r"^    if:.*github\.ref\s*==\s*'refs/heads/main'", re.M)
+    return bool(cloud_jobs) and all(main_only.search(j) for j in cloud_jobs)
+
+
 def cloud_run_findings(workflows):
     """A workflow that logs in to a cloud is a workflow that spends money."""
     bad = []
     for w, text in sorted(workflows.items()):
         if not CLOUD_LOGIN.search(text):
             continue
+        # A delete-only sweeper (below) makes nothing, so it has nothing to
+        # tear down; every other cloud run needs its teardown.
+        delete_only = bool(SWEEP_IDENTITY.search(text)) and not CREATE_IDENTITY.search(text)
         if re.search(r"secrets\.(AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY)|aws-access-key-id:", text):
             bad.append(f"{w}: a cloud run with a stored access key instead of OIDC")
         if not re.search(r"^\s+timeout-minutes:", text, re.M):
             bad.append(f"{w}: a cloud run without a job timeout")
-        if "if: always()" not in text:
+        if "if: always()" not in text and not delete_only:
             bad.append(f"{w}: a cloud run without a teardown that runs if: always()")
         if not re.search(r"^concurrency:", text, re.M):
             bad.append(f"{w}: a cloud run that two pushes could start twice (no concurrency group)")
@@ -487,15 +535,15 @@ def cloud_run_findings(workflows):
         # schedule at most once a week, and only behind a repository variable
         # the owner sets, so switching it off needs no commit; the account's
         # kill-switch bounds what a month of them can cost. A push or a pull
-        # request never starts one.
+        # request never starts one, except a push to a branch other than main
+        # into a workflow whose cloud jobs run on main only (branch_only_push).
         if re.search(r"^\s+schedule:|^\s+push:|^\s+pull_request:", text, re.M):
-            on_push = re.search(r"^\s+(push|pull_request):", text, re.M)
-            delete_only = (re.search(r"role-to-assume:\s*\$\{\{\s*vars\.AWS_SWEEP_ROLE_ARN\s*\}\}", text)
-                           and not re.search(r"vars\.AWS_CREATE_ROLE_ARN|terraform[^\n]*\bapply\b|eks-up", text))
+            on_push = re.search(r"^\s+(push|pull_request):", text, re.M) and not branch_only_push(text)
             crons = re.findall(r"^\s+-\s*cron:\s*[\"']([^\"']+)[\"']", text, re.M)
             weekly = (crons and all(weekly_or_rarer(c) for c in crons)
                       and re.search(r"github\.event_name\s*==\s*'schedule'\s*&&\s*vars\.[A-Z0-9_]+\s*==\s*'true'", text))
-            if on_push or not (delete_only or weekly):
+            scheduled = re.search(r"^\s+schedule:", text, re.M)
+            if on_push or (scheduled and not (delete_only or weekly)):
                 bad.append(f"{w}: a cloud run that starts on its own; it must be workflow_dispatch only, "
                            "a delete-only sweeper, or an apply at most weekly behind a repository variable")
     return bad

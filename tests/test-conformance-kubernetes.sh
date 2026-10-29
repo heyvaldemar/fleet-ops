@@ -204,6 +204,94 @@ expect "an apply every minute of one weekday is caught" "$WORK/weekly-minutely" 
 weekly weekly-ungated "17 3 * * 1" "github.ref == 'refs/heads/main'"
 expect "a weekly apply with no variable to switch it off is caught" "$WORK/weekly-ungated" "weekly.yml: a cloud run that starts on its own"
 
+# The same two shapes on Google Cloud (the flagship's ADR 22): a sweeper that
+# logs in as the delete-only service account, and a weekly apply whose push
+# trigger ignores main, so a branch can only ask for a credential and be refused.
+gsweeper() {         # gsweeper <case> <service account variable> <extra step>
+  local d; d="$(fixture "$1")"
+  cat > "$d/.github/workflows/gke-sweep.yml" <<EOF
+name: gke-sweep
+on:
+  schedule:
+    - cron: "41 6 * * *"
+permissions:
+  contents: read
+concurrency:
+  group: gke-sweep
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      id-token: write
+    steps:
+      - uses: google-github-actions/auth@0000000000000000000000000000000000000000
+        with:
+          workload_identity_provider: \${{ vars.GKE_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: \${{ vars.$2 }}
+      - run: $3
+EOF
+}
+gsweeper gsweep-ok GKE_SWEEP_SERVICE_ACCOUNT "./scripts/gke-sweep.sh"
+expect_clean "a GKE sweeper with the delete-only account needs no teardown and may be scheduled" "$WORK/gsweep-ok"
+gsweeper gsweep-create GKE_CREATE_SERVICE_ACCOUNT "./scripts/gke-sweep.sh"
+expect "a scheduled GKE run with the creation account is caught" "$WORK/gsweep-create" "gke-sweep.yml: a cloud run that starts on its own"
+expect "a GKE run with the creation account still needs its teardown" "$WORK/gsweep-create" "gke-sweep.yml: a cloud run without a teardown that runs if: always()"
+
+gweekly() {          # gweekly <case> <push branches line> <job condition>
+  local d; d="$(fixture "$1")"
+  cat > "$d/.github/workflows/gke.yml" <<EOF
+name: gke
+on:
+  schedule:
+    - cron: "23 3 * * 5"
+  workflow_dispatch:
+  push:
+    $2
+    paths:
+      - gke/**
+permissions:
+  contents: read
+concurrency:
+  group: gke
+jobs:
+  refused:
+    if: github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - run: python3 scripts/ask-for-a-credential.py
+  up:
+    if: $3
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    permissions:
+      id-token: write
+    steps:
+      - uses: google-github-actions/auth@0000000000000000000000000000000000000000
+        with:
+          service_account: \${{ vars.GKE_CREATE_SERVICE_ACCOUNT }}
+      - run: terraform -chdir=gke apply -auto-approve
+  down:
+    needs: up
+    if: always() && $3
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: google-github-actions/auth@0000000000000000000000000000000000000000
+        with:
+          service_account: \${{ vars.GKE_CREATE_SERVICE_ACCOUNT }}
+      - run: terraform -chdir=gke destroy -auto-approve
+EOF
+}
+ggate="github.ref == 'refs/heads/main' && (inputs.confirm == 'SPEND' || (github.event_name == 'schedule' && vars.GKE_VALIDATION_ENABLED == 'true'))"
+gweekly gweekly-ok "branches-ignore: [main]" "$ggate"
+expect_clean "a weekly GKE apply whose push ignores main is allowed" "$WORK/gweekly-ok"
+gweekly gweekly-main "branches: [main]" "$ggate"
+expect "a GKE apply a push to main starts is caught" "$WORK/gweekly-main" "gke.yml: a cloud run that starts on its own"
+gweekly gweekly-anybranch "branches-ignore: [main]" "github.event_name == 'schedule' && vars.GKE_VALIDATION_ENABLED == 'true' || github.event_name == 'push'"
+expect "a GKE apply a branch push can reach is caught" "$WORK/gweekly-anybranch" "gke.yml: a cloud run that starts on its own"
+
 d="$(fixture tftest)"; rm -f "$d"/terraform/tests/*.tftest.hcl
 expect "Terraform without a test is caught" "$WORK/tftest" "terraform/ has no terraform test"
 
