@@ -95,6 +95,11 @@
   {
    "url": "https://github.com/kyverno/kyverno/issues/18315#issuecomment-6498907076",
    "role": "comment naming the cause"
+  },
+  {
+   "url": "https://github.com/llm-d/llm-d-router/issues/3326#issuecomment-6523685532",
+   "role": "independent measurement of a merged fix",
+   "found_in": "kubernetes-llm-inference-gateway"
   }
  ]
 }
