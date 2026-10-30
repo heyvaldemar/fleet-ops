@@ -91,6 +91,10 @@
    "url": "https://github.com/docker-hardened-images/catalog/pull/685",
    "role": "pull request",
    "found_in": "docker-hardened-images-migration"
+  },
+  {
+   "url": "https://github.com/kyverno/kyverno/issues/18315#issuecomment-6498907076",
+   "role": "comment naming the cause"
   }
  ]
 }
