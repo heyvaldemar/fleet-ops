@@ -770,16 +770,21 @@ def measured_rules(repo, names):
             bad.append(f"missing {f}")
 
     workflows = {w: repo.read(f".github/workflows/{w}") or "" for w in repo.workflows()}
-    e2e = [t for t in workflows.values() if "tests/e2e.sh" in t and "kind" in t]
+    # The kind run is the workflow that installs kind and runs tests/e2e.sh.
+    # Other workflows may run the same test elsewhere (a weekly GPU leg on
+    # EKS) or plant breaks of their own (failure scenarios); neither stands
+    # in for the daily kind run's schedule or its plants.
+    e2e = [t for t in workflows.values() if "tests/e2e.sh" in t and "kubernetes-sigs/kind/releases" in t]
     if not e2e:
         bad.append("no workflow runs tests/e2e.sh on a kind cluster")
-    elif not any(re.search(r"^\s+schedule:", t, re.M) for t in e2e):
-        bad.append("the e2e workflow has no schedule: nothing measures it again daily")
+    else:
+        if not any(re.search(r"^\s+schedule:", t, re.M) for t in e2e):
+            bad.append("the e2e workflow has no schedule: nothing measures it again daily")
+        if not any(re.search(r"plant-violations\.py.*tests/e2e\.sh", t) for t in e2e):
+            bad.append("no workflow shows the measurement its planted breaks")
     rows = [l for l in (repo.read("tests/plants.tsv") or "").splitlines() if l.strip() and not l.startswith("#")]
     if not rows:
         bad.append("no planted breaks in tests/plants.tsv: the measurement is never shown what it must catch")
-    if not any("tests/plant-violations.py" in t for t in workflows.values()):
-        bad.append("no workflow shows the measurement its planted breaks")
 
     for m in re.finditer(r"^([A-Z0-9_]+_IMAGE)=(\S*)$", repo.read("images.lock") or "", re.M):
         if "@sha256:" not in m.group(2):

@@ -77,7 +77,7 @@ expect "a measurement that never runs on its own is caught" "$WORK/nodaily" "the
 d="$(fixture noplants)"; grep '^#' "$d/tests/plants.tsv" > "$d/p" && mv "$d/p" "$d/tests/plants.tsv"
 expect "a measurement with no planted break is caught" "$WORK/noplants" "no planted breaks in tests/plants.tsv"
 
-d="$(fixture noplantrun)"; edit "$d/.github/workflows/e2e.yml" 's#tests/plant-violations.py#tests/nothing.py#'
+d="$(fixture noplantrun)"; edit "$d/.github/workflows/e2e.yml" 's#tests/plant-violations.py#tests/nothing.py#g'
 expect "CI that never shows the measurement its plants is caught" "$WORK/noplantrun" "no workflow shows the measurement its planted breaks"
 
 d="$(fixture lock)"; edit "$d/images.lock" 's#^\(SIM_IMAGE=[^@]*\)@sha256:[0-9a-f]*#\1#'
