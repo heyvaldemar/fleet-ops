@@ -10,6 +10,7 @@ days on 2026-09-18 because its name matched none of them.
     kind_of("nextcloud-traefik-letsencrypt-docker-compose")  -> "compose"
     kind_of("aws-eks-reference-platform")                    -> "kubernetes"
     kind_of("kubernetes-ai-agent-sandbox")                   -> "focused"
+    kind_of("kubernetes-llm-inference-gateway")              -> "measured"
     kind_of("deadman-switch")                                -> None (not a fleet repository)
 
 The decision is by name, because every caller has a list of names and only
@@ -42,6 +43,9 @@ NAMED = {
     # The same question as the sandbox, asked of a Cypress Cloud triage
     # agent: what it can do with a failed run's text as its input.
     "cypress-cloud-triage-agent": "focused",
+    # Kubernetes on kind again, but the answer is a number: one way of
+    # running a workload measured against another under the same load.
+    "kubernetes-llm-inference-gateway": "measured",
     "helm-charts": "helm",
 }
 
@@ -65,6 +69,7 @@ WORKFLOW = {
     "terraform": ("Terraform Verification", "terraform-verification.yml"),
     "kubernetes": ("kind e2e", "kind-e2e.yml"),
     "focused": ("e2e", "e2e.yml"),
+    "measured": ("E2E", "e2e.yml"),
     "helm": ("Verification", "verification.yml"),
 }
 
@@ -91,6 +96,8 @@ def kind_from_files(names):
         return "kubernetes"
     if {"kind", "manifests"} <= names:
         return "focused"
+    if {"loadgen", "deploy"} <= names:
+        return "measured"
     if any(n.endswith((".yml", ".yaml")) and "compose" in n for n in names):
         return "compose"
     if any(n.endswith(".tf") for n in names):

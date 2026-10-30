@@ -30,6 +30,7 @@ on:
       - 'tests/test-conformance.sh'
       - 'tests/test-conformance-kubernetes.sh'
       - 'tests/test-conformance-sandbox.sh'
+      - 'tests/test-conformance-measured.sh'
       - 'tests/test-fleet-kind.sh'
       - 'scripts/fleet_kind.py'
       - '.github/workflows/fleet-conformance.yml'
@@ -75,6 +76,7 @@ jobs:
           git -C /tmp/tf-reference fetch -q --depth 1 origin --tags
           git clone -q --depth 1 "https://github.com/$OWNER/kubernetes-ai-agent-sandbox" /tmp/sandbox-reference
           git -C /tmp/sandbox-reference fetch -q --depth 1 origin --tags
+          git clone -q --depth 1 "https://github.com/$OWNER/kubernetes-llm-inference-gateway" /tmp/measured-reference
           if ! GIT_TERMINAL_PROMPT=0 git clone -q --depth 1 "https://github.com/$OWNER/aws-eks-reference-platform" /tmp/k8s-reference 2>/dev/null; then
             if [ -z "$READ_TOKEN" ] || ! GH_TOKEN="$READ_TOKEN" gh repo clone "$OWNER/aws-eks-reference-platform" /tmp/k8s-reference -- -q --depth 1; then
               echo "aws-eks-reference-platform is private and the read token cannot see it" > /tmp/k8s-reference.unavailable
@@ -88,7 +90,7 @@ jobs:
         # stays quiet, so a rule that rots into a no-op is caught here rather
         # than by a green report that checked nothing.
         run: |
-          chmod +x tests/test-conformance.sh tests/test-conformance-kubernetes.sh tests/test-conformance-sandbox.sh tests/test-fleet-kind.sh
+          chmod +x tests/test-conformance.sh tests/test-conformance-kubernetes.sh tests/test-conformance-sandbox.sh tests/test-conformance-measured.sh tests/test-fleet-kind.sh
           ./tests/test-conformance.sh /tmp/reference
           if [ -e /tmp/k8s-reference.unavailable ]; then
             echo "SKIPPED tests/test-conformance-kubernetes.sh: $(cat /tmp/k8s-reference.unavailable)" | tee -a "$GITHUB_STEP_SUMMARY"
@@ -96,6 +98,7 @@ jobs:
             ./tests/test-conformance-kubernetes.sh /tmp/k8s-reference /tmp/tf-reference
           fi
           ./tests/test-conformance-sandbox.sh /tmp/sandbox-reference
+          ./tests/test-conformance-measured.sh /tmp/measured-reference
           ./tests/test-fleet-kind.sh
 
       - name: Check the fleet

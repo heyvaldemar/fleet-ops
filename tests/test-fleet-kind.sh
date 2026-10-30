@@ -33,6 +33,7 @@ kubernetes-supply-chain-admission focused
 kubernetes-postgres-recovery focused
 kubernetes-air-gapped-ai-agent focused
 cypress-cloud-triage-agent focused
+kubernetes-llm-inference-gateway measured
 helm-charts helm
 heyvaldemar-com none
 deadman-switch none
@@ -48,6 +49,7 @@ import sys; sys.path.insert(0, sys.argv[1]); import fleet_kind as k
 cases = {
     ("platform", "kind", "Makefile", "README.md"): "kubernetes",
     ("kind", "manifests", "Makefile", "gvisor.lock"): "focused",
+    ("cluster", "deploy", "loadgen", "images.lock"): "measured",
     ("Chart.yaml", "values.yaml"): "helm",
     ("nextcloud-docker-compose.yml", ".env.example"): "compose",
     ("01-providers.tf", "README.md"): "terraform",

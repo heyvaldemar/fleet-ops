@@ -748,6 +748,54 @@ def focused_rules(repo, names):
     return bad
 
 
+# --- Measured Kubernetes repositories ------------------------------------------
+#
+# Kubernetes on kind again, but the claim is a number: one way of running a
+# workload measured against another under the same load (the llm-d router
+# against round-robin, on the same model servers). No Argo CD, no state, and
+# no refusals to plant: what stays from the standard is that a kind cluster
+# measures again every day, every check the measurement makes is shown the
+# breaks it exists for, every image is pinned by digest, and the README says
+# what it costs, how to run and tear it down, and claims no more than the run
+# shows. Each rule is broken on a copy of the inference gateway in
+# tests/test-conformance-measured.sh.
+
+def measured_rules(repo, names):
+    bad = []
+    files_kind = fleet_kind.kind_from_files(names)
+    if files_kind != "measured":
+        bad.append(f"named as a measured Kubernetes repository, but its files say {files_kind or 'nothing recognisable'}")
+    for f in ("LICENSE", "SECURITY.md"):
+        if f not in names:
+            bad.append(f"missing {f}")
+
+    workflows = {w: repo.read(f".github/workflows/{w}") or "" for w in repo.workflows()}
+    e2e = [t for t in workflows.values() if "tests/e2e.sh" in t and "kind" in t]
+    if not e2e:
+        bad.append("no workflow runs tests/e2e.sh on a kind cluster")
+    elif not any(re.search(r"^\s+schedule:", t, re.M) for t in e2e):
+        bad.append("the e2e workflow has no schedule: nothing measures it again daily")
+    rows = [l for l in (repo.read("tests/plants.tsv") or "").splitlines() if l.strip() and not l.startswith("#")]
+    if not rows:
+        bad.append("no planted breaks in tests/plants.tsv: the measurement is never shown what it must catch")
+    if not any("tests/plant-violations.py" in t for t in workflows.values()):
+        bad.append("no workflow shows the measurement its planted breaks")
+
+    for m in re.finditer(r"^([A-Z0-9_]+_IMAGE)=(\S*)$", repo.read("images.lock") or "", re.M):
+        if "@sha256:" not in m.group(2):
+            bad.append(f"images.lock: {m.group(1)} is not pinned by digest")
+    for path in repo.tree():
+        if path.startswith("deploy/") and path.endswith((".yaml", ".yml")):
+            for line in (repo.read(path) or "").splitlines():
+                m = re.match(r"\s*-?\s*image:\s*(\S+)", line)
+                if m and "@sha256:" not in m.group(1):
+                    bad.append(f"{path}: image {m.group(1)} is not pinned by digest")
+
+    bad += cloud_run_findings(workflows)
+    bad += readme_findings(repo, runbooks=False)
+    return bad
+
+
 def terraform_rules(repo, names):
     """A chart installed by Terraform is a pin like any other. Its version sits
     in a helm_release block, where no Dependabot ecosystem and no image check
@@ -835,6 +883,10 @@ def check_repo(repo, exempt=None):
         return focused_rules(repo, names) + workflow_claims(repo) + changelog_claims(repo)
     if fleet_kind.kind_from_files(names) == "focused":
         return ["its files are a focused Kubernetes repository, but its name puts it outside those rules (scripts/fleet_kind.py)"]
+    if kind == "measured":
+        return measured_rules(repo, names) + workflow_claims(repo) + changelog_claims(repo)
+    if fleet_kind.kind_from_files(names) == "measured":
+        return ["its files are a measured Kubernetes repository, but its name puts it outside those rules (scripts/fleet_kind.py)"]
 
     compose_name = next((n for n in names if n.endswith(".yml") and "compose" in n), None)
     if not compose_name:
