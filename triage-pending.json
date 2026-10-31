@@ -1,26 +1,381 @@
 [
   {
-    "repo": "amazon-ec2-gitlab-pipeline-terraform",
-    "sha": "8180dff23a19510bea9a7a88b2efa910a9edf772",
-    "wf": "Terraform Verification",
-    "kind": "version",
-    "pushed_at": "2026-10-30T23:13:24Z",
-    "review": "\n## Upstream changes 6.70.0 -> 6.71.0\n\n**Verdict:** NEEDS ATTENTION \u2014 no breaking changes are declared in the notes, but the provider raises its build toolchain requirement and this template pins `~> 6.70.0`, which must be edited to allow the upgrade at all.\n\n### Breaking changes\n- none found in the notes for 6.71.0. (The only BREAKING CHANGES block in the read range belongs to 6.70.0, the baseline already running, and is not a change this upgrade introduces.)\n\n### Variables\n- none. The `.env.example` provided is empty; there is nothing for this provider documented there. The compose/terraform file pins the version directly: `version = \"~> 6.70.0\"` in the `required_providers.aws` block of `01-providers.tf` \u2014 this line has to be bumped (e.g. to `~> 6.71.0`) for the upgrade to be picked up, since the `~>` constraint as written excludes 6.71.0.\n\n### Data and dependencies\n- NOTES: `provider: Update the minimum Go version required to build the provider to 1.27.3. Go 1.27 requires macOS 13 Ventura or later ([#50436])` \u2014 this affects anyone building the provider binary from source on macOS; it does not affect a normal `terraform init` pulling the prebuilt release, which is what this template does.\n- NOTES: `resource/aws_dx_connection_confirmation: Because we cannot easily test this functionality, it is best effort and we ask for community help in testing` \u2014 a reliability caveat on a Direct Connect resource, not a behavior change.\n- No database, cache, or other companion service version is named anywhere in these notes, so the \"no SAFE TO APPLY without a pinned companion version\" rule does not apply here \u2014 this is a single Terraform provider image.\n- Already true at 6.70.0 (baseline, not introduced by this range): the provider was already built with Go 1.26.10 and already carries the `aws_route53domains_delegation_signer_record` import-ID format change from `domain_name,dnssec_key_id` to `domain_name,flags,algorithm,public_key`. Anyone not already on 6.70.0 or later needs to deal with that re-import separately, but it is not part of the 6.70.0 \u2192 6.71.0 move.\n\n### Before applying\n- Edit `01-providers.tf` to change `version = \"~> 6.70.0\"` to a constraint that admits 6.71.0 (e.g. `~> 6.71.0` or `>= 6.70.0, < 6.72.0`).\n- Run `terraform init -upgrade` to pull the new provider version and update the lock file.\n- Run `terraform plan` and check for unexpected diffs on any `aws_dx_connection`, `aws_dx_connection_confirmation`, `aws_db_instance`, `aws_wafv2_web_acl_rule`, or `aws_networkfirewall_*` resources in use, since those have default-timeout and validation-tightening enhancements/bug fixes in 6.71.0 that could surface as plan diffs even without being labeled breaking.\n- No state migration, backup, or manual data step is called for by the notes.\n\n### Notes read\n- v6.71.0 (2026-10-28) \u2014 read in full, both as the standalone release notes and as the top entry of CHANGELOG.md.\n- v6.70.0 (2026-10-21/22) \u2014 read in full, supplied explicitly as the current-running baseline.\n- Image registry comparison could not be read (HTTP 401 Unauthorized); the \"WHAT THE IMAGES THEMSELVES DIFFER IN\" section is unavailable, so this review rests on the notes alone as instructed.\n"
-  },
-  {
-    "repo": "amazon-rds-pipeline-terraform",
-    "sha": "a232c77a64ff8866fa9f43c1b660bd7a3cc6d67b",
-    "wf": "Terraform Verification",
-    "kind": "version",
-    "pushed_at": "2026-10-30T23:14:05Z",
-    "review": "\n## Upstream changes 6.70.0 -> 6.71.0\n\n**Verdict:** NEEDS ATTENTION \u2014 no breaking changes are declared in the notes, but the provider raises its build toolchain requirement and this template pins `~> 6.70.0`, which must be edited to allow the upgrade at all.\n\n### Breaking changes\n- none found in the notes for 6.71.0. (The only BREAKING CHANGES block in the read range belongs to 6.70.0, the baseline already running, and is not a change this upgrade introduces.)\n\n### Variables\n- none. The `.env.example` provided is empty; there is nothing for this provider documented there. The compose/terraform file pins the version directly: `version = \"~> 6.70.0\"` in the `required_providers.aws` block of `01-providers.tf` \u2014 this line has to be bumped (e.g. to `~> 6.71.0`) for the upgrade to be picked up, since the `~>` constraint as written excludes 6.71.0.\n\n### Data and dependencies\n- NOTES: `provider: Update the minimum Go version required to build the provider to 1.27.3. Go 1.27 requires macOS 13 Ventura or later ([#50436])` \u2014 this affects anyone building the provider binary from source on macOS; it does not affect a normal `terraform init` pulling the prebuilt release, which is what this template does.\n- NOTES: `resource/aws_dx_connection_confirmation: Because we cannot easily test this functionality, it is best effort and we ask for community help in testing` \u2014 a reliability caveat on a Direct Connect resource, not a behavior change.\n- No database, cache, or other companion service version is named anywhere in these notes, so the \"no SAFE TO APPLY without a pinned companion version\" rule does not apply here \u2014 this is a single Terraform provider image.\n- Already true at 6.70.0 (baseline, not introduced by this range): the provider was already built with Go 1.26.10 and already carries the `aws_route53domains_delegation_signer_record` import-ID format change from `domain_name,dnssec_key_id` to `domain_name,flags,algorithm,public_key`. Anyone not already on 6.70.0 or later needs to deal with that re-import separately, but it is not part of the 6.70.0 \u2192 6.71.0 move.\n\n### Before applying\n- Edit `01-providers.tf` to change `version = \"~> 6.70.0\"` to a constraint that admits 6.71.0 (e.g. `~> 6.71.0` or `>= 6.70.0, < 6.72.0`).\n- Run `terraform init -upgrade` to pull the new provider version and update the lock file.\n- Run `terraform plan` and check for unexpected diffs on any `aws_dx_connection`, `aws_dx_connection_confirmation`, `aws_db_instance`, `aws_wafv2_web_acl_rule`, or `aws_networkfirewall_*` resources in use, since those have default-timeout and validation-tightening enhancements/bug fixes in 6.71.0 that could surface as plan diffs even without being labeled breaking.\n- No state migration, backup, or manual data step is called for by the notes.\n\n### Notes read\n- v6.71.0 (2026-10-28) \u2014 read in full, both as the standalone release notes and as the top entry of CHANGELOG.md.\n- v6.70.0 (2026-10-21/22) \u2014 read in full, supplied explicitly as the current-running baseline.\n- Image registry comparison could not be read (HTTP 401 Unauthorized); the \"WHAT THE IMAGES THEMSELVES DIFFER IN\" section is unavailable, so this review rests on the notes alone as instructed.\n"
-  },
-  {
-    "repo": "dashy-traefik-letsencrypt-docker-compose",
-    "sha": "de2b2a827a891ee26d7c376c6c217e59735abd90",
+    "repo": "affine-traefik-letsencrypt-docker-compose",
+    "sha": "ceb84a6696cc9ea1bdd52c59c83607e0f38de0c2",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-10-30T23:14:42Z",
-    "review": "\n## Upstream changes 4.9.8 -> 4.9.9\n\n**Verdict:** SAFE TO APPLY \u2014 only dependency bumps (icons/lint/build tooling) and a Node patch version bump inside the image; no breaking changes, no variable or dependency changes.\n\n### Breaking changes\n- none found in the notes. The only commits in range are: `:arrow_up: (deps): Bump the minor-and-patch group with 3 updates` (simple-icons, autoprefixer, eslint-plugin-vue \u2014 all dev/build-time dependencies), its merge commit, and `\ud83d\udd16 Bump version to 4.9.9`.\n\n### Variables\n- none. No new, renamed or removed variables are indicated by the notes or by the compose/.env.example files.\n\n### Data and dependencies\n- none. The registry diff shows only `NODE_VERSION: '24.22.1' -> '24.22.2'`, a Node.js patch bump baked into the image \u2014 not a companion service version the compose file needs to track, and not called out as a requirement anywhere.\n- No database, cache, or search engine is in play for this image.\n\n### Before applying\n- None required beyond the normal pull/recreate. Update `DASHY_IMAGE_VERSION` (or the digest in the compose file's `x-images` block) from `4.9.8` to `4.9.9` and redeploy.\n\n### Notes read\n- Compare API commit list for `Lissy93/dashy` between tags `4.9.8` and `4.9.9` (no dedicated GitHub release notes exist for either tag, so the 3 commits are the full record).\n- No UPGRADING, BREAKING_CHANGES or CHANGELOG file was supplied for this range, so none was consulted; nothing beyond the commit log and image registry diff was available to check.\n\n## Upstream changes 4.9.9 -> 4.9.11\n\n**Verdict:** SAFE TO APPLY \u2014 the only functional change is an additive feature (icon color option) plus a transitive dependency bump; nothing in the notes requires action.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none. The only dependency change noted is a transitive npm package bump: \"\u2b06\ufe0f (deps): Bump brace-expansion from 2.1.2 to 2.1.7 in the security group across 1 directory\" \u2014 this is a build-time/security dependency of the application itself, not a companion service, and nothing in the compose file pins it.\n\n### Before applying\n- Update the pin: `DASHY_IMAGE_VERSION` default in the compose file's `x-images` block (currently `4.9.9@sha256:e859a3cd06349bf0644b5f5fe7f58dc337d8d07986ff513a6a59c5afafc036ae`) needs bumping to 4.9.11 with its correct digest \u2014 the repository's own stated model (\"git pull delivers the exact version combination this repository has tested\") is how this upgrade is meant to ship.\n- No backup, migration command, or config edit is indicated by the notes.\n- Optionally verify the new icon-color feature (`\u2728 Adds icon-only color option`) works as expected in `config.yml` if icon styling is used, since it's a new capability not a fix.\n\n### Notes read\n- Compare API output for Lissy93/dashy between tags 4.9.9 and 4.9.11 (no discrete GitHub Release notes exist for either tag; the 9 commits in the compare, including the 4.9.10 and 4.9.11 version-bump commits, are the full record read).\n- Registry image inspection failed (502 Bad Gateway) \u2014 the \"WHAT THE IMAGES THEMSELVES DIFFER IN\" section could not be used to confirm or override anything; verdict rests on the commit notes alone.\n"
+    "pushed_at": "2026-10-31T13:09:32Z"
+  },
+  {
+    "repo": "anythingllm-traefik-letsencrypt-docker-compose",
+    "sha": "99db05459e2934b5fbe3987f474938b7a135cad6",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:09:50Z"
+  },
+  {
+    "repo": "audiobookshelf-traefik-letsencrypt-docker-compose",
+    "sha": "c44b199928c1de4b7b4fb17f69d0ddccb7de5849",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:09:59Z"
+  },
+  {
+    "repo": "authelia-traefik-letsencrypt-docker-compose",
+    "sha": "88c0791aba80c35176ae444639a87f07f33ba66e",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:10:10Z"
+  },
+  {
+    "repo": "beszel-traefik-letsencrypt-docker-compose",
+    "sha": "38e0d6f9f70fbf8db931bfe5181b30ecfa127320",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:10:23Z"
+  },
+  {
+    "repo": "bitbucket-traefik-letsencrypt-docker-compose",
+    "sha": "54986384e6edd51361e2b0f6c80af50b4083aeed",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:10:32Z"
+  },
+  {
+    "repo": "chatops-privilege-wall",
+    "sha": "a9260fa458d6ca7a8beb3ea37cedd26885d5d144",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:10:41Z"
+  },
+  {
+    "repo": "confluence-traefik-letsencrypt-docker-compose",
+    "sha": "0574f261a4884cad5931ca0e71e691cc136d6431",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:10:49Z"
+  },
+  {
+    "repo": "dify-traefik-letsencrypt-docker-compose",
+    "sha": "b0cdc9fdf6884225e58b7446f3abec0635d7c7f2",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:11:14Z"
+  },
+  {
+    "repo": "docmost-traefik-letsencrypt-docker-compose",
+    "sha": "c70347fe850e4bb96424a2a1607421aace80251c",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:11:25Z"
+  },
+  {
+    "repo": "dozzle-traefik-letsencrypt-docker-compose",
+    "sha": "cdae8035dacc3a6a0713c7ce4591eaea8967a91d",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:11:35Z"
+  },
+  {
+    "repo": "forgejo-traefik-letsencrypt-docker-compose",
+    "sha": "5db37dacb91db6daa8cbec5e20766af30cfcdabd",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:11:46Z"
+  },
+  {
+    "repo": "gaseous-server-using-docker-compose",
+    "sha": "a18494e95bbbc53e1f3e931754de8b4d0276fed8",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:11:56Z"
+  },
+  {
+    "repo": "ghost-traefik-letsencrypt-docker-compose",
+    "sha": "5d16c71df175d6676b1463ef3b68e5fbb906fa14",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:12:04Z"
+  },
+  {
+    "repo": "gitea-traefik-letsencrypt-docker-compose",
+    "sha": "33beee7bddecaf4126dbac0a0364fbd28d71613c",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:12:13Z"
+  },
+  {
+    "repo": "gitlab-traefik-letsencrypt-docker-compose",
+    "sha": "c0ca71c7054fadfb5fd09a130ee5c742932ca729",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:12:23Z"
+  },
+  {
+    "repo": "glpi-traefik-letsencrypt-docker-compose",
+    "sha": "a1178903f0dd162bb0cbb6cc00fed6e6f5026b91",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:12:32Z"
+  },
+  {
+    "repo": "grafana-traefik-letsencrypt-docker-compose",
+    "sha": "4b810e435485cde82badfeb87361b105e096fdbe",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:12:41Z"
+  },
+  {
+    "repo": "homeassistant-traefik-letsencrypt-docker-compose",
+    "sha": "7980587dd783ef221c034161bd43eaf1b2f3d8ba",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:12:49Z"
+  },
+  {
+    "repo": "homebox-traefik-letsencrypt-docker-compose",
+    "sha": "cdfe72e5d249eb99a5f565782aec070974242e53",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:12:57Z"
+  },
+  {
+    "repo": "homepage-traefik-letsencrypt-docker-compose",
+    "sha": "08c85a6f7dff75391679ebe5a0e4f7ad5ba38e98",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:13:08Z"
+  },
+  {
+    "repo": "humanitz-server-docker-compose",
+    "sha": "f3a91840fafc9fac3f1aefe4c6caf679972167b5",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:13:14Z"
+  },
+  {
+    "repo": "immich-traefik-letsencrypt-docker-compose",
+    "sha": "7f5da93e87923cd11bda08fd4d5d9592802c5966",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:13:25Z"
+  },
+  {
+    "repo": "jellyfin-traefik-letsencrypt-docker-compose",
+    "sha": "98bb91ae4d9064a5e590863e38db0aedd6d734d0",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:13:37Z"
+  },
+  {
+    "repo": "jira-traefik-letsencrypt-docker-compose",
+    "sha": "0a43bdd2e954982fbea4937d2064c9a2f0e04fa0",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:13:45Z"
+  },
+  {
+    "repo": "joomla-traefik-letsencrypt-docker-compose",
+    "sha": "34705d193fd7305a9ee201e1e33a206b23f45d93",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:13:54Z"
+  },
+  {
+    "repo": "keycloak-traefik-letsencrypt-docker-compose",
+    "sha": "e10a96970cf26475ef76f26b4651e26bfc10d7c8",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:14:03Z"
+  },
+  {
+    "repo": "kf2-server-docker-compose",
+    "sha": "d36ca03600ec8949b30c998b7738f11a190d55ee",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:14:09Z"
+  },
+  {
+    "repo": "mailu-traefik-letsencrypt-docker-compose",
+    "sha": "f832b26894e90df3a1d1500fc06ccf7503857a80",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:14:36Z"
+  },
+  {
+    "repo": "mattermost-traefik-letsencrypt-docker-compose",
+    "sha": "3205a0e440970d4a80ebc9ef94b9ccb35fc16cdb",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:14:46Z"
+  },
+  {
+    "repo": "minecraft-server-docker-compose",
+    "sha": "1588b5394d8e6b334d177ccd23f65d20a4b7b33f",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:15:08Z",
+    "review": "\n## Upstream changes 2026.10.2 -> 2026.10.3\n\n**Verdict:** SAFE TO APPLY \u2014 the only change is a dependency bump of a bundled helper binary; the image configuration (user, entrypoint, command, ports, volumes, healthcheck, environment) is confirmed unchanged between the two versions.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none. The notes name no companion service (database, cache, etc.) requiring a pin check.\n\n### Before applying\n- None required. Bump `MINECRAFT_SERVER_BACKUP_IMAGE_VERSION` (or the digest in the compose file's `x-images` block) from `2026.10.2` to `2026.10.3` and redeploy; no config, variable, or data changes accompany this.\n\n### Notes read\n- 2026.10.3 (2026-10-30): \"chore(deps): update dependency itzg/entrypoint-demoter to v0.5.3 by @renovate[bot]\"\n- 2026.10.2 (2026-10-26), read as baseline only: \"chore(deps): update dependency itzg/rcon-cli to v1.7.9 by @renovate[bot]\"\n- No UPGRADING/BREAKING_CHANGES/CHANGELOG section was supplied for this range.\n"
+  },
+  {
+    "repo": "mssql-server-traefik-letsencrypt-docker-compose",
+    "sha": "c0b5baab3a2f764cc3033ae2adb0d022c00e4c14",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:15:17Z"
+  },
+  {
+    "repo": "navidrome-traefik-letsencrypt-docker-compose",
+    "sha": "7de497c979bd77cb775733c75b209edd44c928c4",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:15:26Z"
+  },
+  {
+    "repo": "nextcloud-onlyoffice-traefik-letsencrypt-docker-compose",
+    "sha": "10fcfa65b756335f07db2a6a71dde7c2c076ec16",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:15:41Z"
+  },
+  {
+    "repo": "nextcloud-traefik-letsencrypt-docker-compose",
+    "sha": "5034d3b5cfd2fad2473d6a55f135707b171bc5f3",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:15:52Z"
+  },
+  {
+    "repo": "nocodb-traefik-letsencrypt-docker-compose",
+    "sha": "914a6468310b43d5ba18aa9edfb8f83793c4c62d",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:16:02Z"
+  },
+  {
+    "repo": "ollama-traefik-letsencrypt-docker-compose",
+    "sha": "ed219e5843748944f3bd4fbac25a27ab659a266d",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:16:11Z"
+  },
+  {
+    "repo": "otrs-traefik-letsencrypt-docker-compose",
+    "sha": "c28bc052a485ff93592bb7d0b809dfb60de7fcbd",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:16:20Z"
+  },
+  {
+    "repo": "outline-keycloak-traefik-letsencrypt-docker-compose",
+    "sha": "3d4fde0cef23ba00cba9cc4cccb23307d542a0c1",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:16:36Z"
+  },
+  {
+    "repo": "owncloud-traefik-letsencrypt-docker-compose",
+    "sha": "64947fc790777c2ef4cff5dc352e9505e1432cbc",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:16:45Z"
+  },
+  {
+    "repo": "portainer-traefik-letsencrypt-docker-compose",
+    "sha": "07e063cbfc04a842ffeb4884c7f90538652e55be",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:16:52Z"
+  },
+  {
+    "repo": "rocketchat-traefik-letsencrypt-docker-compose",
+    "sha": "181d83298fb02f4771fe5a78b18c643b01004000",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:17:02Z"
+  },
+  {
+    "repo": "romm-traefik-letsencrypt-docker-compose",
+    "sha": "41728328c306ddf69f40c00b36ea6920a7d143ee",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:17:11Z"
+  },
+  {
+    "repo": "seafile-traefik-letsencrypt-docker-compose",
+    "sha": "ed9c628de4ccbfd542ac82ffd8c666de7fde314b",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:17:20Z"
+  },
+  {
+    "repo": "sftp-traefik-letsencrypt-docker-compose",
+    "sha": "a8101fda4c6ddeb76b21d8db8acfd2d31e45c530",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:17:28Z"
+  },
+  {
+    "repo": "sonarqube-traefik-letsencrypt-docker-compose",
+    "sha": "93562cae64ea401e15bf2456056846294d358b7e",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:17:38Z"
+  },
+  {
+    "repo": "uptime-kuma-traefik-letsencrypt-docker-compose",
+    "sha": "d0891ffdd851c193af63d9a0a1756340acd83b7b",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:17:48Z"
+  },
+  {
+    "repo": "vaultwarden-traefik-letsencrypt-docker-compose",
+    "sha": "4a0e8947e920fcd9885aaf7c13f4ffa45a833b1d",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:17:56Z"
+  },
+  {
+    "repo": "webrcade-traefik-letsencrypt-docker-compose",
+    "sha": "a7db04cc48a7ca25baadcc42f09330327359cf74",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:18:04Z"
+  },
+  {
+    "repo": "wikijs-traefik-letsencrypt-docker-compose",
+    "sha": "df5a1047c9281036131f7a68c2abfcbd927c9f9e",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:18:13Z"
+  },
+  {
+    "repo": "wordpress-traefik-letsencrypt-docker-compose",
+    "sha": "34f3768a814fb0e742af5e15f695cd8c9e6f833d",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:18:22Z"
+  },
+  {
+    "repo": "xwiki-traefik-letsencrypt-docker-compose",
+    "sha": "5eb3317f0154cb88e0f64474b43d8f6d6e97c353",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:18:31Z"
+  },
+  {
+    "repo": "zabbix-traefik-letsencrypt-docker-compose",
+    "sha": "5407ba8372b72fc74631b1634e615a97196f8b61",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:18:42Z"
+  },
+  {
+    "repo": "zammad-traefik-letsencrypt-docker-compose",
+    "sha": "0fa1298713d7235b65c546ea8a5e0293666c8477",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-10-31T13:18:55Z"
   }
 ]
