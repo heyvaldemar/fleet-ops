@@ -994,6 +994,34 @@ hb.gh = born_gh([])
 check("a file with no history at all is new", hb.workflow_born("o/r", "scorecard.yml", t_now), t_now)
 hb.gh = keep_gh
 
+# This repository's own schedules. codeql.yml last fired on 2026-10-07, was
+# removed that day and added again on 2026-11-01; the heartbeat called it 600
+# hours quiet that afternoon. The weekly allowance is 168 * 2 + 2.
+t_now = datetime.datetime(2026, 11, 1, 14, 0, tzinfo=datetime.timezone.utc)
+hours = lambda h: t_now - datetime.timedelta(hours=h)
+keep = hb.last_fired, hb.last_changed
+active = {"id": 7, "state": "active"}
+hb.last_fired = lambda repo, ident, settled=None: hours(600)
+hb.last_changed = lambda repo, path: hours(8)
+f, row = hb.schedule_here("o/r", "codeql.yml", active, 168.0, 338.0, t_now)
+check("a schedule added again since it last fired is not quiet yet", (f, row[2]), (None, "ok"))
+check("and its row still says when it last fired", row[3], "600h ago")
+hb.last_changed = lambda repo, path: hours(400)
+f, row = hb.schedule_here("o/r", "codeql.yml", active, 168.0, 338.0, t_now)
+check("a change too long ago does not excuse it", (row[2], f and "last fired 600 hours ago" in f), ("QUIET", True))
+hb.last_changed = lambda repo, path: hours(700)
+f, row = hb.schedule_here("o/r", "codeql.yml", active, 168.0, 338.0, t_now)
+check("nor does a change from before the last run", row[2], "QUIET")
+hb.last_fired = lambda repo, ident, settled=None: hours(100)
+hb.last_changed = lambda repo, path: (_ for _ in ()).throw(AssertionError("asked about a schedule on time"))
+f, row = hb.schedule_here("o/r", "codeql.yml", active, 168.0, 338.0, t_now)
+check("a schedule inside its allowance is ok, and the file is not asked about", (f, row[2]), (None, "ok"))
+f, row = hb.schedule_here("o/r", "codeql.yml", {"id": 7, "state": "disabled_inactivity"}, 168.0, 338.0, t_now)
+check("a disabled one is still a finding", (row[2], f and "is disabled_inactivity" in f), ("disabled_inactivity", True))
+f, row = hb.schedule_here("o/r", "codeql.yml", None, 168.0, 338.0, t_now)
+check("and so is one GitHub does not list", row[2], "not registered")
+hb.last_fired, hb.last_changed = keep
+
 print()
 print("=== a person outside the fleet, waiting for an answer ===")
 # Keycloak #45 sat three days with no reply because nothing here read the

@@ -1310,6 +1310,42 @@ def workflow_born(repo, name, now, max_details=20):
     return when(commits[-1]) if commits else now
 
 
+def schedule_here(repo, name, meta, period, allowed, now):
+    """One scheduled workflow of this repository: its finding or None, and its table row."""
+    if not meta:
+        return ("%s is scheduled in this repository but GitHub does not list it as a workflow at all" % name,
+                (name, period, "not registered", "—"))
+    if meta["state"] != "active":
+        # The 60-day case lands here, and it is the whole reason this file
+        # exists: a disabled workflow has no failed run to notice.
+        return ("%s is %s: it is not running, and it has no failing run to show for it" % (name, meta["state"]),
+                (name, period, meta["state"], "—"))
+    fired = last_fired(repo, meta["id"], lambda age: age <= allowed)
+    if fired is None:
+        # Never fired on its schedule. New is fine; old is not, and the age
+        # of the file is what tells them apart.
+        age = (now - workflow_born(repo, name, now)).total_seconds() / 3600
+        if age <= allowed:
+            return None, (name, period, "new", "—")
+        return ("%s has never fired on its schedule, and it was added %.0f hours ago" % (name, age),
+                (name, period, "never fired", "—"))
+    age = (now - fired).total_seconds() / 3600
+    quiet = age
+    if quiet > allowed:
+        # THE CLOCK STARTS AT THE LATER OF THE LAST RUN AND THE LAST CHANGE TO
+        # THE FILE, as it does in the fleet sweep. codeql.yml here was removed
+        # on 2026-10-07, the day it last fired, and added again on 2026-11-01;
+        # that afternoon this called it 600 hours quiet, three days before its
+        # first Wednesday came round.
+        changed = last_changed(repo, ".github/workflows/%s" % name)
+        if changed and changed > fired:
+            quiet = (now - changed).total_seconds() / 3600
+    if quiet <= allowed:
+        return None, (name, period, "ok", "%.0fh ago" % age)
+    return ("%s last fired %.0f hours ago; its schedule is every %.0f hours, so anything past %.0f is it having stopped"
+            % (name, age, period, allowed)), (name, period, "QUIET", "%.0fh ago" % age)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--failing", action="store_true", help="this repository's own jobs that run and fail")
@@ -1397,34 +1433,10 @@ def main():
 
     findings, rows = manifest_drift(a.root), []
     for name, period, crons in scheduled_workflows(a.root):
-        allowed = period * a.tolerance + 2
-        meta = states.get(name)
-        if not meta:
-            findings.append("%s is scheduled in this repository but GitHub does not list it as a workflow at all" % name)
-            rows.append((name, period, "not registered", "—"))
-            continue
-        if meta["state"] != "active":
-            # The 60-day case lands here, and it is the whole reason this file
-            # exists: a disabled workflow has no failed run to notice.
-            findings.append("%s is %s: it is not running, and it has no failing run to show for it" % (name, meta["state"]))
-            rows.append((name, period, meta["state"], "—"))
-            continue
-        fired = last_fired(a.repo, meta["id"], lambda age, allowed=allowed: age <= allowed)
-        if fired is None:
-            # Never fired on its schedule. New is fine; old is not, and the age
-            # of the file is what tells them apart.
-            age = (now - workflow_born(a.repo, name, now)).total_seconds() / 3600
-            verdict = "new" if age <= allowed else "never fired"
-            if verdict == "never fired":
-                findings.append("%s has never fired on its schedule, and it was added %.0f hours ago" % (name, age))
-            rows.append((name, period, verdict, "—"))
-            continue
-        age = (now - fired).total_seconds() / 3600
-        ok = age <= allowed
-        if not ok:
-            findings.append("%s last fired %.0f hours ago; its schedule is every %.0f hours, so anything past %.0f is it having stopped"
-                            % (name, age, period, allowed))
-        rows.append((name, period, "ok" if ok else "QUIET", "%.0fh ago" % age))
+        finding, row = schedule_here(a.repo, name, states.get(name), period, period * a.tolerance + 2, now)
+        if finding:
+            findings.append(finding)
+        rows.append(row)
 
     width = max(len(r[0]) for r in rows) if rows else 20
     print("%-*s  %9s  %-13s %s" % (width, "workflow", "every", "state", "last fired"))
