@@ -609,9 +609,12 @@ def upstream_one(item, discussion=graphql_discussion):
             r = GH_URL.match(item["related"])
             if r and r.group(3) == "pull":
                 pr = gh("repos/%s/%s/pulls/%s" % (r.group(1), r.group(2), r.group(4)))
-                out["related"] = {"url": item["related"], "title": pr["title"],
-                                  "state": pr_state(r.group(1), r.group(2), pr)[0],
+                state, rv = pr_state(r.group(1), r.group(2), pr)
+                # "merged" stays the day it was merged; a revert brings its own day.
+                out["related"] = {"url": item["related"], "title": pr["title"], "state": state,
                                   "merged": (pr.get("merged_at") or "")[:10] or None}
+                if rv:
+                    out["related"]["reverted"] = rv
     except (subprocess.CalledProcessError, KeyError, ValueError, TypeError):
         out["state"] = "unreadable"
     return out

@@ -340,7 +340,7 @@ def fake_rv(path):
     pulls = {"9": [ref(R1)], "10": [ref(B1)], "11": [ref(R1), ref(R2)], "12": [ref(R1, "fork/r")]}
     m_ = re.match(r"repos/o/r/(pulls|issues)/(\d+)(/timeline)?", path)
     if m_ and m_.group(1) == "pulls":
-        return {"number": int(m_.group(2)), "title": "Make the folder", "state": "closed", "merged_at": "2026-10-31T15:24:46Z",
+        return {"number": int(m_.group(2)), "title": "Make the folder", "state": "closed", "merged_at": "2026-10-30T15:24:46Z",
                 "merge_commit_sha": M9, "base": {"ref": "develop"},
                 "created_at": "2026-10-27T00:00:00Z", "updated_at": "2026-10-31T00:00:00Z"}
     if m_ and not m_.group(3):
@@ -366,6 +366,8 @@ check("a revert of the revert puts it back", m.upstream_one({"url": "https://git
 check("a commit in someone's fork is not a revert", m.upstream_one({"url": "https://github.com/o/r/pull/12"})["state"], "merged")
 rel = m.upstream_one({"url": "https://github.com/o/r/issues/7", "related": "https://github.com/o/r/pull/9"})
 check("a related fix that was reverted says so", rel.get("related", {}).get("state"), "merged, then reverted")
+check("and keeps the day it was merged, with the revert's own day beside it",
+      (rel["related"]["merged"], rel["related"].get("reverted", {}).get("date")), ("2026-10-30", "2026-10-31"))
 m.gh = keep
 
 print()
