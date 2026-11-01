@@ -274,6 +274,17 @@ jobs:
               fresh = [i for i in items if not i.startswith(MARK)]
               if fresh:
                   found.append((what, fresh))
+          # THIS JOB'S OWN RED RUN, ALONE, IS NEWS THAT IS ALREADY OVER. It goes
+          # red on purpose when it reports, so once what it reported is fixed,
+          # that red run is the only line left: on 2026-11-01 it kept
+          # fleet-ops#44 open for a day after both its findings were gone, and
+          # mailed once more on the way. Beside other findings it stays; alone
+          # it is dropped, this run closes the thread and exits 0, and the next
+          # run has no red run of this job to repeat. The words are the ones
+          # explained() in scripts/fleet-heartbeat.py writes.
+          OWN_REPORT = "it was the reporting step, which is this job saying it found something"
+          if not found and standing and all(i.endswith(OWN_REPORT) for i in standing):
+              standing = []
           io.open("blocking.count", "w", encoding="utf-8").write("%d\n" % sum(len(i) for _, i in found))
           # WHAT A COMMENT IS FOR. The thread is mailed when the set of
           # findings GAINS one, because that is something new needing a

@@ -732,6 +732,28 @@ wf = io.open(".github/workflows/fleet-heartbeat.yml", encoding="utf-8").read()
 check("the step this rule names still exists in the workflow",
       ("- name: %s" % hb.REPORT_STEP) in wf, True)
 
+# AND THE WORDS ARE A STRING IN TWO FILES TOO. The report drops this job's own
+# red run when it is the only line left (fleet-ops#44 stayed open a day after
+# its findings were fixed); it recognises the line by the words explained()
+# writes. The block that builds the report is run here as the workflow runs it.
+check("the report recognises the words explained() writes",
+      ("OWN_REPORT = \"%s\"" % own.split(" — ", 1)[1]) in wf, True)
+import json, subprocess as _sp_body, textwrap as _tw
+body_py = _tw.dedent(wf.split("python3 - <<'PY' > body.md\n", 1)[1].split("\n          PY\n", 1)[0])
+def report(**files):
+    d = tempfile.mkdtemp()
+    for name in ("failing.json", "beat.json", "fleet-beat.json"):
+        io.open(os.path.join(d, name), "w").write(json.dumps({"findings": files.get(name.split(".")[0].replace("-", "_"), [])}))
+    out = _sp_body.run([sys.executable, "-c", body_py], cwd=d, capture_output=True, text=True,
+                       env=dict(os.environ, SWEPT="true", ROLE="")).stdout
+    return out.splitlines()[0] if out else "", out
+first, _ = report(failing=[own])
+check("this job's own red run alone leaves nothing to report", first, "CLEAN")
+first, out = report(failing=[own], fleet_beat=[hb.STANDING_PREFIX + "o/a: a waiver past its date"])
+check("beside another standing line it is still shown", (first != "CLEAN", "reporting step" in out), (True, True))
+first, out = report(failing=[own], beat=["codeql.yml last fired 600 hours ago"])
+check("and beside a finding it is still shown", (first != "CLEAN", "reporting step" in out), (True, True))
+
 # THE LOOKUP HAS TO BE ASKED WITH A TOKEN THAT CAN ANSWER. This step runs on
 # the fleet credential, which is scoped to the repositories it maintains and
 # cannot read this one.
