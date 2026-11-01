@@ -23,7 +23,13 @@ set -euo pipefail
 OWNER="${FLEET_OWNER:-heyvaldemar}"
 DRY_RUN="${DRY_RUN:-false}"
 BACKFILL="${BACKFILL:-false}"
+README_SECTIONS="${README_SECTIONS:-true}"   # false: the workflow only
 ONLY="${ONLY:-}"
+# fleet-ops is published from fleet-ops-private, which overwrites a commit made
+# to it directly; heyvaldemar-com changes through its own process.
+SKIP="${SKIP:-fleet-ops heyvaldemar-com}"
+COMMIT_SUBJECT="${COMMIT_SUBJECT:-ci: every release carries an archive, a keyless signature and SLSA provenance}"
+COMMIT_BODY="${COMMIT_BODY:-A tag is a name and a name can be moved. From here on a release carries a git archive of the tag, a Sigstore signature over it and SLSA build provenance, all made on the runner with no stored key, and the README says how to verify them with nothing from this repository trusted. Existing releases are given the same three files by running the workflow against their tags.}"
 GIT_AUTHOR="${FLEET_GIT_AUTHOR:-Vladimir Mikhalev}"
 GIT_EMAIL="${FLEET_GIT_EMAIL:-10498744+heyvaldemar@users.noreply.github.com}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -66,6 +72,7 @@ MD
 ADDED=0; README=0; SKIPPED=0; NORELEASE=0; DISPATCHED=0; PRS=0
 for repo in "${REPOS[@]}"; do
   [ -n "$ONLY" ] && [ "$repo" != "$ONLY" ] && continue
+  case " $SKIP " in *" $repo "*) continue ;; esac
   latest="$(gh api "repos/$OWNER/$repo/releases/latest" --jq .tag_name 2>/dev/null || true)"
   if [ -z "$latest" ]; then NORELEASE=$((NORELEASE + 1)); continue; fi
   dir="$WORKDIR/$repo"
@@ -77,7 +84,7 @@ for repo in "${REPOS[@]}"; do
     cp "$TEMPLATE" "$dir/.github/workflows/release-assets.yml"
     changed=true; ADDED=$((ADDED + 1))
   fi
-  if grep -q "^## Supply chain trust" "$dir/README.md" 2>/dev/null; then
+  if [ "$README_SECTIONS" = "true" ] && grep -q "^## Supply chain trust" "$dir/README.md" 2>/dev/null; then
     section "$repo" "${latest#v}" > "$WORKDIR/section.md"
     if python3 - "$dir/README.md" "$WORKDIR/section.md" <<'PY'
 import io, re, sys
@@ -85,14 +92,17 @@ p, sec = sys.argv[1], io.open(sys.argv[2], encoding="utf-8").read()
 s = io.open(p, encoding="utf-8").read()
 # The section sits at the end of "## Supply chain trust", before the next
 # "## " heading (or the "---" rule that precedes it). An existing copy whose
-# text differs is replaced; one that matches leaves the file alone (exit 1).
+# is left alone (exit 1).
 start = s.index("\n## Supply chain trust")
 m = re.search(r"\n(?:---\n\n)?## ", s[start + 1:])
 end = start + 1 + m.start() if m else len(s)
 head, tail = s[:end], s[end:]
-i = head.find("\n### Verify what you deploy")
-if i >= 0:
-    head = head[:i]
+# An existing section is never rewritten: its "from vX on" names the first
+# release that carried the files, and a rerun would replace it with the
+# latest release, saying the earlier signed releases were not (it did, on
+# wordpress-traefik-letsencrypt-docker-compose, 2026-11-01, put back at once).
+if head.find("\n### Verify what you deploy") >= 0:
+    sys.exit(1)
 body = head.rstrip("\n") + "\n" + sec + tail
 if body == s:
     sys.exit(1)
@@ -108,8 +118,7 @@ PY
       (
         cd "$dir"
         git add -A
-        git -c user.name="$GIT_AUTHOR" -c user.email="$GIT_EMAIL" commit -q -m "ci: every release carries an archive, a keyless signature and SLSA provenance" \
-          -m "A tag is a name and a name can be moved. From here on a release carries a git archive of the tag, a Sigstore signature over it and SLSA build provenance, all made on the runner with no stored key, and the README says how to verify them with nothing from this repository trusted. Existing releases are given the same three files by running the workflow against their tags."
+        git -c user.name="$GIT_AUTHOR" -c user.email="$GIT_EMAIL" commit -q -m "$COMMIT_SUBJECT" -m "$COMMIT_BODY"
         # A repository whose rules require a pull request (aws-kubectl-docker)
         # gets one, on a branch, and the loop goes on.
         if ! git push -q origin HEAD 2>/dev/null; then
