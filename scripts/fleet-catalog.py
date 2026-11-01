@@ -527,6 +527,49 @@ def graphql_discussion(owner, repo, number):
     return json.loads(out)["data"]["repository"]["discussion"]
 
 
+def reverted_by(owner, repo, pr):
+    """The commit on the base branch that took a merged pull request back out, or None.
+
+    GitHub keeps a reverted pull request "merged", so its state alone overstates it
+    (LinuxGSM#5108 was merged and reverted sixteen minutes later). A revert commit
+    names the pull request, which puts it on the timeline, and its message says
+    "This reverts commit <sha>". A revert of the revert puts it back. A revert that
+    only sits on a branch, as the Revert button leaves it, has not landed.
+    """
+    merge = pr.get("merge_commit_sha")
+    if not merge:
+        return None
+    reverts = {}
+    try:
+        for e in gh("repos/%s/%s/issues/%d/timeline?per_page=100" % (owner, repo, pr["number"])):
+            sha = e.get("commit_id")
+            if e.get("event") != "referenced" or not sha or sha == merge:
+                continue
+            if e.get("commit_url") != "https://api.github.com/repos/%s/%s/commits/%s" % (owner, repo, sha):
+                continue
+            c = gh("repos/%s/%s/commits/%s" % (owner, repo, sha))
+            m = re.search(r"This reverts commit ([0-9a-f]{40})", c["commit"]["message"])
+            if not m:
+                continue
+            landed = gh("repos/%s/%s/compare/%s...%s?per_page=1" % (owner, repo, pr["base"]["ref"], sha))
+            if landed["status"] in ("behind", "identical"):
+                reverts[m.group(1)] = {"url": c["html_url"], "date": c["commit"]["committer"]["date"][:10], "sha": sha}
+    except (subprocess.CalledProcessError, KeyError, ValueError, TypeError):
+        return None
+    out, current = None, merge
+    while current in reverts:
+        out = None if out else reverts[current]
+        current = reverts[current]["sha"]
+    return out and {"url": out["url"], "date": out["date"]}
+
+
+def pr_state(owner, repo, pr):
+    if not pr.get("merged_at"):
+        return pr["state"], None
+    rv = reverted_by(owner, repo, pr)
+    return ("merged, then reverted", rv) if rv else ("merged", None)
+
+
 def upstream_one(item, discussion=graphql_discussion):
     """An item of upstream.json with its title, date and state as GitHub has them now."""
     m = GH_URL.match(item["url"])
@@ -544,8 +587,10 @@ def upstream_one(item, discussion=graphql_discussion):
                        state="answered" if d.get("isAnswered") else ("closed" if d["closed"] else "open"))
         elif kind == "pull":
             pr = gh("repos/%s/%s/pulls/%d" % (owner, repo, number))
-            out.update(title=pr["title"], posted=pr["created_at"][:10], updated=pr["updated_at"][:10],
-                       state="merged" if pr.get("merged_at") else pr["state"])
+            state, rv = pr_state(owner, repo, pr)
+            out.update(title=pr["title"], posted=pr["created_at"][:10], updated=pr["updated_at"][:10], state=state)
+            if rv:
+                out["reverted"] = rv
             if review:
                 # A review comment on someone else's pull request: dated by the
                 # comment, and the pull request's state is the outcome, not ours.
@@ -565,7 +610,7 @@ def upstream_one(item, discussion=graphql_discussion):
             if r and r.group(3) == "pull":
                 pr = gh("repos/%s/%s/pulls/%s" % (r.group(1), r.group(2), r.group(4)))
                 out["related"] = {"url": item["related"], "title": pr["title"],
-                                  "state": "merged" if pr.get("merged_at") else pr["state"],
+                                  "state": pr_state(r.group(1), r.group(2), pr)[0],
                                   "merged": (pr.get("merged_at") or "")[:10] or None}
     except (subprocess.CalledProcessError, KeyError, ValueError, TypeError):
         out["state"] = "unreadable"

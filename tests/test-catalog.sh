@@ -328,6 +328,44 @@ d = m.upstream_one({"url": "https://github.com/o/r/discussions/5", "role": "disc
 check("an answered discussion reads answered", d["state"], "answered")
 check("an item GitHub will not answer for says so", m.upstream_one({"url": "https://github.com/o/r/issues/404"})["state"], "unreadable")
 check("a URL that is not GitHub's is not guessed at", m.upstream_one({"url": "https://example.com/x"})["state"], "unreadable")
+
+import re
+M9, R1, R2, B1 = "9" * 40, "1" * 40, "2" * 40, "b" * 40
+def commit(sha, message):
+    return {"html_url": "https://github.com/o/r/commit/" + sha, "commit": {"message": message,
+            "committer": {"date": "2026-10-31T15:40:58Z"}}}
+def ref(sha, repo="o/r"):
+    return {"event": "referenced", "commit_id": sha, "commit_url": "https://api.github.com/repos/%s/commits/%s" % (repo, sha)}
+def fake_rv(path):
+    pulls = {"9": [ref(R1)], "10": [ref(B1)], "11": [ref(R1), ref(R2)], "12": [ref(R1, "fork/r")]}
+    m_ = re.match(r"repos/o/r/(pulls|issues)/(\d+)(/timeline)?", path)
+    if m_ and m_.group(1) == "pulls":
+        return {"number": int(m_.group(2)), "title": "Make the folder", "state": "closed", "merged_at": "2026-10-31T15:24:46Z",
+                "merge_commit_sha": M9, "base": {"ref": "develop"},
+                "created_at": "2026-10-27T00:00:00Z", "updated_at": "2026-10-31T00:00:00Z"}
+    if m_ and not m_.group(3):
+        return {"title": "A bug", "state": "closed", "state_reason": "completed", "comments": 1,
+                "created_at": "2026-10-27T00:00:00Z", "updated_at": "2026-10-31T00:00:00Z"}
+    if m_:
+        return [{"event": "merged", "commit_id": M9, "commit_url": "https://api.github.com/repos/o/r/commits/" + M9}] + pulls[m_.group(2)]
+    if path == "repos/o/r/commits/" + R1:
+        return commit(R1, "revert: make the folder (#9)\n\nThis reverts commit %s.\n" % M9)
+    if path == "repos/o/r/commits/" + R2:
+        return commit(R2, 'Revert "revert: make the folder (#9)"\n\nThis reverts commit %s.\n' % R1)
+    if path == "repos/o/r/commits/" + B1:
+        return commit(B1, 'Revert "make the folder (#10)"\n\nThis reverts commit %s.\n' % M9)
+    if path.startswith("repos/o/r/compare/develop..."):
+        return {"status": "diverged" if path.endswith(B1 + "?per_page=1") else "behind"}
+    raise sp.CalledProcessError(1, "gh")
+m.gh = fake_rv
+rv =m.upstream_one({"url": "https://github.com/o/r/pull/9", "role": "pull request"})
+check("a merged pull request that was reverted on its base says so", rv["state"], "merged, then reverted")
+check("and links the revert, with its day", rv.get("reverted"), {"url": "https://github.com/o/r/commit/" + R1, "date": "2026-10-31"})
+check("a revert that only sits on a branch has not landed", m.upstream_one({"url": "https://github.com/o/r/pull/10"})["state"], "merged")
+check("a revert of the revert puts it back", m.upstream_one({"url": "https://github.com/o/r/pull/11"})["state"], "merged")
+check("a commit in someone's fork is not a revert", m.upstream_one({"url": "https://github.com/o/r/pull/12"})["state"], "merged")
+rel = m.upstream_one({"url": "https://github.com/o/r/issues/7", "related": "https://github.com/o/r/pull/9"})
+check("a related fix that was reverted says so", rel.get("related", {}).get("state"), "merged, then reverted")
 m.gh = keep
 
 print()
