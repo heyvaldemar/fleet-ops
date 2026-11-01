@@ -45,7 +45,11 @@ jobs:
     # this job is skipped rather than run twice from two places.
     if: vars.FLEET_ROLE != 'house'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # The rewrite asks about every repository in turn, the badge site once
+    # every two seconds (BP_PACE), so it grows with the fleet: at 114
+    # repositories on 2026-11-01 it took 10.5 minutes at 04:27 and 14 min
+    # 50 s at 06:20, and the job was cancelled at 15:00 just after it pushed.
+    timeout-minutes: 30
     env:
       GIT_AUTHOR_NAME: Vladimir Mikhalev
       GIT_AUTHOR_EMAIL: 10498744+heyvaldemar@users.noreply.github.com
