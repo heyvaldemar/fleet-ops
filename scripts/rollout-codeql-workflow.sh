@@ -97,7 +97,10 @@ languages_of() {  # repo -> comma-separated CodeQL languages, or "!<language>" w
   if [ "${state%% *}" = "configured" ]; then
     langs="${state#* }"
   else
-    langs="$(gh api "repos/$OWNER/$repo/languages" --jq 'keys | join(",")' 2>/dev/null || true)"
+    # Under 512 bytes is not code to analyse: homepage-traefik-letsencrypt-
+    # docker-compose's only JavaScript was a 79-byte example config, and
+    # CodeQL fails a language in which it can parse nothing.
+    langs="$(gh api "repos/$OWNER/$repo/languages" --jq 'to_entries | map(select(.value >= 512) | .key) | join(",")' 2>/dev/null || true)"
   fi
   python3 - "$langs" <<'PY'
 import sys
