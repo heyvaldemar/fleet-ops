@@ -382,15 +382,21 @@ def collect_scorecard(names):
     mid = len(scores) // 2
     median = scores[mid] if len(scores) % 2 else round((scores[mid - 1] + scores[mid]) / 2, 1)
     lowest = min(scored, key=lambda n: (scored[n]["score"], n))
-    below = {}
-    for v in scored.values():
+    below, below_by_repo = {}, {}
+    for n, v in scored.items():
         for check, sc in v["checks"].items():
             if 0 <= sc < 10:                  # -1 is "not applicable", not a low mark
                 below[check] = below.get(check, 0) + 1
+                below_by_repo.setdefault(n, {})[check] = sc
+    # Per repository as well as in total: the weekly fleet audit, which runs
+    # where the Scorecard API cannot be reached, reads from here which checks
+    # each repository has left to raise.
     return {"scored": len(scored), "median": median,
             "lowest": scored[lowest]["score"], "lowest_repository": lowest,
             "scores": {n: v["score"] for n, v in sorted(scored.items())},
-            "below_ten": dict(sorted(below.items())), "unscored": unscored,
+            "below_ten": dict(sorted(below.items())),
+            "below_ten_by_repository": {n: dict(sorted(c.items())) for n, c in sorted(below_by_repo.items())},
+            "unscored": unscored,
             "date": max((v["date"] or "") for v in scored.values()) or None}
 
 
