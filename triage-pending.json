@@ -1,47 +1,9 @@
 [
   {
-    "repo": "amazon-ec2-keycloak-docker-swarm-pipeline-terraform",
-    "sha": "e0dce528e156199f441fe9d17f4194f07ad04878",
-    "wf": "Terraform Verification",
-    "kind": "version",
-    "pushed_at": "2026-11-02T16:39:21Z",
-    "review": "\n## Upstream changes 6.70.0 -> 6.71.0\n\n**Verdict:** SAFE TO APPLY \u2014 no breaking changes in the notes, and the version constraint is self-pinned (no companion-service version mismatch to assess).\n\n### Breaking changes\n- none found in the notes (6.71.0 has no `BREAKING CHANGES:` section; only `NOTES:`, `FEATURES:`, `ENHANCEMENTS:`, `BUG FIXES:`)\n\n### Variables\n- none. This \"image\" is a Terraform provider, not a running container with env vars; the only relevant pin is in `01-providers.tf`:\n  `version = \"~> 6.70.0\"` \u2014 this constraint will need to be widened (e.g. to `~> 6.71.0`) for Terraform to pick up the new release, since `~> 6.70.0` only allows `6.70.x`.\n- `.env.example` is empty/not provided \u2014 nothing to check there for this component.\n\n### Data and dependencies\n- none. The notes name no companion service (database, cache, search engine, etc.) version requirement for this range. The two resource-level fixes touching RDS/Oracle (`aws_db_instance`: *\"Fix `db_name` and `username` forcing replacement after an RDS for Oracle CDB instance is converted to the multi-tenant configuration outside of Terraform\"*) and the new `multi_tenant` argument/attribute are provider-side schema additions, not a version floor on an external engine.\n- Already true at the current version (6.70.0), not a change in this range: *\"The provider is now built with Go 1.26.10, which no longer trusts certificates issued through a set of compromised eMudhra intermediate CAs (CVE-2026-111943)\"* \u2014 this is a 6.70.0 baseline fact, carried forward, not introduced by 6.71.0.\n\n### Before applying\n- Bump the pin in `01-providers.tf` from `version = \"~> 6.70.0\"` to `version = \"~> 6.71.0\"` (or a range covering both), then run `terraform init -upgrade`.\n- Run `terraform plan` before apply. Two behavior changes are worth a dry-run check even though neither is flagged breaking:\n  - `resource/aws_instance`: *\"Allow `placement_group`, `placement_group_id`, and `placement_partition_number` to be updated in-place with instance stop/start rather than being replaced.\"* \u2014 if this template manages EC2 instances with these attributes, expect a stop/start instead of a replace on next plan touching them.\n  - `resource/aws_wafv2_web_acl_rule`: stricter validation now rejects previously-accepted (but AWS-invalid) nested statement combinations in `scope_down_statement`/`statement` \u2014 if this template defines WAFv2 rules with nested logical statements, `terraform plan` may newly fail validation on configs that silently worked before.\n- No state migration, no manual data step, no backup required by the notes for this range.\n\n### Notes read\n- hashicorp/terraform-provider-aws release notes for v6.71.0 (target) and v6.70.0 (baseline, current), plus the CHANGELOG.md excerpt covering both and prior versions back to 6.65.0.\n- Registry image comparison could not be performed (401 Unauthorized fetching image configs) \u2014 this does not change the verdict here since the component is a Terraform provider binary pinned by version constraint in `.tf`, not a container with user/entrypoint/ports/volumes; there is nothing in that category to check by hand beyond confirming the provider binary itself installs cleanly after `terraform init -upgrade`.\n"
-  },
-  {
-    "repo": "game-server-wireguard-relay-docker-compose",
-    "sha": "29cb7fb31885581ae26bbb3872f065cc9297c14c",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-02T16:39:50Z"
-  },
-  {
-    "repo": "mailu-traefik-letsencrypt-docker-compose",
-    "sha": "b231f448b059e6f24f81f7a4a78312459895142a",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-02T16:40:29Z"
-  },
-  {
-    "repo": "minecraft-server-proxy-docker-compose",
-    "sha": "ce19e1c2e27babbc9214d52ba06aafe2e4e0df65",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-02T16:40:53Z",
-    "review": "\n## Upstream changes 2026.10.2 -> 2026.11.0\n\n**Verdict:** SAFE TO APPLY \u2014 dependency bumps only, no breaking changes, no variable or interface changes.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- The registry diff shows the bundled JRE moved from `jdk-25.0.4.1+1` to `jdk-25.0.5+8` (a Java point/patch update bundled in the image). No action needed; this is an internal runtime bump, not a dependency the compose file pins separately.\n- The release notes list only internal dependency bumps: `itzg/mc-image-helper` from v1.74.0 (at 2026.10.2) up to v1.74.4, plus a Dockerfile patch update and a CI action bump (`docker/login-action`). None of these affect the container's user, entrypoint, ports, volumes, healthcheck, or documented environment variables.\n- No companion service (database, cache, search engine) is named in either release's notes, so the \"SAFE TO APPLY withheld\" condition does not apply here.\n\n### Before applying\n- None beyond the normal pull/restart. No migration, no config edit, no backup specifically required by this range.\n\n### Notes read\n- 2026.11.0 (target) and 2026.10.2 (baseline currently running), both from itzg/docker-mc-proxy release notes as supplied.\n"
-  },
-  {
     "repo": "owncloud-traefik-letsencrypt-docker-compose",
-    "sha": "ab5447b94407ce95814879547b28bc63b0726f91",
+    "sha": "f28e6a79cc2a4a5c60853a454054639c114b9662",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-02T16:41:12Z"
-  },
-  {
-    "repo": "vaultwarden-traefik-letsencrypt-docker-compose",
-    "sha": "61f5a14254787e35d597e2c1a71440c14634356f",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-02T16:41:53Z",
-    "review": "\n## Upstream changes 1.37.4 -> 1.37.5\n\n**Verdict:** NEEDS ATTENTION \u2014 two Medium-severity security fixes plus a configuration-validation change that can stop the container from starting if any numeric env var is currently out of range.\n\n### Breaking changes\n- \"Configuration: invalid values now stop startup with an error. Numeric options have tighter types, so negative or too large values are rejected, for example above 65535 for `LOGIN_RATELIMIT_MAX_BURST`, `TRASH_AUTO_DELETE_DAYS`, `EVENTS_DAYS_RETAIN` or `SMTP_TIMEOUT`, or above 255 for `EMAIL_ATTEMPTS_LIMIT`. The rate limit `*_SECONDS` and `*_MAX_BURST` options, `DATABASE_TIMEOUT` and `DATABASE_IDLE_TIMEOUT` must be at least 1, `DATABASE_MIN_CONNS` can't be larger than `DATABASE_MAX_CONNS`, and `DUO_CONTEXT_PURGE_SCHEDULE` and `PURGE_INCOMPLETE_SSO_AUTH` must be empty or a valid cron expression.\" \u2014 this template doesn't set any of these in the compose file or `.env.example`, so if the operator never set any of them manually this is a non-issue; if they did set any in `.env`, startup can now fail where it didn't before.\n- Bundled web vault moves to v2026.10.1: \"the bundled web vault is now v2026.10.1. If you serve your own web vault older than v2026.7.1, you might have compatibility issues.\" Not relevant unless the operator serves a custom web vault.\n\n### Variables\n- None renamed or removed. No new variable is required by this template's compose file or `.env.example` \u2014 the compose file sets only `WEBSOCKET_ENABLED` and `SIGNUPS_ALLOWED`, neither touched by this release.\n- If the operator has set any of `LOGIN_RATELIMIT_MAX_BURST`, `TRASH_AUTO_DELETE_DAYS`, `EVENTS_DAYS_RETAIN`, `SMTP_TIMEOUT`, `EMAIL_ATTEMPTS_LIMIT`, `*_SECONDS`/`*_MAX_BURST` rate-limit options, `DATABASE_TIMEOUT`, `DATABASE_IDLE_TIMEOUT`, `DATABASE_MIN_CONNS`/`DATABASE_MAX_CONNS`, `DUO_CONTEXT_PURGE_SCHEDULE`, or `PURGE_INCOMPLETE_SSO_AUTH` outside `.env.example`'s documented defaults, they should be checked against the new bounds before upgrading.\n\n### Data and dependencies\n- None. No companion database/cache/search engine version requirement is named by these notes, and this template doesn't run one (SQLite via the backups service). No irreversible migration is mentioned.\n\n### Before applying\n- Check any custom values set in `.env` for the numeric/env options listed above against the new validation rules before restarting, so the container doesn't fail to boot.\n- If serving a custom (non-bundled) web vault, confirm it is at least v2026.7.1 (and v2026.9.0+ if using emergency-access takeover or toggling two-step login).\n- No other action: image `User`, `Entrypoint`, `Cmd`, ports, volumes, healthcheck and environment are confirmed identical between the two image builds (WHAT THE IMAGES THEMSELVES DIFFER IN), so nothing in the compose file needs editing for this move. Bump `VAULTWARDEN_IMAGE_VERSION`/the pinned digest in the compose file's `x-images` block as normal.\n\n### Notes read\n- 1.37.5 (2026-11-01) release notes \u2014 read in full.\n- 1.37.4 (2026-10-05) release notes \u2014 read as baseline only, per instructions; its upgrade notes (IP_HEADER behaviour, removed feature flags, DUO_USE_IFRAME, removed legacy endpoints, MARIADB_TLS_DISABLE_PEER_VERIFICATION) already apply at the current version and are not part of this range.\n"
+    "pushed_at": "2026-11-03T01:49:36Z"
   }
 ]
