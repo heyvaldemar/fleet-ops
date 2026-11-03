@@ -269,6 +269,9 @@ jobs:
                       continue
                   found.append(("the %s check" % what, ["did not produce a result at all — it failed before it could report"]))
                   continue
+              if d.get("unreadable"):
+                  found.append(("the %s check" % what, ["did not produce a result: " + d["unreadable"]]))
+                  continue
               items = d.get("findings") or []
               standing += [i[len(MARK):] for i in items if i.startswith(MARK)]
               fresh = [i for i in items if not i.startswith(MARK)]

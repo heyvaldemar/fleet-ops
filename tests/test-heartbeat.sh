@@ -573,6 +573,51 @@ try:
 except SystemExit as e:
     ended = str(e)
 check("three cut-off answers still end it, saying so", (len(seen), "JSON" in (ended or "")), (3, True))
+# 2026-11-03: three pushes emptied the account's API quota inside both
+# heartbeats, and each check said only that it produced no result. A rate
+# limit is waited out; a quota still empty after the waits is named as such,
+# in the JSON the issue is written from, and never as a repository it cannot read.
+def limited(n):
+    seen, slept = [], []
+    def co(cmd, stderr=None):
+        seen.append(cmd)
+        if len(seen) <= n:
+            raise _sp.CalledProcessError(1, cmd, output=b"", stderr=b"gh: API rate limit exceeded for user ID 1. (HTTP 403)")
+        return b'{"ok": true}'
+    return co, seen, slept
+co, seen, slept = limited(2)
+hbf.subprocess.check_output = co
+hbf.time.sleep = lambda s: slept.append(s)
+check("a rate limit is waited out and the answer used", (hbf.gh("x"), len(seen), slept), ({"ok": True}, 3, [300, 300]))
+import tempfile as _tf, os as _os, json
+_out = _os.path.join(_tf.mkdtemp(), "beat.json")
+hbf.JSON_OUT = _out
+co, seen, slept = limited(9)
+hbf.subprocess.check_output = co
+try:
+    hbf.gh("repos/o/secret-name/actions/runs"); ended = None
+except SystemExit as e:
+    ended = str(e)
+_written = json.load(open(_out)) if _os.path.exists(_out) else {}
+check("a quota still empty after fifteen minutes ends it, saying it was the quota",
+      (len(seen), "quota" in (ended or ""), "secret-name" in (ended or "")), (4, True, False))
+check("and the JSON says so, naming no repository",
+      ("quota" in _written.get("unreadable", ""), "secret-name" in json.dumps(_written), _written.get("findings")), (True, False, []))
+hbf.JSON_OUT = None
+class _P:
+    def __init__(self, rc, err=b"", out=b""):
+        self.returncode, self.stderr, self.stdout = rc, err, out
+_answers = []
+def _run(cmd, capture_output=True):
+    return _answers.pop(0)
+_real_run = hbf.subprocess.run
+hbf.subprocess.run = _run
+slept[:] = []
+_answers[:] = [_P(1, b"gh: API rate limit exceeded for user ID 1. (HTTP 403)"), _P(0, out=b'{"ok": 1}')]
+check("a rate-limited 403 is not a repository this token cannot read", (hbf.gh_or_none("x"), slept), ({"ok": 1}, [300]))
+_answers[:] = [_P(1, b"gh: Resource not accessible by personal access token (HTTP 403)")]
+check("a real 403 still is", hbf.gh_or_none("x"), None)
+hbf.subprocess.run = _real_run
 hbf.subprocess.check_output, hbf.time.sleep = _real_co, _real_sleep
 
 # The same stale filter, deciding whether this repository's own workflows

@@ -181,14 +181,39 @@ def report(findings):
 # nothing at all.
 RETRY_PAUSES = (3, 10)
 
+# AN EMPTY QUOTA IS NOT A BROKEN FLEET. Every token of the account shares one
+# hourly API quota, and on 2026-11-03 three pushes that each started a catalog
+# run emptied it at 15:09 UTC, inside both heartbeats. Each said only "did not
+# produce a result at all", which read like a broken watcher and sent the
+# question to a person. A rate limit is waited out for up to fifteen minutes;
+# if the quota is still empty, the check says that it watched nothing because
+# of the quota, in words that name no repository.
+RATE_LIMITED = re.compile(r"API rate limit exceeded|secondary rate limit|HTTP 429", re.I)
+RATE_PAUSES = (300, 300, 300)
+QUOTA_EMPTY = ("the account's GitHub API quota, which all its tokens share, stayed empty for fifteen minutes, "
+               "so this check watched nothing and says nothing about the fleet; the next run reads again")
+JSON_OUT = None
+
+
+def quota_empty():
+    if JSON_OUT:
+        open(JSON_OUT, "w", encoding="utf-8").write(json.dumps({"findings": [], "unreadable": QUOTA_EMPTY}))
+    sys.exit("cannot read: " + QUOTA_EMPTY)
+
 
 def gh(path):
-    for pause in RETRY_PAUSES + (None,):
+    pauses, waits = list(RETRY_PAUSES), list(RATE_PAUSES)
+    while True:
         try:
             out = subprocess.check_output(["gh", "api", path], stderr=subprocess.PIPE)
         except subprocess.CalledProcessError as e:
             lines = (e.stderr or b"").decode("utf-8", "replace").strip().splitlines()
             said = lines[0] if lines else "gh api failed"
+            if RATE_LIMITED.search(" ".join(lines)):
+                if not waits:
+                    quota_empty()
+                time.sleep(waits.pop(0))
+                continue
             transient = re.search(r"HTTP 5\d\d|connection (reset|refused)|timeout|EOF|unexpected end of JSON",
                                   " ".join(lines), re.I)
         else:
@@ -196,9 +221,23 @@ def gh(path):
                 return json.loads(out)
             except ValueError as e:
                 said, transient = "an answer that is not whole JSON (%s)" % e, True
-        if pause is None or not transient:
+        if not pauses or not transient:
             sys.exit("cannot read %s: %s" % (path, said))
-        time.sleep(pause)
+        time.sleep(pauses.pop(0))
+
+
+def gh_run(path):
+    """One gh api call with a rate limit waited out, for the helpers below that
+    read the error themselves. A rate-limited answer is a 403, and gh_or_none
+    would otherwise file it as a repository this token may not read."""
+    waits = list(RATE_PAUSES)
+    while True:
+        p = subprocess.run(["gh", "api", path], capture_output=True)
+        if p.returncode == 0 or not RATE_LIMITED.search((p.stderr or b"").decode("utf-8", "replace")):
+            return p
+        if not waits:
+            quota_empty()
+        time.sleep(waits.pop(0))
 
 
 def gh_exists(path):
@@ -211,7 +250,7 @@ def gh_exists(path):
     every file, and ninety-four findings that are all the same bug is worse
     than one finding that says the credential died.
     """
-    p = subprocess.run(["gh", "api", path], capture_output=True)
+    p = gh_run(path)
     if p.returncode == 0:
         return True
     err = (p.stderr or b"").decode("utf-8", "replace")
@@ -229,7 +268,7 @@ def gh_or_none(path):
     one of them for its workflows would end the whole run. 403 and 404 come
     back as None; anything else, an expired token above all, still exits.
     """
-    p = subprocess.run(["gh", "api", path], capture_output=True)
+    p = gh_run(path)
     if p.returncode == 0:
         return json.loads(p.stdout)
     err = (p.stderr or b"").decode("utf-8", "replace")
@@ -1359,6 +1398,8 @@ def main():
                     help="how many intervals a workflow may miss before this is a finding")
     ap.add_argument("--json", dest="js")
     a = ap.parse_args()
+    global JSON_OUT
+    JSON_OUT = a.js
 
     now = datetime.datetime.now(datetime.timezone.utc)
 
