@@ -43,6 +43,9 @@ NAMED = {
     # The same question as the sandbox, asked of a Cypress Cloud triage
     # agent: what it can do with a failed run's text as its input.
     "cypress-cloud-triage-agent": "focused",
+    # One question on kind again: what evidence of the flagship's admission
+    # controls an auditor can check without trusting the author.
+    "kubernetes-oscal-evidence": "focused",
     # Kubernetes on kind again, but the answer is a number: one way of
     # running a workload measured against another under the same load.
     "kubernetes-llm-inference-gateway": "measured",
