@@ -508,7 +508,9 @@ def collect_live_status(names):
     """Every repository whose workflows include status.yml, read from its branch `status`."""
     out = {}
     for n in sorted(names):
-        if not (n.startswith("kubernetes-") or n.startswith("aws-eks-")) or not has_workflow(n, "status.yml"):
+        # By kind, not by name: cypress-cloud-triage-agent keeps the same
+        # record and was left off the page until 2026-11-03 for its prefix.
+        if fleet_kind.kind_of(n) not in ("kubernetes", "focused", "measured") or not has_workflow(n, "status.yml"):
             continue
         found = {kind: s for kind, path in LIVE_STATUS_FILES for s in [live_status_one(n, path)] if s}
         if found:
