@@ -1,9 +1,371 @@
 [
   {
-    "repo": "owncloud-traefik-letsencrypt-docker-compose",
-    "sha": "f28e6a79cc2a4a5c60853a454054639c114b9662",
+    "repo": "affine-traefik-letsencrypt-docker-compose",
+    "sha": "3d1ca303751560e008715aa02fc01c19b6d6a74f",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-03T01:49:36Z"
+    "pushed_at": "2026-11-03T14:44:33Z"
+  },
+  {
+    "repo": "anythingllm-traefik-letsencrypt-docker-compose",
+    "sha": "30d541c90701641eca03546b534c2902d83117a6",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:45:09Z",
+    "review": "\n## Upstream changes 0.40.13 -> 0.40.14\n\n**Verdict:** SAFE TO APPLY \u2014 the notes describe behavioural fixes only, the image configuration is unchanged, and no companion service version is implicated.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none. The notes touch `ollama launch claude`/`codex`, OpenAI-compatible endpoint sampling defaults, `/api/chat` and `/v1/responses` behaviour, and MLX sampling performance \u2014 all application behaviour, not host-facing configuration, ports, or storage.\n\n### Before applying\n- none required. Routine pull/restart of the `ollama` service is sufficient.\n\n### Notes read\n- `v0.40.14` (2026-11-03) \u2014 the only notes in the range being moved through.\n- `v0.40.13` (2026-10-28) \u2014 read as baseline only (LFM3 on Linux/Windows); it describes a capability already present at the current version, not a change introduced by this upgrade, and does not affect the verdict.\n- No UPGRADING/BREAKING_CHANGES/CHANGELOG section was supplied beyond the release notes above.\n"
+  },
+  {
+    "repo": "audiobookshelf-traefik-letsencrypt-docker-compose",
+    "sha": "ab37055c3b906aaa40da44b802164904d2935f17",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:45:19Z"
+  },
+  {
+    "repo": "authelia-traefik-letsencrypt-docker-compose",
+    "sha": "3abe8d04ce41c02bc2f05b4e036cd08fcfc2007e",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:45:31Z"
+  },
+  {
+    "repo": "beszel-traefik-letsencrypt-docker-compose",
+    "sha": "5a721a5e657a17e1f6b6a36e4c961d0bcdf577f9",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:45:45Z"
+  },
+  {
+    "repo": "bitbucket-traefik-letsencrypt-docker-compose",
+    "sha": "df2a0c4c23799980c7a59e1bbaf5dec9ff57165a",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:46:12Z",
+    "review": "\n## Upstream changes 10.5.1 -> 10.5.2\n\n**Verdict:** NEEDS ATTENTION \u2014 no release notes were available for this range, and the image comparison, while clean, cannot speak to application-level behaviour.\n\nNo upstream release notes were supplied or reachable for this range, and no UPGRADING/BREAKING_CHANGES/CHANGELOG section was provided either. The image-level comparison shows no difference in `User`, `Entrypoint`, `Cmd`, `WorkingDir`, `ExposedPorts`, `Volumes`, `Healthcheck`, or environment between 10.5.1 and 10.5.2, so nothing in this template's compose wiring is contradicted or needs editing on that basis. But that comparison says nothing about behaviour inside Bitbucket itself (data migrations, API changes, deprecated settings), and the actual Atlassian release notes for this version were not read, so an undocumented application-level breaking change cannot be ruled out.\n\n### Breaking changes\n- none found in the notes \u2014 the notes were not available to check (see Notes read below)\n\n### Variables\n- none \u2014 the compose file and .env.example are unchanged in their requirements for this image; the image's own environment interface is confirmed identical between 10.5.1 and 10.5.2 by the registry comparison\n\n### Data and dependencies\n- Already true at the current version, not introduced by this range: the template pins `postgres:17` (`BITBUCKET_POSTGRES_IMAGE_VERSION:-17`) as its database \u2014 this is the existing baseline, unaffected by this upgrade since no notes were available to state otherwise.\n- No new database version requirement, port change, or path change is evidenced by either the (absent) notes or the image comparison.\n\n### Before applying\n- Take a backup before upgrading, as standard practice for any Bitbucket version bump: the `backups` service in this compose file already produces Postgres + data-directory backups \u2014 confirm a recent one exists before pulling 10.5.2.\n- Manually check Atlassian's own release notes and upgrade guide for Bitbucket 10.5.2 before applying, since this review had no access to them:\n  - https://confluence.atlassian.com/bitbucketserver/bitbucket-release-notes (or Atlassian's data center release notes site)\n  - Atlassian's upgrade guide for any database schema migration notices, deprecated configuration keys, or required manual steps specific to 10.5.2.\n- After checking those notes by hand, re-run this review if they describe anything touching the database engine version, environment variables, ports, or volumes.\n\n### Notes read\n- None. Release-notes source was declared \"none\" (\"Atlassian publishes release notes on its own site, not on GitHub\"), and no UPGRADING/BREAKING_CHANGES/CHANGELOG section was supplied. The verdict and recommendations above are based solely on the registry image-configuration diff and the compose/.env.example content.\n"
+  },
+  {
+    "repo": "chatops-privilege-wall",
+    "sha": "8335e9ca13a72773295aa747ae43a5a029a2ad47",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:46:22Z"
+  },
+  {
+    "repo": "confluence-traefik-letsencrypt-docker-compose",
+    "sha": "b16166a609a98598a47070f00b7d56b20065dcd3",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:46:48Z",
+    "review": "\n## Upstream changes 10.2.19 -> 10.2.20\n\n**Verdict:** NEEDS ATTENTION \u2014 upstream release notes are not available, so no application-level breaking changes can be confirmed or ruled out; proceed only after manually checking Atlassian's own release notes for this version.\n\n### Breaking changes\n- Unknown. No upstream release notes were provided (\"Atlassian publishes release notes on its own site, not on GitHub\"), so none can be quoted or confirmed. This is not the same as \"none found\" \u2014 it means unreviewed.\n\n### Variables\n- none identified. The registry diff shows only the internal `CONFLUENCE_VERSION` env value changing from `'10.2.19'` to `'10.2.20'`, which is a label reflecting the image's own version, not a compose/.env-facing variable. No renamed, removed, or newly required variables are indicated by the compose file or .env.example.\n\n### Data and dependencies\n- The compose file pins Postgres at `postgres:16@sha256:...` and this is unchanged across the image diff \u2014 no new companion-service version is named by anything reviewed here, so the SAFE TO APPLY block condition does not trigger.\n- Already true at the current version (10.2.19), not introduced by this range: Confluence runs against PostgreSQL 16 (`CONFLUENCE_POSTGRES_IMAGE_VERSION:-16`), and Synchrony shares the Confluence container's memory budget (`CONFLUENCE_MEMORY_LIMIT above holds this heap, the 2 GB heap of Synchrony's own JVM in the same container, and a quarter more...`). Neither is a new requirement in this upgrade.\n- No irreversible migration, removed default, or changed port/path is evident from the compose file or the image diff.\n\n### Before applying\n- Take a database and application-data backup before upgrading (standard practice for any Confluence version bump; the `backups` service in this template can be triggered manually or relied on per its schedule).\n- Manually check Atlassian's official release notes and upgrade guide for Confluence 10.2.20 before applying, specifically for: mandatory pre-upgrade steps, Java/platform requirement changes, and any database schema migration triggered on first boot.\n- Confirm Postgres 16 is still within Atlassian's supported database matrix for 10.2.20 (unchanged in this template, but worth reconfirming against Atlassian's compatibility matrix given the version bump).\n- After upgrade, watch the `confluence` container's startup logs and healthcheck (`http://localhost:8090/`) since Confluence upgrades commonly run an internal migration on first start that can extend the `start_period` needed before the container reports healthy.\n\n### Notes read\n- None. Release-notes source was declared empty (\"none\" / not available on GitHub). The only factual input was the registry image diff (`CONFLUENCE_VERSION` env bump) and the template's own compose/.env.example files, both of which contain no application-behavior information for this version step.\n"
+  },
+  {
+    "repo": "dashy-traefik-letsencrypt-docker-compose",
+    "sha": "2e3f74e3b4b6600f0784ec1b71dc2a6c016fa642",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:47:18Z",
+    "review": "\n## Upstream changes 4.9.12 -> 4.9.15\n\n**Verdict:** NEEDS ATTENTION \u2014 the header-auth behaviour change may affect existing deployments using header auth, and no UPGRADING/CHANGELOG section was provided to confirm migration steps.\n\n### Breaking changes\n- \"\ud83d\udec2 Checks header auth users against conf.yml on the server\" (merged via \"Fixes header auth for unlisted users\", #2430). If header auth is in use, users not listed in `conf.yml` that previously authenticated may now be rejected server-side. This is a behavioural change in the application and is not visible in the image configuration diff.\n- \"\ud83d\udc1b Fixes OIDC re-login losing the requested page (#2427)\" \u2014 a bug fix, not breaking, but relevant if OIDC is in use.\n- No other breaking changes found in the commit list.\n\n### Variables\n- none found in the notes or in the compose/.env.example diff.\n\n### Data and dependencies\n- none found. No database/companion-service version requirements are mentioned in these notes, and none are pinned for this image in the compose file (it has no external datastore).\n\n### Before applying\n- If header auth is configured, review `conf.yml`'s user list before upgrading \u2014 users not explicitly listed there may lose access after this change, per \"Checks header auth users against conf.yml on the server.\"\n- No backup or manual migration commands are indicated by the notes.\n- Update the pin: change `DASHY_IMAGE_VERSION` default (or `DASHY_IMAGE_TAG`) in the compose file's `x-images` block from `4.9.12@sha256:...` to the `4.9.15` tag and its correct digest \u2014 the compose file currently pins 4.9.12.\n\n### Notes read\n- Commit log from the compare API between `4.9.12` and `4.9.15` on `Lissy93/dashy` (no dedicated release notes exist for these tags; commits are the only record, as stated: \"no release notes were found for these tags under Lissy93/dashy, so the commits are the record\").\n- No UPGRADING, BREAKING_CHANGES, or CHANGELOG section was supplied for this range.\n"
+  },
+  {
+    "repo": "dify-traefik-letsencrypt-docker-compose",
+    "sha": "ed33855b691be1254692923ed7833bb610e4e572",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:47:42Z"
+  },
+  {
+    "repo": "docmost-traefik-letsencrypt-docker-compose",
+    "sha": "f56311acb93ae5ce11f071843711104f072daf18",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:47:54Z"
+  },
+  {
+    "repo": "dozzle-traefik-letsencrypt-docker-compose",
+    "sha": "01ba876ba845d8533e91e5f17d42c09b29fd9814",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:48:07Z"
+  },
+  {
+    "repo": "forgejo-traefik-letsencrypt-docker-compose",
+    "sha": "d66e7b9ebdb4055051baf33dd50eb309642cf12b",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:48:19Z"
+  },
+  {
+    "repo": "gaseous-server-using-docker-compose",
+    "sha": "916c0a71056de3184cd99c3ab37e5cff25c13de2",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:48:29Z"
+  },
+  {
+    "repo": "ghost-traefik-letsencrypt-docker-compose",
+    "sha": "b8ff7babd098263c29d59ba87076e8125a5e43a3",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:48:38Z"
+  },
+  {
+    "repo": "gitea-traefik-letsencrypt-docker-compose",
+    "sha": "f44b34a6e9aa1a58786a4bc3291141976ee3d13b",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:48:48Z"
+  },
+  {
+    "repo": "gitlab-traefik-letsencrypt-docker-compose",
+    "sha": "ef5e44f165c7581e334db667eb84ab52c7c650eb",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:49:00Z"
+  },
+  {
+    "repo": "glpi-traefik-letsencrypt-docker-compose",
+    "sha": "8b2e922218dce404d853fe33991d56115ba21cd0",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:49:10Z"
+  },
+  {
+    "repo": "grafana-traefik-letsencrypt-docker-compose",
+    "sha": "39aaf2ed2f1113f14ed88ec3e575d77165365690",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:49:20Z"
+  },
+  {
+    "repo": "homeassistant-traefik-letsencrypt-docker-compose",
+    "sha": "2f24970f7b8aba7381f8beb26940f5d0f380e5e7",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:49:28Z"
+  },
+  {
+    "repo": "homebox-traefik-letsencrypt-docker-compose",
+    "sha": "9c59184b85baf850ec7c3d6086d255942e4a1b67",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:49:36Z"
+  },
+  {
+    "repo": "homepage-traefik-letsencrypt-docker-compose",
+    "sha": "ae5965d6ba78e3e16056413ff7803290573f1ef4",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:49:47Z"
+  },
+  {
+    "repo": "immich-traefik-letsencrypt-docker-compose",
+    "sha": "a6ebc9acbc7011d0db4793cae8da693a535676c3",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:49:59Z"
+  },
+  {
+    "repo": "jellyfin-traefik-letsencrypt-docker-compose",
+    "sha": "3720b1948d276cdf317bb8228299eb074b63c174",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:50:12Z"
+  },
+  {
+    "repo": "jira-traefik-letsencrypt-docker-compose",
+    "sha": "745945c57ffc70eb0714610a0b528ab531e3cc23",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:50:24Z"
+  },
+  {
+    "repo": "joomla-traefik-letsencrypt-docker-compose",
+    "sha": "b713e86c707c910a5b52bddeeb5952a328e362a3",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:50:38Z"
+  },
+  {
+    "repo": "keycloak-traefik-letsencrypt-docker-compose",
+    "sha": "ff57d37fb54a1f2670e3467ca8924c29b56b53a3",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:50:49Z"
+  },
+  {
+    "repo": "mailu-traefik-letsencrypt-docker-compose",
+    "sha": "346840af33772718f0c286909b839ba6ea5b1de1",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:51:17Z"
+  },
+  {
+    "repo": "mattermost-traefik-letsencrypt-docker-compose",
+    "sha": "190c6d4b1b03d0b822b86ade4b6668d05d15a000",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:51:28Z"
+  },
+  {
+    "repo": "mssql-server-traefik-letsencrypt-docker-compose",
+    "sha": "a269675dea24eec54b6a09c61047db0c2918e5d4",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:51:39Z"
+  },
+  {
+    "repo": "navidrome-traefik-letsencrypt-docker-compose",
+    "sha": "beb837efb619a24d30e569ab8d076ce4fffe476e",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:51:49Z"
+  },
+  {
+    "repo": "nextcloud-onlyoffice-traefik-letsencrypt-docker-compose",
+    "sha": "715947833eaab2e3052c7b0396a5a64609e775a3",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:52:07Z"
+  },
+  {
+    "repo": "nextcloud-traefik-letsencrypt-docker-compose",
+    "sha": "db362b05dec5376f59d92fb24cee73ddb106d1ff",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:52:21Z"
+  },
+  {
+    "repo": "nocodb-traefik-letsencrypt-docker-compose",
+    "sha": "dfd9f35100e503285556170f47be12415698ebaf",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:52:32Z"
+  },
+  {
+    "repo": "ollama-traefik-letsencrypt-docker-compose",
+    "sha": "4b7791d1474a4a422f3c4c7f85947cf445747460",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:52:49Z",
+    "review": "\n## Upstream changes 0.40.13 -> 0.40.14\n\n**Verdict:** SAFE TO APPLY \u2014 the notes describe behavioural fixes only, the image configuration is unchanged, and no companion service version is implicated.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none. The notes touch `ollama launch claude`/`codex`, OpenAI-compatible endpoint sampling defaults, `/api/chat` and `/v1/responses` behaviour, and MLX sampling performance \u2014 all application behaviour, not host-facing configuration, ports, or storage.\n\n### Before applying\n- none required. Routine pull/restart of the `ollama` service is sufficient.\n\n### Notes read\n- `v0.40.14` (2026-11-03) \u2014 the only notes in the range being moved through.\n- `v0.40.13` (2026-10-28) \u2014 read as baseline only (LFM3 on Linux/Windows); it describes a capability already present at the current version, not a change introduced by this upgrade, and does not affect the verdict.\n- No UPGRADING/BREAKING_CHANGES/CHANGELOG section was supplied beyond the release notes above.\n"
+  },
+  {
+    "repo": "otrs-traefik-letsencrypt-docker-compose",
+    "sha": "314faa4e480e0568e71dc7b8521b1646a62561bd",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:53:00Z"
+  },
+  {
+    "repo": "outline-keycloak-traefik-letsencrypt-docker-compose",
+    "sha": "ea6b3f19eb0504f5c922e5427023c0f641313480",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:53:17Z"
+  },
+  {
+    "repo": "owncloud-traefik-letsencrypt-docker-compose",
+    "sha": "c174845f837352a07ab957533972fedec4ebb9e7",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:53:28Z"
+  },
+  {
+    "repo": "portainer-traefik-letsencrypt-docker-compose",
+    "sha": "ec31c7ea766f17c3de8bfdb5eefff284f77cec54",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:53:36Z"
+  },
+  {
+    "repo": "rocketchat-traefik-letsencrypt-docker-compose",
+    "sha": "ef29b69720e5b31a2e9414bba288f105ba256ff6",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:53:47Z"
+  },
+  {
+    "repo": "romm-traefik-letsencrypt-docker-compose",
+    "sha": "8a09ef9f08e0929528d52adc930f4c0c76221ae2",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:53:56Z"
+  },
+  {
+    "repo": "seafile-traefik-letsencrypt-docker-compose",
+    "sha": "77d9ea9a835e859093d7bc5bd07d15844509ce0e",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:54:07Z"
+  },
+  {
+    "repo": "sftp-traefik-letsencrypt-docker-compose",
+    "sha": "78bb30fa88e97a563f5363a2a2946534baf39afd",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:54:15Z"
+  },
+  {
+    "repo": "sonarqube-traefik-letsencrypt-docker-compose",
+    "sha": "f779a28b6d20a424dd8cd0bfa16c3d6dbbaf60f3",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:54:26Z"
+  },
+  {
+    "repo": "uptime-kuma-traefik-letsencrypt-docker-compose",
+    "sha": "f1f281a848541e3de6837d3b6076a2a6521342f7",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:54:38Z"
+  },
+  {
+    "repo": "vaultwarden-traefik-letsencrypt-docker-compose",
+    "sha": "dd6926f467d57f19f46b15ee7ad67b4ae2a2af81",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:54:47Z"
+  },
+  {
+    "repo": "webrcade-traefik-letsencrypt-docker-compose",
+    "sha": "42cb72d2fed4e8fcbb2e5ed08cbaca9d74fef519",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:54:57Z"
+  },
+  {
+    "repo": "wikijs-traefik-letsencrypt-docker-compose",
+    "sha": "da5ddea1cba8d2191f2eb472b26def8aee318388",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:55:07Z"
+  },
+  {
+    "repo": "wordpress-traefik-letsencrypt-docker-compose",
+    "sha": "d96893d2cceb997886a9462c6a658d976ffb2597",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:55:17Z"
+  },
+  {
+    "repo": "xwiki-traefik-letsencrypt-docker-compose",
+    "sha": "2838b3ccf51da893670f6b9f657f9c4370c50cfd",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:55:28Z"
+  },
+  {
+    "repo": "zabbix-traefik-letsencrypt-docker-compose",
+    "sha": "7d27e9104ed05959f695bedf7546682e5bcb7b35",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:55:42Z"
+  },
+  {
+    "repo": "zammad-traefik-letsencrypt-docker-compose",
+    "sha": "4f31a22072b54bb8cf95a2f97913f1d4c023583a",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-03T14:55:56Z"
   }
 ]
