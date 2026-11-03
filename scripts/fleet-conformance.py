@@ -24,7 +24,7 @@ DESIGN RULES, each of which cost something to learn:
     A repository with no database is not a repository whose database is
     configured correctly.
 """
-import base64, json, os, re, subprocess, sys, urllib.error, urllib.request
+import base64, json, os, re, subprocess, sys, urllib.error, urllib.parse, urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fleet_kind  # noqa: E402  (the one place fleet repositories are classified)
@@ -678,6 +678,131 @@ def readme_findings(repo, runbooks):
     return bad
 
 
+# --- Planted manifests, a repository's own or its flagship's --------------------
+#
+# A focused repository proves its refusals with planted manifests in
+# tests/e2e/plants, each saying what it expects, and a control that must be
+# admitted. kubernetes-oscal-evidence plants nothing of its own on purpose:
+# what it turns into evidence are the flagship's own planted pods, read from
+# the flagship's signed release, and a copy here could drift from the release
+# the evidence names. So the rule is met there by the flagship's plants, and
+# conformance checks each link rather than taking flagship.lock's word for it:
+#
+#   1. flagship.lock names a fleet repository of this owner, at a tag that is
+#      a published release of it (a tag of the local copy in test mode);
+#   2. that repository's tests/e2e/plants, at that tag, meets the rule itself;
+#   3. the e2e run reads them from where it unpacks that release: a script
+#      tests/e2e/run.sh runs downloads what flagship.lock names into a .cache
+#      directory, and every line of the scripts it runs that names a
+#      tests/e2e/plants path names that directory, or a variable holding it.
+# Each is broken on a copy of the repository in
+# tests/test-conformance-flagship-plants.sh.
+
+PLANTS_MISSING = "no planted manifests in tests/e2e/plants: no refusal is ever tried"
+
+
+def plants_rule(names, read, where="tests/e2e/plants"):
+    """The findings of the planted-manifest rule over one directory, or None
+    when it holds no manifest at all."""
+    expects = [(n, re.search(r"^# expect: (.+)$", read(n) or "", re.M))
+               for n in names if n.endswith((".yaml", ".yml"))]
+    if not expects:
+        return None
+    bad = [f"{where}/{n} does not say what it expects (# expect: ...)" for n, m in expects if not m]
+    if not any(m and m.group(1).strip() == "admitted" for _, m in expects):
+        bad.append("no planted manifest expects to be admitted: refusals without a control prove nothing")
+    return bad
+
+
+def names_at(name, path, ref):
+    """The entries of one directory of a fleet repository at a tag."""
+    if LOCAL:
+        out = subprocess.run(["git", "-C", os.path.join(LOCAL, name), "ls-tree", "--name-only", f"{ref}:{path}"],
+                             capture_output=True, text=True)
+        return sorted(out.stdout.split()) if out.returncode == 0 else []
+    try:
+        return sorted(e["name"] for e in api(f"repos/{OWNER}/{name}/contents/{path}?ref={urllib.parse.quote(ref)}"))
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return []
+        raise
+
+
+def read_at(name, path, ref):
+    """One file of a fleet repository at a tag, or None."""
+    if LOCAL:
+        out = subprocess.run(["git", "-C", os.path.join(LOCAL, name), "show", f"{ref}:{path}"],
+                             capture_output=True, text=True)
+        return out.stdout if out.returncode == 0 else None
+    try:
+        d = api(f"repos/{OWNER}/{name}/contents/{path}?ref={urllib.parse.quote(ref)}")
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return None
+        raise
+    return base64.b64decode(d["content"]).decode("utf-8", "replace")
+
+
+def released(name, tag):
+    """True when the tag is a published release of the repository."""
+    if LOCAL:
+        return tag in Repo(name).tags()
+    try:
+        api(f"repos/{OWNER}/{name}/releases/tags/{urllib.parse.quote(tag)}")
+        return True
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return False
+        raise
+
+
+DOWNLOADS = re.compile(r"\bcurl\b|\bwget\b|gh release download|urlopen|requests\.get")
+
+
+def flagship_plants(repo):
+    """The plants rule for a repository with no planted manifests of its own:
+    [] when its flagship's plants stand in for them (see above)."""
+    lock = repo.read("flagship.lock")
+    if lock is None:
+        return [PLANTS_MISSING]
+    line = next((l.split() for l in lock.splitlines() if l.strip() and not l.lstrip().startswith("#")), [])
+    if len(line) < 2 or "/" not in line[0]:
+        return [PLANTS_MISSING + "; flagship.lock names no repository and tag"]
+    (owner, _, name), tag = line[0].partition("/"), line[1]
+    if owner != OWNER or not fleet_kind.kind_of(name):
+        return [PLANTS_MISSING + f"; flagship.lock names {line[0]}, which is not a fleet repository"]
+    if not released(name, tag):
+        return [PLANTS_MISSING + f"; flagship.lock names {name} at {tag}, which is not a release of it"]
+    theirs = plants_rule(names_at(name, "tests/e2e/plants", tag),
+                         lambda n: read_at(name, f"tests/e2e/plants/{n}", tag), f"{name}@{tag}:tests/e2e/plants")
+    if theirs is None:
+        return [PLANTS_MISSING + f"; flagship.lock names {name} {tag}, which plants nothing either"]
+    if theirs:
+        return [f"flagship.lock names {name} {tag}, whose plants fall short: {b}" for b in theirs]
+
+    # What tests/e2e/run.sh runs, and what those scripts say. Paths written as
+    # os.path.join(ROOT, ".cache", "flagship") read as .cache/flagship.
+    run = repo.read("tests/e2e/run.sh") or ""
+    code = lambda t: "\n".join(l for l in t.splitlines() if not l.lstrip().startswith("#"))
+    joined = lambda t: re.sub(r"""["']\s*,\s*["']""", "/", t)
+    scripts = {p: joined(repo.read(p) or "") for p in sorted(set(re.findall(r"scripts/[\w.-]+\.(?:sh|py)", code(run))))}
+    dirs = {d.rstrip(".") for t in scripts.values() if "flagship.lock" in t and DOWNLOADS.search(t)
+            for d in re.findall(r"\.cache/[\w.-]+", code(t))}
+    if not dirs:
+        return [PLANTS_MISSING + "; tests/e2e/run.sh never downloads the release flagship.lock names"]
+    held = {v for t in scripts.values() for v in re.findall(
+        r"^\s*(?:export\s+|local\s+|readonly\s+)?([A-Za-z_]\w*)\s*=.*(?:%s)" % "|".join(map(re.escape, dirs)), t, re.M)}
+    places = [re.escape(d) for d in dirs] + [r"\b%s\b" % re.escape(v) for v in held]
+    uses = [(p, l) for p, t in scripts.items() for l in code(t).splitlines() if re.search(r"""["'/]tests/e2e/plants""", l)]
+    if not uses:
+        return [PLANTS_MISSING + f"; tests/e2e/run.sh never reads {name}'s tests/e2e/plants"]
+    elsewhere = [p for p, l in uses if not any(re.search(pat, l) for pat in places)]
+    if elsewhere:
+        return [PLANTS_MISSING + f"; {', '.join(sorted(set(elsewhere)))} reads tests/e2e/plants from somewhere "
+                f"other than where {name}'s release is unpacked ({', '.join(sorted(dirs))})"]
+    return []
+
+
 # --- Focused Kubernetes repositories -------------------------------------------
 #
 # Kubernetes, but not a platform: one question answered on kind (what an
@@ -733,15 +858,11 @@ def focused_rules(repo, names):
         bad.append("the e2e workflow has no schedule: nothing proves it daily")
     bad += cloud_run_findings(workflows)
 
-    expects = [(n, re.search(r"^# expect: (.+)$", repo.read(f"tests/e2e/plants/{n}") or "", re.M))
-               for n in repo.names_in("tests/e2e/plants") if n.endswith((".yaml", ".yml"))]
-    if not expects:
-        bad.append("no planted manifests in tests/e2e/plants: no refusal is ever tried")
-    for n, m in expects:
-        if not m:
-            bad.append(f"tests/e2e/plants/{n} does not say what it expects (# expect: ...)")
-    if expects and not any(m and m.group(1).strip() == "admitted" for _, m in expects):
-        bad.append("no planted manifest expects to be admitted: refusals without a control prove nothing")
+    planted = plants_rule(repo.names_in("tests/e2e/plants"), lambda n: repo.read(f"tests/e2e/plants/{n}"))
+    if planted is None:
+        bad += flagship_plants(repo)
+    else:
+        bad += planted
 
     bad += image_findings(repo, repo.tree())
     bad += readme_findings(repo, runbooks=False)
