@@ -51,6 +51,18 @@ def gh(path):
     return json.loads(subprocess.check_output(["gh", "api", path], stderr=subprocess.DEVNULL))
 
 
+def gh_bytes(path, tries=3, wait=10):
+    """A raw body, asked again when GitHub drops it. Only for a path that is
+    known to exist: a 404 asked three times is still a 404, thirty seconds later."""
+    for i in range(tries):
+        try:
+            return subprocess.check_output(["gh", "api", path], stderr=subprocess.DEVNULL)
+        except subprocess.CalledProcessError:
+            if i == tries - 1:
+                raise
+            time.sleep(wait * (i + 1))
+
+
 def repos():
     out, page = [], 1
     while True:
@@ -292,7 +304,15 @@ def render_evidence(ev, drills=None, sc=None, bp=None):
 # never run it, and keeps the result as an artifact. Only a run that succeeded
 # is quoted; a template whose last drill failed is listed as failing, with no
 # number, because a restore time from a restore that did not work is not a time.
-def dr_result(name):
+#
+# ONE DROPPED DOWNLOAD IS NOT A FAILED DRILL. On 2026-11-03 at 14:27 the
+# scheduled run asked for diun-docker-compose's dr-result artifact, which was
+# there and unexpired, got no answer, and the exception ended the run: nothing
+# was recounted that day, upstream states included. The download is now asked
+# three times; if GitHub still does not give it, the last published measurement
+# of that drill stands, with its own date and run, and a drill never published
+# is left out until a run can read it.
+def dr_result(name, previous=None):
     try:
         runs = gh("repos/%s/%s/actions/workflows/dr-drill.yml/runs?status=completed&per_page=1" % (OWNER, name))
     except subprocess.CalledProcessError:
@@ -302,12 +322,14 @@ def dr_result(name):
         return None
     if run["conclusion"] != "success":
         return {"repository": name, "ok": False, "run": run["html_url"], "finished_at": run["updated_at"]}
-    arts = gh("repos/%s/%s/actions/runs/%d/artifacts" % (OWNER, name, run["id"])).get("artifacts", [])
-    art = next((a for a in arts if a["name"] == "dr-result" and not a["expired"]), None)
-    if not art:
-        return {"repository": name, "ok": True, "run": run["html_url"], "finished_at": run["updated_at"]}
-    blob = subprocess.check_output(["gh", "api", "repos/%s/%s/actions/artifacts/%d/zip" % (OWNER, name, art["id"])],
-                                   stderr=subprocess.DEVNULL)
+    try:
+        arts = gh("repos/%s/%s/actions/runs/%d/artifacts" % (OWNER, name, run["id"])).get("artifacts", [])
+        art = next((a for a in arts if a["name"] == "dr-result" and not a["expired"]), None)
+        if not art:
+            return {"repository": name, "ok": True, "run": run["html_url"], "finished_at": run["updated_at"]}
+        blob = gh_bytes("repos/%s/%s/actions/artifacts/%d/zip" % (OWNER, name, art["id"]))
+    except subprocess.CalledProcessError:
+        return previous
     with tempfile.TemporaryDirectory() as d:
         z = os.path.join(d, "a.zip")
         io.open(z, "wb").write(blob)
@@ -1003,21 +1025,22 @@ def main():
     # Everything is read before anything is written, so a refusal leaves every
     # file exactly as the last whole run left it.
     if a.evidence or a.json:
-        names = [r["name"] for r in repos()]
-        ev = collect_evidence(names)
-        drills = [with_rpo(d) for d in (dr_result(n) for n in names if has_workflow(n, "dr-drill.yml")) if d]
-        sc = collect_scorecard(names)
-        bp = collect_bestpractices(names)
-        live = collect_live_status(names)
-        upstream = collect_upstream()
-        ops = collect_operations(names)
-        plants = collect_plants(names)
         previous = None
         if a.json and os.path.exists(a.json):
             try:
                 previous = json.load(io.open(a.json, encoding="utf-8"))
             except ValueError:
                 previous = None
+        measured = {d.get("repository"): d for d in (previous or {}).get("clean_machine_restores") or []}
+        names = [r["name"] for r in repos()]
+        ev = collect_evidence(names)
+        drills = [with_rpo(d) for d in (dr_result(n, measured.get(n)) for n in names if has_workflow(n, "dr-drill.yml")) if d]
+        sc = collect_scorecard(names)
+        bp = collect_bestpractices(names)
+        live = collect_live_status(names)
+        upstream = collect_upstream()
+        ops = collect_operations(names)
+        plants = collect_plants(names)
         why = refuse_partial(ev, drills, previous, ops)
         if why:
             for w in why:

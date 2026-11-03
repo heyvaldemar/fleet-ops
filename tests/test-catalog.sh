@@ -165,6 +165,41 @@ keep2 = m.gh; m.gh = fake_dr
 r = m.dr_result("x")
 check("a failed drill is listed as failing", r["ok"], False)
 check("and carries no restore time", "seconds_total" in r, False)
+def fake_ok(path):
+    if "/actions/workflows/dr-drill.yml/runs" in path:
+        return {"workflow_runs": [{"id": 8, "conclusion": "success", "html_url": "https://x/8", "updated_at": "2026-11-01T11:34:00Z"}]}
+    if path.endswith("/runs/8/artifacts"):
+        return {"artifacts": [{"id": 9, "name": "dr-result", "expired": False}]}
+    raise AssertionError("unexpected read: " + path)
+m.gh = fake_ok
+def dropped(path, **kw):
+    raise sp.CalledProcessError(1, "gh")
+keep_bytes = m.gh_bytes; m.gh_bytes = dropped
+last = {"repository": "x", "ok": True, "seconds_total": 41, "run": "https://x/5", "finished_at": "2026-10-25T11:00:00Z"}
+check("a download GitHub drops keeps the last published drill", m.dr_result("x", last), last)
+check("and a drill never published stays out instead of ending the run", m.dr_result("x"), None)
+m.gh_bytes = keep_bytes
+calls = []
+def flaky(cmd, **kw):
+    calls.append(cmd)
+    if len(calls) < 3:
+        raise sp.CalledProcessError(1, cmd)
+    return b"zip"
+keep_co, keep_sleep = m.subprocess.check_output, m.time.sleep
+m.subprocess.check_output, m.time.sleep = flaky, (lambda s: None)
+check("the download is asked again, and the third answer is used", (m.gh_bytes("repos/o/r/actions/artifacts/9/zip"), len(calls)), (b"zip", 3))
+calls.clear()
+def gone(cmd, **kw):
+    calls.append(cmd)
+    raise sp.CalledProcessError(1, cmd)
+m.subprocess.check_output = gone
+try:
+    m.gh_bytes("repos/o/r/actions/artifacts/9/zip")
+    raised = False
+except sp.CalledProcessError:
+    raised = True
+check("three refusals are an error, not an empty file", (raised, len(calls)), (True, 3))
+m.subprocess.check_output, m.time.sleep = keep_co, keep_sleep
 m.gh = keep2
 
 print()
