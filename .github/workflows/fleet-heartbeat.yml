@@ -52,8 +52,9 @@ jobs:
     # Thirty, not twenty. The sweep of the fleet took fifteen to seventeen
     # minutes by October 2026 and twenty left no room: on 2026-10-07 it ran a
     # few seconds over and the job was cancelled in the middle of reporting.
-    # This repository is public, so the minutes are not metered.
-    timeout-minutes: 45
+    # This repository is public, so the minutes are not metered. Sixty since
+    # 2026-11-03: the sweep step below may now take forty.
+    timeout-minutes: 60
     permissions:
       contents: read
       actions: read
@@ -151,8 +152,11 @@ jobs:
         # (10-16) to past the job's 30 on 10-17, and the job's timeout then
         # cancelled the ping below with it: the switch outside GitHub reported
         # the heartbeat down because one optional step ran long. Bounded here,
-        # a slow sweep fails alone and the ping still goes.
-        timeout-minutes: 25
+        # a slow sweep fails alone and the ping still goes. Forty since
+        # 2026-11-03: the sweep itself took 22 to 25 minutes that week and the
+        # 25-minute bound cut one off at 25:12, and an empty API quota is now
+        # waited out for up to fifteen minutes (RATE_PAUSES) before it is named.
+        timeout-minutes: 40
         env:
           GH_TOKEN: ${{ secrets.FLEET_PAT }}
           # Read-only, scoped to the repositories the main token does not reach.
@@ -177,7 +181,9 @@ jobs:
         id: private
         if: always() && vars.FLEET_ROLE == 'house'
         continue-on-error: true
-        timeout-minutes: 10
+        # Twenty, not ten: the fifteen minutes an empty quota is waited out
+        # have to fit, or the step is killed before it can say it was the quota.
+        timeout-minutes: 20
         env:
           GH_TOKEN: ${{ secrets.FLEET_PAT }}
           FLEET_READ_TOKEN: ${{ secrets.FLEET_READ_PAT }}
