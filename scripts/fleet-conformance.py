@@ -907,8 +907,17 @@ def measured_rules(repo, names):
     if not rows:
         bad.append("no planted breaks in tests/plants.tsv: the measurement is never shown what it must catch")
 
-    for m in re.finditer(r"^([A-Z0-9_]+_IMAGE)=(\S*)$", repo.read("images.lock") or "", re.M):
-        if "@sha256:" not in m.group(2):
+    # KIND'S OWN IMAGES ARE PINNED BY THE NODE THAT CARRIES THEM. kind runs its
+    # control plane, CoreDNS, kube-proxy, kindnet and the storage provisioner
+    # from copies preloaded in its node image, so a lock names them by the tag
+    # their pods show, for the image check to accept, and the node's digest
+    # fixes their bytes (kubernetes-llm-inference-gateway 662efcf). They count
+    # as pinned only while KIND_NODE_IMAGE itself carries a digest.
+    lock = repo.read("images.lock") or ""
+    node_pinned = re.search(r"^KIND_NODE_IMAGE=\S*@sha256:[0-9a-f]{64}$", lock, re.M)
+    for m in re.finditer(r"^([A-Z0-9_]+_IMAGE)=(\S*)$", lock, re.M):
+        carried = node_pinned and m.group(1).startswith("KIND_") and m.group(1) != "KIND_NODE_IMAGE"
+        if "@sha256:" not in m.group(2) and not carried:
             bad.append(f"images.lock: {m.group(1)} is not pinned by digest")
     for path in repo.tree():
         if path.startswith("deploy/") and path.endswith((".yaml", ".yml")):

@@ -83,6 +83,9 @@ expect "CI that never shows the measurement its plants is caught" "$WORK/noplant
 d="$(fixture lock)"; edit "$d/images.lock" 's#^\(SIM_IMAGE=[^@]*\)@sha256:[0-9a-f]*#\1#'
 expect "an image in images.lock without a digest is caught" "$WORK/lock" "images.lock: SIM_IMAGE is not pinned by digest"
 
+d="$(fixture kindnode)"; edit "$d/images.lock" 's#^\(KIND_NODE_IMAGE=[^@]*\)@sha256:[0-9a-f]*#\1#'
+expect "kind's own images stop counting as pinned once its node is not" "$WORK/kindnode" "images.lock: KIND_APISERVER_IMAGE is not pinned by digest"
+
 d="$(fixture tag)"; edit "$d/deploy/model-server.yaml" 's#\(image: [^@]*\)@sha256:[0-9a-f]*#\1#'
 expect "a deployed image without a digest is caught" "$WORK/tag" "deploy/model-server.yaml: image"
 
