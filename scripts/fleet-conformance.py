@@ -24,7 +24,7 @@ DESIGN RULES, each of which cost something to learn:
     A repository with no database is not a repository whose database is
     configured correctly.
 """
-import base64, json, os, re, subprocess, sys, urllib.error, urllib.parse, urllib.request
+import base64, datetime, json, os, re, subprocess, sys, urllib.error, urllib.parse, urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fleet_kind  # noqa: E402  (the one place fleet repositories are classified)
@@ -173,7 +173,19 @@ def services(compose):
             for h, n in zip(heads, heads[1:])]
 
 
-def changelog_claims(repo):
+# BEFORE THE FIRST RELEASE. A repository can be public before its first release:
+# a new Docker Hub image goes public, then waits a week for the one-image-a-week
+# pace. Failing it for that week did worse than fail it: conformance stayed red on
+# the one known gap, and the heartbeat, already saying "conformance fails", had no
+# way to tell anyone about a new failure elsewhere (minio-client-docker, 2026-11-04).
+# So the changelog may declare the date, with a reason, in a comment the reader
+# meets under [Unreleased]; it is reported as declared until that date and fails
+# again the day after, so the door cannot be left open.
+FIRST_RELEASE = re.compile(
+    r"<!--\s*conformance:\s*first release not before (\d{4}-\d{2}-\d{2})\s*[-\u2014]\s*(.*?)\s*-->")
+
+
+def changelog_claims(repo, exempt=None):
     """Every version this repository's changelog says it released, against the
     tags that exist.
 
@@ -192,7 +204,16 @@ def changelog_claims(repo):
         return []
     claimed = re.findall(r"^## \[(\d+\.\d+\.\d+)\]", ch, re.M)
     if not claimed:
-        return ["CHANGELOG has no released version at the top"]
+        m = FIRST_RELEASE.search(ch)
+        if not m:
+            return ["CHANGELOG has no released version at the top"]
+        due, why = m.group(1), m.group(2)
+        today = datetime.datetime.now(datetime.timezone.utc).date().isoformat()
+        if today > due:
+            return [f"CHANGELOG has no released version at the top, and the first release it declared for {due} has not happened"]
+        if exempt is not None:
+            exempt.append(f"no released version yet, declared: first release not before {due} - {why}")
+        return []
     tags = repo.tags()
     missing = [v for v in claimed if "v%s" % v not in tags]
     if not missing:
@@ -1011,15 +1032,15 @@ def check_repo(repo, exempt=None):
 
     kind = fleet_kind.kind_of(repo.name)
     if kind == "kubernetes":
-        return kubernetes_rules(repo, names) + workflow_claims(repo) + changelog_claims(repo)
+        return kubernetes_rules(repo, names) + workflow_claims(repo) + changelog_claims(repo, exempt)
     if fleet_kind.kind_from_files(names) == "kubernetes":
         return ["its files are a Kubernetes platform, but its name puts it outside the Kubernetes rules (scripts/fleet_kind.py)"]
     if kind == "focused":
-        return focused_rules(repo, names) + workflow_claims(repo) + changelog_claims(repo)
+        return focused_rules(repo, names) + workflow_claims(repo) + changelog_claims(repo, exempt)
     if fleet_kind.kind_from_files(names) == "focused":
         return ["its files are a focused Kubernetes repository, but its name puts it outside those rules (scripts/fleet_kind.py)"]
     if kind == "measured":
-        return measured_rules(repo, names) + workflow_claims(repo) + changelog_claims(repo)
+        return measured_rules(repo, names) + workflow_claims(repo) + changelog_claims(repo, exempt)
     if fleet_kind.kind_from_files(names) == "measured":
         return ["its files are a measured Kubernetes repository, but its name puts it outside those rules (scripts/fleet_kind.py)"]
 
@@ -1035,7 +1056,7 @@ def check_repo(repo, exempt=None):
         # here meant a documentation repository could announce three releases
         # it had never tagged and never be asked about it, because the rule
         # that would have caught it sat behind a compose file it does not have.
-        claims = changelog_claims(repo) + workflow_claims(repo)
+        claims = changelog_claims(repo, exempt) + workflow_claims(repo)
         if kind == "terraform":
             claims += terraform_rules(repo, names)
         return claims if claims else NOT_APPLICABLE
@@ -1529,7 +1550,7 @@ def check_repo(repo, exempt=None):
                     bad.append(f".env.example names {declared[var]} for {var} and the compose file pins {tag}")
 
     bad += workflow_claims(repo)
-    bad += changelog_claims(repo)
+    bad += changelog_claims(repo, exempt)
     return bad
 
 

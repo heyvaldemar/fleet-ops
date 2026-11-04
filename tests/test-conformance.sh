@@ -206,6 +206,24 @@ git -C "$d" add -A
 git -C "$d" -c user.name=t -c user.email=t@t commit -qm init
 expect "a documentation repository's untagged release is caught too" "$WORK/nocompose" "9.9.9"
 
+# BEFORE THE FIRST RELEASE. A dated declaration in the changelog is reported, not
+# failed, until its day; after it the gap fails again; without one it always fails.
+prerelease() {       # prerelease <dir> <declaration line or empty>
+  local d="$WORK/$1/image-docker"; rm -rf "$WORK/$1"; mkdir -p "$d"
+  printf '# Changelog\n\n## [Unreleased]\n\n%s\n\n### Added\n\n- an image\n' "$2" > "$d/CHANGELOG.md"
+  printf '# An image\n' > "$d/README.md"
+  git -C "$d" init -q .
+  git -C "$d" add -A
+  git -C "$d" -c user.name=t -c user.email=t@t commit -qm init
+}
+prerelease prefuture '<!-- conformance: first release not before 2099-01-01 - a fixture, one image a week -->'
+expect "a declared first release is reported until its date" "$WORK/prefuture" "first release not before 2099-01-01 - a fixture"
+expect_clean "$WORK/prefuture"
+prerelease prepast '<!-- conformance: first release not before 2000-01-01 - a fixture -->'
+expect "a declared first release that did not happen fails after its date" "$WORK/prepast" "the first release it declared for 2000-01-01 has not happened"
+prerelease prenone ''
+expect "no released version and no declaration is still a failure" "$WORK/prenone" "CHANGELOG has no released version at the top"
+
 
 
 # A declared exemption must be honoured AND reported - a door that opens
