@@ -25,3 +25,4 @@ token-check.yml
 scorecard.yml
 release-assets.yml
 codeql.yml
+worktree-index-race.yml

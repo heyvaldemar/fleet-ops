@@ -10,6 +10,15 @@ check or a job, a patch fixes one.
 ## [Unreleased]
 
 ### Added
+- **What two writers in one working tree cost, measured.** Two coding agents
+  pointed at one checkout share one index: a commit takes whatever is staged
+  when it runs, and `index.lock` fails the other writer at once. The manual
+  Worktree index race workflow runs two scripted writers on a throwaway
+  repository, both in one tree and then in a `git worktree` each, ten
+  repeats of each, and counts commits that carry the other writer's file,
+  lock failures by kind, and the time from a change to its landed commit.
+  The test plants a foreign file and a stale lock before the counters are
+  believed. The result is kept in `docs/worktree-index-race.json`.
 - **Every template's deploy job looks for anonymous volumes, and conformance
   requires it.** A `VOLUME` an image declares and no mount covers holds data
   the backups never see and a `down`/`up` replaces. GLPI's config, encryption

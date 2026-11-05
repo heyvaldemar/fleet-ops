@@ -1,0 +1,68 @@
+name: Worktree index race
+# Two writers in one working tree share one index; two `git worktree`s do
+# not. This measures what that costs on a GitHub runner: commits that carry
+# the other writer's file, index.lock and ref lock failures, and the time
+# from a change to its landed commit, ten repeats of each mode, interleaved.
+# The writers are scripts, not agents, so the numbers come from git alone.
+# scripts/worktree-index-race.py says exactly what each writer does.
+#
+# Run by hand. Nothing here reads a secret or writes outside the runner: the
+# repositories are made in a temporary directory and thrown away, and the
+# result is the job summary and an artifact.
+on:
+  workflow_dispatch:
+    inputs:
+      repeats:
+        description: "Repeats of each mode"
+        type: number
+        default: 10
+      commits:
+        description: "Commits per writer per repeat"
+        type: number
+        default: 20
+      think_ms:
+        description: "Longest pause between one commit and the next change, ms"
+        type: number
+        default: 50
+      gap_ms:
+        description: "Pause between git add and git commit, ms (0: one shell command)"
+        type: number
+        default: 0
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    name: One index for two writers, or one each
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: The counter can fail
+        run: ./tests/test-worktree-index-race.sh
+
+      - name: Measure
+        env:
+          REPEATS: ${{ inputs.repeats }}
+          COMMITS: ${{ inputs.commits }}
+          THINK_MS: ${{ inputs.think_ms }}
+          GAP_MS: ${{ inputs.gap_ms }}
+        run: |
+          git --version
+          python3 scripts/worktree-index-race.py run --out "$RUNNER_TEMP/worktree-index-race" \
+            --repeats "$REPEATS" --commits "$COMMITS" --think-ms "$THINK_MS" --gap-ms "$GAP_MS" \
+            --summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the result and every writer's log
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: worktree-index-race
+          path: ${{ runner.temp }}/worktree-index-race
+          if-no-files-found: error
+          retention-days: 90
