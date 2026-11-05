@@ -209,7 +209,7 @@ expect "a documentation repository's untagged release is caught too" "$WORK/noco
 # BEFORE THE FIRST RELEASE. A dated declaration in the changelog is reported, not
 # failed, until its day; after it the gap fails again; without one it always fails.
 prerelease() {       # prerelease <dir> <declaration line or empty>
-  local d="$WORK/$1/image-docker"; rm -rf "$WORK/$1"; mkdir -p "$d"
+  local d="$WORK/$1/image-docker"; rm -rf "${WORK:?}/${1:?}"; mkdir -p "$d"
   printf '# Changelog\n\n## [Unreleased]\n\n%s\n\n### Added\n\n- an image\n' "$2" > "$d/CHANGELOG.md"
   printf '# An image\n' > "$d/README.md"
   git -C "$d" init -q .
