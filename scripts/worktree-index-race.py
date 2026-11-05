@@ -30,7 +30,10 @@ retried up to MAX_RETRIES times after a short sleep, the way a careful agent
 would; every failed attempt is counted and its first line kept, verbatim,
 with the temporary path replaced by <tmp>. A commit that answers "nothing to
 commit" is not retried: its file has already gone out in the other writer's
-commit, and that is the finding this exists to count.
+commit, and that is the finding this exists to count. (If the file is not
+tracked at that moment it fell out of the index instead, and is counted as
+dropped.) A writer that runs out of retries leaves its file staged, and the
+other writer's next commit takes it.
 
     shared    both writers in the main working tree, on main.
     worktree  `git worktree add -b agent-a` and `-b agent-b`, one each; when
@@ -177,7 +180,12 @@ def writer(args):
             rec["outcome"] = "landed"
             rec["t_land"] = time.time_ns()
         elif kind == "nothing_to_commit":
-            rec["outcome"] = "taken_by_other"
+            # Nothing staged: either the file went out in the other writer's
+            # commit (it is tracked now), or it fell out of the index without
+            # being committed by anyone, which would be a lost update.
+            tracked = subprocess.run(["git", "ls-files", "--error-unmatch", "--", rel], cwd=args.dir,
+                                     env=ENV, capture_output=True, text=True).returncode == 0
+            rec["outcome"] = "taken_by_other" if tracked else "dropped_from_index"
         else:
             rec["outcome"] = "commit_failed_" + kind
         log["commits"].append(rec)
@@ -310,6 +318,7 @@ def one_repeat(mode, n, args, tmp):
         "mode": mode, "repeat": n,
         "attempted": len(WRITERS) * args.commits,
         "commits_made": len(rows),
+        "files_committed": sum(len(r["files"]) for r in rows),
         "commits_with_foreign_files": len(hits),
         "foreign_files": sum(len(h["foreign"]) for h in hits),
         "outcomes": outcomes,
@@ -345,10 +354,12 @@ def summarise(mode, reps):
         "repeats": len(reps),
         "attempted": sum(r["attempted"] for r in reps),
         "commits_made": sum(r["commits_made"] for r in reps),
+        "files_committed": sum(r["files_committed"] for r in reps),
         "commits_with_foreign_files": sum(r["commits_with_foreign_files"] for r in reps),
         "foreign_files": sum(r["foreign_files"] for r in reps),
         "repeats_with_a_foreign_commit": sum(1 for r in reps if r["commits_with_foreign_files"]),
         "taken_by_other": outcomes.get("taken_by_other", 0),
+        "dropped_from_index": outcomes.get("dropped_from_index", 0),
         "files_never_committed": sum(r["files_never_committed"] for r in reps),
         "outcomes": outcomes,
         "index_lock_failures": sum(v for k, v in fail.items() if k.endswith("index_lock")),
@@ -399,6 +410,7 @@ def markdown(result):
         ("commits carrying the other writer's file", "commits_with_foreign_files"),
         ("repeats with at least one such commit", "repeats_with_a_foreign_commit"),
         ("own file already committed by the other", "taken_by_other"),
+        ("own file dropped from the index, committed by nobody", "dropped_from_index"),
         ("files never committed", "files_never_committed"),
         ("index.lock failures (each retried)", "index_lock_failures"),
         ("ref lock failures (each retried)", "ref_lock_failures"),

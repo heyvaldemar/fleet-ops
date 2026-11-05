@@ -68,9 +68,20 @@ if [ -s "$res" ]; then
   for m in 0 1; do
     check "mode $m: no file is left uncommitted" "$(field "$res" modes.$m.files_never_committed)" 0
   done
-  made="$(field "$res" modes.0.commits_made)"
-  taken="$(field "$res" modes.0.taken_by_other)"
-  check "one tree: own commits plus files taken by the other add up to every attempt" "$((made + taken))" 12
+  # Every attempt ends in exactly one outcome, and every file the writers
+  # made is either in some commit or reported as never committed. Under
+  # contention a writer can also run out of retries on the lock; its file
+  # stays staged and goes out in the other writer's commit, so "own commits
+  # plus files taken" alone does not add up (the first CI run of this test
+  # found that, 11 of 12).
+  for m in 0 1; do
+    outcomes="$(python3 -c 'import json,sys; print(sum(json.load(open(sys.argv[1]))["modes"][int(sys.argv[2])]["outcomes"].values()))' "$res" "$m")"
+    check "mode $m: every attempt has one outcome" "$outcomes" 12
+    files="$(field "$res" modes.$m.files_committed)"
+    never="$(field "$res" modes.$m.files_never_committed)"
+    check "mode $m: every file is in a commit or reported uncommitted" "$((files + never))" 12
+  done
+  check "a worktree each: every attempt landed in its own commit" "$(field "$res" modes.1.outcomes.landed)" 12
   check "the git version is recorded" "$(field "$res" environment.git | cut -c1-12)" "git version "
 else
   no "a short run writes result.json"
