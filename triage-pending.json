@@ -1,9 +1,239 @@
 [
   {
-    "repo": "dify-traefik-letsencrypt-docker-compose",
-    "sha": "c4caccd5786b63c6ccb8639402a532755df32b17",
+    "repo": "affine-traefik-letsencrypt-docker-compose",
+    "sha": "0935aab28b9b4e4b9d2d6e93aad6fc53c66ab1a3",
     "wf": "Deployment Verification",
-    "kind": "version",
-    "pushed_at": "2026-11-05T00:44:39Z"
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:01:52Z"
+  },
+  {
+    "repo": "authelia-traefik-letsencrypt-docker-compose",
+    "sha": "8f0fa1e597e872eddadf72919601c5d38b8cfde8",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:02:11Z"
+  },
+  {
+    "repo": "bitbucket-traefik-letsencrypt-docker-compose",
+    "sha": "2cac2dff010df1b5ad553c76c1995dcb8a946ffb",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:02:21Z"
+  },
+  {
+    "repo": "confluence-traefik-letsencrypt-docker-compose",
+    "sha": "1b09d89f7f12b197ad633d95785151269594dbbe",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:02:31Z"
+  },
+  {
+    "repo": "docmost-traefik-letsencrypt-docker-compose",
+    "sha": "b7f5ae62f53493c8c40adfd0b566d884080e1fe6",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:02:45Z"
+  },
+  {
+    "repo": "dozzle-traefik-letsencrypt-docker-compose",
+    "sha": "3bc0241c09182839b86263685b4918c208cd12bd",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:03:13Z",
+    "review": "\n## Upstream changes v11.4.0 -> v11.4.1\n\n**Verdict:** SAFE TO APPLY \u2014 notes contain only new features and dependency/bugfix updates; the image configuration itself is unchanged in every field that affects this deployment.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none \u2014 no environment variable additions, renames or removals are mentioned in the v11.4.1 notes, and the images confirm the environment is unchanged.\n\n### Data and dependencies\n- none. The notes name no companion service (database, cache, search engine) and none is pinned or implied by this compose file. The `dockerproxy`, `traefik`, and `backups` images are unaffected by this range.\n- Worth noting as already true at v11.4.0, not a change in this range: the fix \"`Drop :ro from the agent socket mount the wizard generates`\" under v11.4.1 refers to Dozzle's own setup wizard for remote agents, a feature this template does not use \u2014 it supplies the Docker socket exclusively through `dockerproxy`, never mounting it into the `dozzle` container itself. No action follows from it either way.\n\n### Before applying\n- None required. Bump `DOZZLE_IMAGE_VERSION` (or the pin in the compose file's `x-images` block) from `v11.4.0` to `v11.4.1` and redeploy as normal.\n\n### Notes read\n- v11.4.1 (2026-11-05), compared against v11.4.0...v11.4.1\n- v11.4.0 (2026-10-30), read only as the stated baseline, per instructions\n"
+  },
+  {
+    "repo": "game-server-wireguard-relay-docker-compose",
+    "sha": "2e1735834767f5c31e723502da8c9789b021708b",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:03:21Z"
+  },
+  {
+    "repo": "ghost-traefik-letsencrypt-docker-compose",
+    "sha": "15de5a9821e8a0b9b693b23768022eafbbede604",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:03:46Z",
+    "review": "\n## Upstream changes 6.74.0 -> 6.75.0\n\n**Verdict:** SAFE TO APPLY \u2014 the release notes list only new features and a bug fix, the registry diff shows no change beyond the version label, and no companion-service version requirement is introduced.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none \u2014 no renamed, removed, or newly required variables in this range\n\n### Data and dependencies\n- none \u2014 no database version requirement, migration, or path/port change is mentioned in the 6.75.0 notes or in the registry diff\n- (already true at the current version, not introduced by this range) MySQL as the database backend is already required by the compose file at 6.74.0, pinned to `mysql:8.4-oracle`; this upgrade does not change or raise that requirement\n\n### Before applying\n- Update the pin: `GHOST_IMAGE_VERSION=6.74.0` -> `6.75.0` (or let the compose file's default move, per the `x-images` block), and update the digest alongside the tag as the repository's convention requires.\n- No manual migration, config edit, or backup beyond the routine pre-upgrade backup is indicated by the notes.\n\n### Notes read\n- TryGhost/Ghost release notes for v6.75.0 (target) and v6.74.0 (baseline, already running)\n"
+  },
+  {
+    "repo": "gitea-traefik-letsencrypt-docker-compose",
+    "sha": "601dd08a853bd8f1174b9fc4745978e1b372208f",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:03:55Z"
+  },
+  {
+    "repo": "gitlab-traefik-letsencrypt-docker-compose",
+    "sha": "99e1c8930fdb95e9b519f9da31ca698e8db731a6",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:04:05Z"
+  },
+  {
+    "repo": "homeassistant-traefik-letsencrypt-docker-compose",
+    "sha": "d343e1285d36416fef16f21805778c3bab4b3042",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:04:33Z",
+    "review": "\n## Upstream changes 2026.10.4 -> 2026.11.0\n\n**Verdict:** SAFE TO APPLY \u2014 no breaking changes, no variable or schema changes, and the image configuration (user, entrypoint, ports, volumes, healthcheck, environment) is unchanged.\n\n### Breaking changes\n- none found in the notes. There is no UPGRADING, BREAKING_CHANGES, or CHANGELOG section included to check against; the release notes themselves are the standard point-release summary (\"38 new integrations, 5,827 pull requests by 557 people\") plus the beta changelogs, and name no removed features, no forced migrations, and no deprecations that take effect in this range. One deprecation is mentioned \u2014 \"Deprecate silent and default speeds in Velux covers (@gjohansson-ST - #189438)\" \u2014 which is a warning, not a break, and only affects hosts using the Velux integration with those cover speeds.\n\n### Variables\n- none. Nothing in the notes touches `HOMEASSISTANT_*` environment variables, and the .env.example / compose file need no edits for this range.\n\n### Data and dependencies\n- none introduced by this range. The notes mention many per-integration library bumps (pydaikin, zha-quirks, aioesphomeapi, zeroconf, ZHA, etc.) but these are bundled Python dependencies inside the image, not externally pinned services this compose file tracks.\n- No companion service (database, cache, search engine) version requirement appears anywhere in these notes, so the \"SAFE TO APPLY blocked by unpinned companion version\" rule does not apply here.\n\n### Before applying\n- None required beyond routine practice. The compose file's backups service already takes consistent SQLite snapshots on its normal schedule; no manual backup or migration step is called for by these notes.\n- If any host runs the Velux cover integration, check automations/scripts using \"silent\" or \"default\" cover speeds, since those are now deprecated (not yet removed).\n\n### Notes read\n- 2026.11.0, 2026.11.0b6, 2026.11.0b5, 2026.11.0b4, 2026.11.0b3, 2026.11.0b2, 2026.11.0b1, 2026.11.0b0 (home-assistant/core), covering the full range from 2026.10.4 to 2026.11.0.\n- No UPGRADING, BREAKING_CHANGES, or CHANGELOG section was provided for this range; none was available to weigh against the release notes.\n"
+  },
+  {
+    "repo": "humanitz-server-docker-compose",
+    "sha": "d990f2119b6349a289b6b6d4b21a52f72052b90e",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:04:41Z"
+  },
+  {
+    "repo": "immich-traefik-letsencrypt-docker-compose",
+    "sha": "1d6e516c5bbf177a93e96516fb4f8430b9aa76f1",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:05:19Z",
+    "review": "\n## Upstream changes v3.3.5 -> v3.3.6\n\n**Verdict:** SAFE TO APPLY \u2014 single targeted bug fix, no breaking changes, no schema/dependency impact, and the compose file moves both `immich-server` and `immich-machine-learning` pins together as required.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none \u2014 no renamed, removed or newly required variables. `IMMICH_ML_IMAGE_VERSION` and `IMMICH_SERVER_IMAGE_VERSION` just need bumping to `v3.3.6` together, per the compose file's own rule: \"The server and the machine-learning image are one release split across two containers: Immich supports no combination where they differ, so both version variables carry the same version and move together.\"\n\n### Data and dependencies\n- none introduced by this range. The only fix is internal to the ML container: \"fix(ml): disable onnxruntime telemetry by @mjkent\" \u2014 no database, cache, or search-engine version requirement is named in the v3.3.6 notes.\n- (Note: the v3.4.0-rc.1 notes included for context are for a pre-release outside this range and are not part of this upgrade; not acted on here.)\n\n### Before applying\n- Update `IMMICH_ML_IMAGE_VERSION=v3.3.6` and `IMMICH_SERVER_IMAGE_VERSION=v3.3.6` together in `.env` (or let the compose file defaults carry both, if not overridden), then `docker compose pull && docker compose up -d`.\n- No backup or manual migration step is indicated by the notes for this specific release.\n- Operators who care about the fixed issue \u2014 unwanted telemetry \u2014 should note the notes' own description: \"onnxruntime enabled telemetry by default in a recent release, resulting in the ML container automatically sending anonymous metric data to Microsoft. We have now disabled it.\" No action is needed beyond upgrading; this is the fix.\n\n### Notes read\n- v3.3.6 (2026-11-04) \u2014 read in full, the version this upgrade moves to.\n- v3.3.5 (2026-10-21) \u2014 read as the baseline (\"THE RELEASE THE TEMPLATE RUNS NOW\"), not treated as a change introduced by this upgrade.\n- v3.4.0-rc.1 (2026-10-30) \u2014 present in the supplied notes but is a pre-release beyond v3.3.6 and outside the range being moved through; not used to form this verdict.\n\n## Upstream changes v3.3.5 -> v3.3.6\n\n**Verdict:** SAFE TO APPLY \u2014 single targeted bug fix, no breaking changes, no schema/dependency impact, and the compose file moves both `immich-server` and `immich-machine-learning` pins together as required.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none \u2014 no renamed, removed or newly required variables. `IMMICH_ML_IMAGE_VERSION` and `IMMICH_SERVER_IMAGE_VERSION` just need bumping to `v3.3.6` together, per the compose file's own rule: \"The server and the machine-learning image are one release split across two containers: Immich supports no combination where they differ, so both version variables carry the same version and move together.\"\n\n### Data and dependencies\n- none introduced by this range. The only fix is internal to the ML container: \"fix(ml): disable onnxruntime telemetry by @mjkent\" \u2014 no database, cache, or search-engine version requirement is named in the v3.3.6 notes.\n- (Note: the v3.4.0-rc.1 notes included for context are for a pre-release outside this range and are not part of this upgrade; not acted on here.)\n\n### Before applying\n- Update `IMMICH_ML_IMAGE_VERSION=v3.3.6` and `IMMICH_SERVER_IMAGE_VERSION=v3.3.6` together in `.env` (or let the compose file defaults carry both, if not overridden), then `docker compose pull && docker compose up -d`.\n- No backup or manual migration step is indicated by the notes for this specific release.\n- Operators who care about the fixed issue \u2014 unwanted telemetry \u2014 should note the notes' own description: \"onnxruntime enabled telemetry by default in a recent release, resulting in the ML container automatically sending anonymous metric data to Microsoft. We have now disabled it.\" No action is needed beyond upgrading; this is the fix.\n\n### Notes read\n- v3.3.6 (2026-11-04) \u2014 read in full, the version this upgrade moves to.\n- v3.3.5 (2026-10-21) \u2014 read as the baseline (\"THE RELEASE THE TEMPLATE RUNS NOW\"), not treated as a change introduced by this upgrade.\n- v3.4.0-rc.1 (2026-10-30) \u2014 present in the supplied notes but is a pre-release beyond v3.3.6 and outside the range being moved through; not used to form this verdict.\n"
+  },
+  {
+    "repo": "jira-traefik-letsencrypt-docker-compose",
+    "sha": "5ed918360669bfe2dafb427e527412c759abbf43",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:05:31Z"
+  },
+  {
+    "repo": "joomla-traefik-letsencrypt-docker-compose",
+    "sha": "c5d145ab78cc5ae8580269cb66a448be74955402",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:05:43Z"
+  },
+  {
+    "repo": "keycloak-traefik-letsencrypt-docker-compose",
+    "sha": "a694715a530345a89bda760e4063844608711590",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:05:51Z"
+  },
+  {
+    "repo": "mailu-traefik-letsencrypt-docker-compose",
+    "sha": "bb683304eb0412851f50bbbe851e81490f23ee83",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:06:34Z"
+  },
+  {
+    "repo": "mattermost-traefik-letsencrypt-docker-compose",
+    "sha": "7c751eb8d3c7a87d6060036e51cb721d2cdb7b29",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:07:02Z",
+    "review": "\n## Upstream changes 12.0.1 -> 12.0.2\n\n**Verdict:** SAFE TO APPLY \u2014 a single security-fix release, no breaking changes, no variable or dependency changes, and the image configurations are confirmed identical apart from content.\n\n### Breaking changes\n- none found in the notes. The only entry for this version is: \"Mattermost Platform Release 12.0.2 contains Medium to High severity level security fixes.\" No UPGRADING, BREAKING_CHANGES or populated CHANGELOG content is available (the CHANGELOG.md fetched only points to external docs and carries no entries for this range).\n\n### Variables\n- none. No variable additions, renames or removals are indicated by the notes, and `MATTERMOST_IMAGE_VERSION` in `.env.example` / the `x-images` default in the compose file need no edits beyond the version bump itself.\n\n### Data and dependencies\n- none introduced by this range. The compose file pins `postgres:16` for the companion database; the notes for 12.0.1 and 12.0.2 name no required engine version, so there is nothing for this upgrade to check against. (Note: the `.env.example` comment line `MATTERMOST_IMAGE_VERSION=11.10.1` under the version-pinning example is stale/inconsistent with the compose default of 12.0.1, but that predates this range and is not a change introduced by 12.0.1 -> 12.0.2.)\n\n### Before applying\n- Update the `MATTERMOST_IMAGE_VERSION` (or `MATTERMOST_IMAGE_TAG`) default/override to 12.0.2 with its correct digest, then `docker compose up -d` to pull and recreate the `mattermost` service.\n- No database migration, backup step, or config edit is required beyond the routine pre-upgrade backup already covered by the `backups` service.\n\n### Notes read\n- v12.0.2 (2026-11-04) \u2014 the version being moved to.\n- v12.0.1 (2026-10-22) \u2014 baseline, supplied as the current-running release, not a change.\n- v10.11.26, v11.7.15-rc1, v12.1.0-rc2 \u2014 present in the fetched notes but out of range (different major/minor lines or release-candidate tags), not applicable to this 12.0.1 -> 12.0.2 move.\n- CHANGELOG.md \u2014 fetched in full (142/142 characters); contains no entries, only a pointer to external documentation.\n- No UPGRADING or BREAKING_CHANGES section was supplied for this range.\n"
+  },
+  {
+    "repo": "minecraft-server-docker-compose",
+    "sha": "2faa56dc6eca8eead00643a24a18c613f18cb6da",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:07:23Z",
+    "review": "\n## Upstream changes 2026.10.3 -> 2026.11.0\n\n**Verdict:** SAFE TO APPLY \u2014 the only upstream change is a CI dependency bump, and the image configuration (user, entrypoint, cmd, ports, volumes, healthcheck, environment) is unchanged between the two versions.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none. The notes contain a single entry: `build(deps): bump docker/login-action from 4.6.0 to 4.7.0 in the docker group` \u2014 this is a GitHub Actions dependency used to build/publish the image, not anything that runs inside the container or affects the backup sidecar's behaviour.\n\n### Before applying\n- None required. Bump `MINECRAFT_SERVER_BACKUP_IMAGE_VERSION` (or the pinned digest in the compose file's `x-images` block) from `2026.10.3` to `2026.11.0` and redeploy.\n\n### Notes read\n- 2026.11.0 (target) \u2014 read in full, contains one changelog entry (CI-only dependency bump)\n- 2026.10.3 (baseline, current) \u2014 read for context only, contains one changelog entry (renovate dependency bump to `itzg/entrypoint-demoter`), not a change introduced by this upgrade\n"
+  },
+  {
+    "repo": "nextcloud-onlyoffice-traefik-letsencrypt-docker-compose",
+    "sha": "625ec504dc80445db6901fc81eaf2670bd98ec14",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:07:43Z"
+  },
+  {
+    "repo": "nextcloud-traefik-letsencrypt-docker-compose",
+    "sha": "b5b3c4b43cfe97389332d617d07d855c3bccf61f",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:07:57Z"
+  },
+  {
+    "repo": "nocodb-traefik-letsencrypt-docker-compose",
+    "sha": "f2cd797e6c4be164d58c490585adc6065465117c",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:08:06Z"
+  },
+  {
+    "repo": "outline-keycloak-traefik-letsencrypt-docker-compose",
+    "sha": "0d819e4fd680ca7d80dd153ed43e8797f3f54398",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:08:30Z"
+  },
+  {
+    "repo": "owncloud-traefik-letsencrypt-docker-compose",
+    "sha": "d81417fed4f0fd5052c8aef37f5db06b9e5ed21b",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:08:40Z"
+  },
+  {
+    "repo": "seafile-traefik-letsencrypt-docker-compose",
+    "sha": "bc006ce504ed81ad98ca750aee7166c73d289188",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:08:53Z"
+  },
+  {
+    "repo": "sftp-traefik-letsencrypt-docker-compose",
+    "sha": "d060e5e341ca525589ccdc39dcab738eefd2dabb",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:09:00Z"
+  },
+  {
+    "repo": "tf2-server-docker-compose",
+    "sha": "c431a96d6a88a9c8bad30ae5f3c2ca9c6d0d3b2f",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:09:10Z"
+  },
+  {
+    "repo": "wikijs-traefik-letsencrypt-docker-compose",
+    "sha": "5ca069b317a6779e9fc7b2e5ff885fa0452e51bf",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:09:22Z"
+  },
+  {
+    "repo": "wordpress-traefik-letsencrypt-docker-compose",
+    "sha": "04527c30d07c61be6049a59602d2caff67fe26d2",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:09:31Z"
+  },
+  {
+    "repo": "xwiki-traefik-letsencrypt-docker-compose",
+    "sha": "8b9882328a9b2fb580c2bce8be6142a45aabdcb3",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:09:41Z"
+  },
+  {
+    "repo": "zabbix-docker-compose",
+    "sha": "c98c7a5b383fe8e4a1df538ad4062f1c486fad29",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:09:51Z"
+  },
+  {
+    "repo": "zabbix-traefik-letsencrypt-docker-compose",
+    "sha": "ad274fb4825c101008be68e5ac8d78f9ae5bc251",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:10:00Z"
+  },
+  {
+    "repo": "zammad-traefik-letsencrypt-docker-compose",
+    "sha": "f6eb8b56dc5206866978e7221970282aa5eb6850",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-05T15:10:12Z"
   }
 ]
