@@ -1133,6 +1133,20 @@ is_prerelease() {    # is_prerelease <version> -> 0 for alpha, beta, rc, preview
   grep -qiE -- '-(alpha|beta|rc|pre|preview|dev|nightly|snapshot)([.0-9-]|$)' <<<"$1"
 }
 
+# A MINOR IS NOT A PATCH. Inside one major a minor still rides unattended, but
+# only on a review that read its notes and found nothing to do. Dify 1.19.0 was
+# reviewed NEEDS ATTENTION on 2026-11-04 ("upgrade the components together",
+# Docker Compose 2.35, a new tracing queue) and went to main anyway: its four
+# images moved, while the plugin daemon on its own version line and three
+# vendored nginx files stayed at 1.18.0, and v1.1.13 shipped half an upgrade.
+# A patch keeps the old rule: it rides unless the review says do not.
+crosses_minor() {    # crosses_minor <old> <new> -> 0 when major.minor differs
+  local o n
+  o="$(sed -E 's/^v?([0-9]+)(\.([0-9]+))?.*/\1.\3/' <<<"$1")"
+  n="$(sed -E 's/^v?([0-9]+)(\.([0-9]+))?.*/\1.\3/' <<<"$2")"
+  [ "$o" != "$n" ]
+}
+
 lag_pair() {         # lag_pair <line> -> old<TAB>new
   local line="$1" old new
   old="$(sed -E 's/^([A-Z0-9_]+_IMAGE_TAG )?is behind[^:]*: pinned ([a-z]+ )?(v?[0-9][^,]*),.*/\3/' <<<"$line")"
@@ -1267,7 +1281,7 @@ for repo in "${REPOS[@]}"; do
 done
 if [ "$RERUns" -eq 0 ]; then echo "- nothing rerun" >> "$REPORT"; fi
 
-section "Pin refreshes (digest repushes + patch releases)"
+section "Pin refreshes (digest repushes + releases inside a major)"
 NOT_REACHED=()
 PREPARED_THIS_RUN=()
 SWEPT=0
@@ -1451,6 +1465,15 @@ for repo in "${REPOS[@]}"; do
           # review attached to that same run was the thing warning against
           # exactly that.
           break ;;
+        "SAFE TO APPLY"*) ;;
+        *)
+          # crosses_minor, above: a minor needs the review's SAFE TO APPLY.
+          if crosses_minor "$ob" "$nb"; then
+            said="${REVIEW_VERDICT%% —*}"
+            note "$repo: $ref $oldv -> $newv crosses a minor and the upstream review is ${said:-missing}, not SAFE TO APPLY — prepared on a branch instead"
+            major_branch "$oldv" "$newv"
+            break
+          fi ;;
       esac
       # A BUMP THAT EDITED NOTHING IS NOT A BUMP. Skipping a compose file that
       # does not carry the old version and digest is right; running the lines
@@ -1495,13 +1518,14 @@ for repo in "${REPOS[@]}"; do
       continue
     fi
     git -C "$dir" -c user.name="$GIT_AUTHOR" -c user.email="$GIT_EMAIL" \
-      commit -aqm "fix(security): refresh pins (upstream repushes, patch releases)
+      commit -aqm "fix(security): refresh pins (upstream repushes, releases inside a major)
 
 The freshness check flagged pins that fell behind: tags re-resolving
-to new digests (base-image security rebuilds) and patch releases
-inside the same major.minor. The deploy job boots and smoke-tests the
-refreshed combination before this stays on main; anything wider than a
-patch is never bumped automatically."
+to new digests (base-image security rebuilds), patch releases, and
+minor releases whose upstream review found nothing to do. The deploy
+job boots and smoke-tests the refreshed combination before this stays
+on main. A major, or a minor the review flags, is prepared on a branch
+instead and never bumped automatically."
     git -C "$dir" push -q origin main
     sha="$(git -C "$dir" rev-parse HEAD)"
     pending_add "$repo" "$sha" "$(workflow_for "$repo")" "digest"

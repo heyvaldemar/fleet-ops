@@ -443,6 +443,17 @@ same "a GitLab edition tag is not" "no" "$(pr 19.4.1-ee.0)"
 same "a SQL Server CU tag is not" "no" "$(pr 2022-CU27-ubuntu-22.04)"
 same "nor a word that merely starts like one" "no" "$(pr 7.0-debian-preserve)"
 
+# A MINOR NEEDS SAFE TO APPLY. Dify 1.18.0 -> 1.19.0 was reviewed NEEDS
+# ATTENTION on 2026-11-04 and reached main half done; a patch keeps riding.
+cm() { crosses_minor "$1" "$2" && echo minor || echo patch; }
+same "Dify 1.18.0 -> 1.19.0 crosses a minor" "minor" "$(cm 1.18.0 1.19.0)"
+same "a patch does not" "patch" "$(cm 10.5.1 10.5.2)"
+same "a two-part line moving is a minor" "minor" "$(cm 3.7 3.8)"
+same "a leading v is read past" "patch" "$(cm v2.6.0 v2.6.4)"
+same "an edition suffix is not a minor" "patch" "$(cm 19.3.1-ee.0 19.3.2-ee.0)"
+same "a calendar month is a minor" "minor" "$(cm 2026.9.3 2026.10.0)"
+same "a calendar day inside the month is not" "patch" "$(cm 2026.9.2 2026.9.3)"
+
 # AND WHAT MUST STILL MATCH NOTHING. rathena counts commits behind a branch:
 # real, reported, and not a version bump anybody can make automatically.
 same "a commits-behind line is not a version lag" "" \
