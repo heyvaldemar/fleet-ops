@@ -126,6 +126,11 @@
    "url": "https://github.com/google/gvisor/pull/16798#issuecomment-6580957555",
    "role": "test of the fix on the reproducer",
    "found_in": "kubernetes-ai-agent-sandbox"
+  },
+  {
+   "url": "https://github.com/docker/sbx-releases/issues/818",
+   "role": "issue with a reproduction",
+   "found_in": "kubernetes-ai-agent-sandbox"
   }
  ]
 }
