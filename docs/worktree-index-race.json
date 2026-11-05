@@ -1,0 +1,299 @@
+{
+  "what": "Two scripted writers, one working tree (one index) or a git worktree each; scripts/worktree-index-race.py, workflow .github/workflows/worktree-index-race.yml",
+  "runs": [
+    {
+      "run": "https://github.com/heyvaldemar/fleet-ops/actions/runs/41942915096",
+      "commit": "3aac0e4afc43f42b5c9f041f7e5aac086ad67c1c",
+      "measured": "2026-11-05T00:39:44Z",
+      "git": "git version 2.56.0",
+      "runner": "Ubuntu 24.04.5 LTS, image 20261101.114.1, 4 CPUs",
+      "params": {
+        "repeats": 10,
+        "commits": 20,
+        "think_ms": 50,
+        "gap_ms": 0,
+        "max_retries": 10,
+        "seed": 20261202
+      },
+      "modes": {
+        "shared": {
+          "attempted": 400,
+          "commits_made": 382,
+          "commits_with_foreign_files": 19,
+          "foreign_files": 19,
+          "repeats_with_a_foreign_commit": 8,
+          "commits_with_the_other_message": 0,
+          "commits_deleting_files": 0,
+          "taken_by_other": 18,
+          "dropped_from_index": 0,
+          "files_never_committed": 0,
+          "files_missing_at_the_end": 0,
+          "index_lock_failures": 18,
+          "ref_lock_failures": 0,
+          "empty_message_aborts": 1,
+          "gave_up": 0,
+          "failed_attempts_by_command": {
+            "add index_lock": 13,
+            "commit empty_message": 1,
+            "commit index_lock": 5,
+            "commit nothing_to_commit": 18
+          },
+          "land_ms": {
+            "median": 5.2,
+            "p95": 5.9,
+            "max": 37.5,
+            "n": 400
+          }
+        },
+        "worktree": {
+          "attempted": 400,
+          "commits_made": 400,
+          "commits_with_foreign_files": 0,
+          "foreign_files": 0,
+          "repeats_with_a_foreign_commit": 0,
+          "commits_with_the_other_message": 0,
+          "commits_deleting_files": 0,
+          "taken_by_other": 0,
+          "dropped_from_index": 0,
+          "files_never_committed": 0,
+          "files_missing_at_the_end": 0,
+          "index_lock_failures": 0,
+          "ref_lock_failures": 0,
+          "empty_message_aborts": 0,
+          "gave_up": 0,
+          "failed_attempts_by_command": {},
+          "land_ms": {
+            "median": 5.4,
+            "p95": 5.8,
+            "max": 10.7,
+            "n": 400
+          },
+          "merge": {
+            "median_ms": 22.9,
+            "max_ms": 23.7,
+            "conflicts": 0,
+            "nonzero_exits": 0
+          }
+        }
+      },
+      "git_said": {
+        "shared": {
+          "empty_message": {
+            "Aborting commit due to empty commit message.": 1
+          },
+          "index_lock": {
+            "fatal: Unable to create '<tmp>/repo/.git/index.lock': File exists.": 18
+          },
+          "nothing_to_commit": {
+            "nothing to commit, working tree clean": 18
+          }
+        }
+      }
+    },
+    {
+      "run": "https://github.com/heyvaldemar/fleet-ops/actions/runs/41942949001",
+      "commit": "3aac0e4afc43f42b5c9f041f7e5aac086ad67c1c",
+      "measured": "2026-11-05T00:41:19Z",
+      "git": "git version 2.56.0",
+      "runner": "Ubuntu 24.04.5 LTS, image 20261101.360.1, 4 CPUs",
+      "params": {
+        "repeats": 10,
+        "commits": 20,
+        "think_ms": 50,
+        "gap_ms": 200,
+        "max_retries": 10,
+        "seed": 20261202
+      },
+      "modes": {
+        "shared": {
+          "attempted": 400,
+          "commits_made": 333,
+          "commits_with_foreign_files": 333,
+          "foreign_files": 333,
+          "repeats_with_a_foreign_commit": 10,
+          "commits_with_the_other_message": 0,
+          "commits_deleting_files": 0,
+          "taken_by_other": 67,
+          "dropped_from_index": 0,
+          "files_never_committed": 0,
+          "files_missing_at_the_end": 0,
+          "index_lock_failures": 17,
+          "ref_lock_failures": 1,
+          "empty_message_aborts": 0,
+          "gave_up": 0,
+          "failed_attempts_by_command": {
+            "add index_lock": 14,
+            "commit index_lock": 3,
+            "commit nothing_to_commit": 67,
+            "commit ref_lock": 1
+          },
+          "land_ms": {
+            "median": 137.9,
+            "p95": 211.5,
+            "max": 253.0,
+            "n": 400
+          }
+        },
+        "worktree": {
+          "attempted": 400,
+          "commits_made": 400,
+          "commits_with_foreign_files": 0,
+          "foreign_files": 0,
+          "repeats_with_a_foreign_commit": 0,
+          "commits_with_the_other_message": 0,
+          "commits_deleting_files": 0,
+          "taken_by_other": 0,
+          "dropped_from_index": 0,
+          "files_never_committed": 0,
+          "files_missing_at_the_end": 0,
+          "index_lock_failures": 0,
+          "ref_lock_failures": 0,
+          "empty_message_aborts": 0,
+          "gave_up": 0,
+          "failed_attempts_by_command": {},
+          "land_ms": {
+            "median": 211.4,
+            "p95": 212.8,
+            "max": 215.8,
+            "n": 400
+          },
+          "merge": {
+            "median_ms": 40.0,
+            "max_ms": 41.7,
+            "conflicts": 0,
+            "nonzero_exits": 0
+          }
+        }
+      },
+      "git_said": {
+        "shared": {
+          "index_lock": {
+            "fatal: Unable to create '<tmp>/repo/.git/index.lock': File exists.": 17
+          },
+          "nothing_to_commit": {
+            "nothing to commit, working tree clean": 53,
+            "nothing added to commit but untracked files present (use \"git add\" to track)": 14
+          },
+          "ref_lock": {
+            "fatal: cannot lock ref 'HEAD': is at <sha> but expected <sha>": 1
+          }
+        }
+      }
+    },
+    {
+      "run": "https://github.com/heyvaldemar/fleet-ops/actions/runs/41943066056",
+      "commit": "3aac0e4afc43f42b5c9f041f7e5aac086ad67c1c",
+      "measured": "2026-11-05T00:42:30Z",
+      "git": "git version 2.56.0",
+      "runner": "Ubuntu 24.04.5 LTS, image 20261026.354.1, 4 CPUs",
+      "params": {
+        "repeats": 50,
+        "commits": 20,
+        "think_ms": 50,
+        "gap_ms": 0,
+        "max_retries": 10,
+        "seed": 20261202
+      },
+      "modes": {
+        "shared": {
+          "attempted": 2000,
+          "commits_made": 1876,
+          "commits_with_foreign_files": 125,
+          "foreign_files": 125,
+          "repeats_with_a_foreign_commit": 46,
+          "commits_with_the_other_message": 7,
+          "commits_deleting_files": 0,
+          "taken_by_other": 120,
+          "dropped_from_index": 4,
+          "files_never_committed": 4,
+          "files_missing_at_the_end": 4,
+          "index_lock_failures": 180,
+          "ref_lock_failures": 24,
+          "empty_message_aborts": 1,
+          "gave_up": 0,
+          "failed_attempts_by_command": {
+            "add index_lock": 107,
+            "commit empty_message": 1,
+            "commit index_lock": 73,
+            "commit nothing_to_commit": 124,
+            "commit ref_lock": 24
+          },
+          "land_ms": {
+            "median": 8.4,
+            "p95": 36.6,
+            "max": 289.9,
+            "n": 1996
+          }
+        },
+        "worktree": {
+          "attempted": 2000,
+          "commits_made": 2000,
+          "commits_with_foreign_files": 0,
+          "foreign_files": 0,
+          "repeats_with_a_foreign_commit": 0,
+          "commits_with_the_other_message": 0,
+          "commits_deleting_files": 0,
+          "taken_by_other": 0,
+          "dropped_from_index": 0,
+          "files_never_committed": 0,
+          "files_missing_at_the_end": 0,
+          "index_lock_failures": 0,
+          "ref_lock_failures": 0,
+          "empty_message_aborts": 0,
+          "gave_up": 0,
+          "failed_attempts_by_command": {},
+          "land_ms": {
+            "median": 8.8,
+            "p95": 16.8,
+            "max": 169.6,
+            "n": 2000
+          },
+          "merge": {
+            "median_ms": 33.3,
+            "max_ms": 59.7,
+            "conflicts": 0,
+            "nonzero_exits": 0
+          }
+        }
+      },
+      "git_said": {
+        "shared": {
+          "empty_message": {
+            "Aborting commit due to empty commit message.": 1
+          },
+          "index_lock": {
+            "fatal: Unable to create '<tmp>/repo/.git/index.lock': File exists.": 180
+          },
+          "nothing_to_commit": {
+            "nothing to commit, working tree clean": 112,
+            "nothing added to commit but untracked files present (use \"git add\" to track)": 12
+          },
+          "ref_lock": {
+            "fatal: cannot lock ref 'HEAD': is at <sha> but expected <sha>": 24
+          }
+        }
+      },
+      "git_said_in_full": {
+        "shared": {
+          "add index_lock": "fatal: Unable to create '<tmp>/repo/.git/index.lock': File exists.\n\nAnother git process seems to be running in this repository, or the lock file may be stale",
+          "commit empty_message": "Aborting commit due to empty commit message.",
+          "commit index_lock": "fatal: Unable to create '<tmp>/repo/.git/index.lock': File exists.\n\nAnother git process seems to be running in this repository, or the lock file may be stale",
+          "commit nothing_to_commit": "On branch main\nnothing to commit, working tree clean",
+          "commit ref_lock": "fatal: cannot lock ref 'HEAD': is at 8a7eac3c03af59f31e5bbc74bc7159283dc085d7 but expected 312c8c051b3f0ac97ad6f411e8ac7cf185888a5a"
+        }
+      }
+    }
+  ],
+  "lost_files_in_one_tree": {
+    "run": "https://github.com/heyvaldemar/fleet-ops/actions/runs/41943066056",
+    "files": 4,
+    "what_the_writer_saw": "git add returned 0; its own git commit then said: nothing added to commit but untracked files present (use \"git add\" to track)",
+    "what_the_other_writer_was_doing": "in all four, its status-add-commit cycle spanned this writer's git add: started about 2 ms before the change, its commit returned about 7 ms after"
+  },
+  "superseded": [
+    "https://github.com/heyvaldemar/fleet-ops/actions/runs/41941141251",
+    "https://github.com/heyvaldemar/fleet-ops/actions/runs/41941829939",
+    "https://github.com/heyvaldemar/fleet-ops/actions/runs/41941879060"
+  ],
+  "superseded_why": "those runs judged a commit by its message, which in one tree can be the other writer's; their counts are not comparable"
+}
