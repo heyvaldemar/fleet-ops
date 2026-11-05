@@ -15,10 +15,13 @@ check or a job, a patch fixes one.
   when it runs, and `index.lock` fails the other writer at once. The manual
   Worktree index race workflow runs two scripted writers on a throwaway
   repository, both in one tree and then in a `git worktree` each, ten
-  repeats of each, and counts commits that carry the other writer's file,
-  lock failures by kind, and the time from a change to its landed commit.
-  The test plants a foreign file and a stale lock before the counters are
-  believed. The result is kept in `docs/worktree-index-race.json`.
+  repeats of each, and counts commits that add the other writer's file,
+  commits that land under the other writer's message (the two share
+  `.git/COMMIT_EDITMSG`), commits that delete a file, files missing from the
+  final tree, lock failures by kind, and the time from a change to its
+  landed commit. Commits are judged by their author, one per writer, not by
+  their message. The test plants each finding and a stale lock before the
+  counters are believed. The result is kept in `docs/worktree-index-race.json`.
 - **Every template's deploy job looks for anonymous volumes, and conformance
   requires it.** A `VOLUME` an image declares and no mount covers holds data
   the backups never see and a `down`/`up` replaces. GLPI's config, encryption

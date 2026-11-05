@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # test-worktree-index-race.sh - the race counter, shown what it counts.
 #
-# The worktree mode is expected to report zero foreign commits and zero lock
-# failures, and a counter that can only say zero would report exactly that.
-# So each counter is first shown the thing it counts, planted: a commit by
-# writer a that carries writer b's file, and an index.lock left behind by a
-# process that is gone. Then one short run of both modes must account for
-# every file its writers made.
+# The worktree mode is expected to report zero on almost every line, and a
+# counter that can only say zero would report exactly that. So each counter
+# is first shown the thing it counts, planted: a commit by writer a that adds
+# writer b's file, a commit by writer b under writer a's message, a commit
+# that deletes a file, and an index.lock left behind by a process that is
+# gone. Then one short run of both modes must account for every attempt.
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -26,23 +26,34 @@ WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 g() { GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 LC_ALL=C git -c user.name=t -c user.email=t@example.invalid "$@"; }
 
-# A foreign file in a commit is counted, and a clean commit is not.
+# A commit is judged by who made it and what it adds or deletes.
 r="$WORK/plant"
+by() { local who="$1"; shift; GIT_AUTHOR_NAME="$who" GIT_COMMITTER_NAME="$who" g "$@"; }
 g init -q -b main "$r"
 echo root > "$r/README"
 g -C "$r" add README && g -C "$r" commit -q -m root
 mkdir -p "$r/a" "$r/b"
 echo 1 > "$r/a/a-000.txt"
-g -C "$r" add a/a-000.txt && g -C "$r" commit -q -m "a 000"
+g -C "$r" add a/a-000.txt && by writer-a -C "$r" commit -q -m "a 000"
 g -C "$r" branch clean
 echo 2 > "$r/a/a-001.txt"
 echo 3 > "$r/b/b-000.txt"
-g -C "$r" add a/a-001.txt b/b-000.txt && g -C "$r" commit -q -m "a 001"
+g -C "$r" add a/a-001.txt b/b-000.txt && by writer-a -C "$r" commit -q -m "a 001"
+echo 4 > "$r/b/b-001.txt"
+g -C "$r" add b/b-001.txt && by writer-b -C "$r" commit -q -m "a 002"
+echo 5 > "$r/a/a-003.txt"
+g -C "$r" rm -q b/b-001.txt && g -C "$r" add a/a-003.txt && by writer-a -C "$r" commit -q -m "a 003"
 python3 "$S" analyze --repo "$r" --ref main > "$WORK/planted.json"
-check "a's commit carrying b's file is counted" "$(field "$WORK/planted.json" commits_with_foreign_files)" 1
-check "the foreign file is named" "$(field "$WORK/planted.json" hits.0.foreign.0)" b/b-000.txt
+check "a's commit adding b's file is counted, and only that one" "$(field "$WORK/planted.json" commits_with_foreign_files)" 1
+check "the foreign file is named" "$(field "$WORK/planted.json" foreign.0.foreign.0)" b/b-000.txt
+check "b's commit under a's message is counted" "$(field "$WORK/planted.json" commits_with_the_other_message)" 1
+check "the commit under the wrong message is named" "$(field "$WORK/planted.json" wrong_message.0.subject)" "a 002"
+check "a commit that deletes a file is counted" "$(field "$WORK/planted.json" commits_deleting_files)" 1
+check "the deleted file is named" "$(field "$WORK/planted.json" deleting.0.deleted.0)" b/b-001.txt
 python3 "$S" analyze --repo "$r" --ref clean > "$WORK/clean.json"
-check "a clean history counts no foreign commit" "$(field "$WORK/clean.json" commits_with_foreign_files)" 0
+for k in commits_with_foreign_files commits_with_the_other_message commits_deleting_files; do
+  check "a clean history counts no $k" "$(field "$WORK/clean.json" "$k")" 0
+done
 
 # A stale index.lock is counted on every attempt, and the writer gives up.
 touch "$r/.git/index.lock"
@@ -62,26 +73,22 @@ res="$WORK/run/result.json"
 if [ -s "$res" ]; then
   check "the first mode is the shared tree" "$(field "$res" modes.0.mode)" shared
   check "the second mode is a worktree each" "$(field "$res" modes.1.mode)" worktree
-  check "a worktree each: no commit carries the other's file" "$(field "$res" modes.1.commits_with_foreign_files)" 0
-  check "a worktree each: every attempt made its own commit" "$(field "$res" modes.1.commits_made)" 12
-  check "a worktree each: the merge has no conflict" "$(field "$res" modes.1.merge.conflicts)" 0
-  for m in 0 1; do
-    check "mode $m: no file is left uncommitted" "$(field "$res" modes.$m.files_never_committed)" 0
-  done
-  # Every attempt ends in exactly one outcome, and every file the writers
-  # made is either in some commit or reported as never committed. Under
-  # contention a writer can also run out of retries on the lock; its file
-  # stays staged and goes out in the other writer's commit, so "own commits
-  # plus files taken" alone does not add up (the first CI run of this test
-  # found that, 11 of 12).
+  # Every attempt ends in exactly one outcome, and every commit git said it
+  # made is in the history, attributed to its writer, and nothing else is.
+  # ("Own commits plus files taken add up to every attempt" does not hold:
+  # the first CI run of this test found 11 of 12, a writer out of retries.)
   for m in 0 1; do
     outcomes="$(python3 -c 'import json,sys; print(sum(json.load(open(sys.argv[1]))["modes"][int(sys.argv[2])]["outcomes"].values()))' "$res" "$m")"
     check "mode $m: every attempt has one outcome" "$outcomes" 12
-    files="$(field "$res" modes.$m.files_committed)"
-    never="$(field "$res" modes.$m.files_never_committed)"
-    check "mode $m: every file is in a commit or reported uncommitted" "$((files + never))" 12
+    landed="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["modes"][int(sys.argv[2])]["outcomes"].get("landed", 0))' "$res" "$m")"
+    check "mode $m: every commit git reported is in the history, and only those" "$(field "$res" modes.$m.commits_made)" "$landed"
+  done
+  for k in commits_with_foreign_files commits_with_the_other_message commits_deleting_files \
+           files_never_committed files_missing_at_the_end gave_up; do
+    check "a worktree each: $k is zero" "$(field "$res" modes.1.$k)" 0
   done
   check "a worktree each: every attempt landed in its own commit" "$(field "$res" modes.1.outcomes.landed)" 12
+  check "a worktree each: the merge has no conflict" "$(field "$res" modes.1.merge.conflicts)" 0
   check "the git version is recorded" "$(field "$res" environment.git | cut -c1-12)" "git version "
 else
   no "a short run writes result.json"

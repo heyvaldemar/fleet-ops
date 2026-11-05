@@ -9,10 +9,12 @@ WHY. Two coding agents pointed at one checkout share one index, the staging
 area every `git add` writes and every `git commit` reads. Nothing in git says
 whose staged file is whose: a commit takes whatever is staged when it runs,
 and `.git/index.lock` lets one process at a time write that file and fails
-everyone else at once, with no wait. `git worktree add` gives each writer its
-own working tree and its own index over one object store. This measures what
-that difference costs or saves, with scripted writers rather than agents, so
-the numbers come from git alone and can be repeated on any runner.
+everyone else at once, with no wait. They also share `.git/COMMIT_EDITMSG`,
+the file `git commit -m` writes its message to and reads it back from.
+`git worktree add` gives each writer its own working tree, its own index and
+its own COMMIT_EDITMSG over one object store. This measures what that
+difference costs or saves, with scripted writers rather than agents, so the
+numbers come from git alone and can be repeated on any runner.
 
 THE WORKLOAD, both modes alike. Each repeat is a fresh repository with one
 root commit. Two writers, `a` and `b`, start on the same instant and each
@@ -25,12 +27,15 @@ makes --commits commits, one new file per commit under its own directory:
     git commit -m "a 007"
     sleep 0..--think-ms            (the agent working on its next change)
 
-A git call that fails on a lock (`index.lock`, or `cannot lock ref`) is
-retried up to MAX_RETRIES times after a short sleep, the way a careful agent
-would; every failed attempt is counted and its first line kept, verbatim,
-with the temporary path replaced by <tmp>. A commit that answers "nothing to
-commit" is not retried: its file has already gone out in the other writer's
-commit, and that is the finding this exists to count. (If the file is not
+Each writer commits as its own author, writer-a or writer-b, so the history
+says which process made a commit whatever its message says.
+
+A git call that fails on a lock (`index.lock`, or `cannot lock ref`), or a
+commit git aborts for an empty message, is retried up to MAX_RETRIES times
+after a short sleep, the way a careful agent would; every failed attempt is
+counted and its first line kept, verbatim, with the temporary path replaced
+by <tmp>. A commit that answers "nothing to commit" is not retried: its file
+has already gone out in the other writer's commit. (If the file is not
 tracked at that moment it fell out of the index instead, and is counted as
 dropped.) A writer that runs out of retries leaves its file staged, and the
 other writer's next commit takes it.
@@ -41,16 +46,23 @@ other writer's next commit takes it.
               counted) so the integration step is measured, not assumed free.
 
 WHAT IS COUNTED, per mode, from the repository afterwards and the writers'
-own logs: commits whose file list holds a file of the other writer; commits
-that found their own file already committed by the other; files never
-committed at all; lock failures by kind and by command, retried and given up;
-and the time from a writer starting a change (before `git status`) to the
-commit that carries that file returning, whoever made the commit.
+own logs. A commit is the work of its author, and its files are judged by
+what it adds and deletes, not by its message:
+  - commits that add a file of the other writer;
+  - commits whose message is the other writer's (read from COMMIT_EDITMSG
+    after the other writer rewrote it);
+  - commits that delete a file, which nobody in this workload ever asks for;
+  - writers that found their own file already committed by the other;
+  - files missing from the final tree: never committed, or committed and
+    deleted later;
+  - lock failures and empty-message aborts by command, retried and given up;
+  - the time from a writer starting a change (before `git status`) to the
+    commit that adds that file returning, whoever made the commit.
 
 Every git call runs with LC_ALL=C and without the global or system config,
 so the messages are git's own English and nothing on the machine (a signing
 key, a hook, an alias) takes part. `analyze` reads an existing repository
-with the same counter, so the test can plant a foreign file and watch it
+with the same counter, so the test can plant each finding and watch it
 counted.
 """
 import argparse
@@ -69,9 +81,12 @@ import time
 MAX_RETRIES = 10
 WRITERS = ("a", "b")
 SUBJECT = re.compile(r"^([ab]) (\d{3})$")
+AUTHOR = re.compile(r"^writer-([ab])$")
+LANDED = re.compile(r"^\[[^\]]*?([0-9a-f]{7,})\]", re.M)
+RETRIED = ("index_lock", "ref_lock", "empty_message")
 
 
-def git_env():
+def git_env(name="setup"):
     env = dict(os.environ)
     env.update({
         "LC_ALL": "C",
@@ -79,10 +94,10 @@ def git_env():
         "GIT_CONFIG_NOSYSTEM": "1",
         "GIT_CONFIG_GLOBAL": os.devnull,
         "GIT_TERMINAL_PROMPT": "0",
-        "GIT_AUTHOR_NAME": "writer",
-        "GIT_AUTHOR_EMAIL": "writer@example.invalid",
-        "GIT_COMMITTER_NAME": "writer",
-        "GIT_COMMITTER_EMAIL": "writer@example.invalid",
+        "GIT_AUTHOR_NAME": name,
+        "GIT_AUTHOR_EMAIL": "%s@example.invalid" % name,
+        "GIT_COMMITTER_NAME": name,
+        "GIT_COMMITTER_EMAIL": "%s@example.invalid" % name,
     })
     return env
 
@@ -102,6 +117,8 @@ def classify(text):
         return "ref_lock"
     if "index.lock" in text:
         return "index_lock"
+    if "empty commit message" in text:
+        return "empty_message"
     if ("nothing to commit" in text or "nothing added to commit" in text
             or "no changes added to commit" in text):
         return "nothing_to_commit"
@@ -109,7 +126,7 @@ def classify(text):
 
 
 KEYWORD = {"ref_lock": "cannot lock ref", "index_lock": "index.lock",
-           "nothing_to_commit": "nothing"}
+           "empty_message": "empty commit message", "nothing_to_commit": "nothing"}
 
 
 def scrub(text, root):
@@ -135,6 +152,7 @@ def first_line(text, root, kind):
 
 def writer(args):
     rnd = random.Random(args.seed)
+    wenv = git_env("writer-" + args.name)
     log = {"name": args.name, "commits": [], "events": [], "samples": {}}
     while time.time_ns() < args.start_at:
         time.sleep(0.0005)
@@ -142,7 +160,7 @@ def writer(args):
         rel = "%s/%s-%03d.txt" % (args.name, args.name, i)
         subject = "%s %03d" % (args.name, i)
         rec = {"i": i, "file": rel, "subject": subject, "t_start": time.time_ns(),
-               "t_land": None, "outcome": None, "retries": {}}
+               "t_land": None, "sha": None, "outcome": None, "retries": {}}
         os.makedirs(os.path.join(args.dir, args.name), exist_ok=True)
         with open(os.path.join(args.dir, rel), "w", encoding="utf-8") as fh:
             fh.write("%s\n" % subject)
@@ -150,7 +168,7 @@ def writer(args):
         def call(op, *gargs):
             attempt = 0
             while True:
-                p = subprocess.run(["git", *gargs], cwd=args.dir, env=ENV,
+                p = subprocess.run(["git", *gargs], cwd=args.dir, env=wenv,
                                    capture_output=True, text=True)
                 if p.returncode == 0:
                     return p, None
@@ -159,7 +177,7 @@ def writer(args):
                 log["events"].append({"i": i, "op": op, "kind": kind, "attempt": attempt,
                                       "line": first_line(text, args.root, kind), "t": time.time_ns()})
                 log["samples"].setdefault("%s %s" % (op, kind), scrub(text, args.root))
-                if kind in ("index_lock", "ref_lock") and attempt < MAX_RETRIES:
+                if kind in RETRIED and attempt < MAX_RETRIES:
                     key = "%s_%s" % (op, kind)
                     rec["retries"][key] = rec["retries"].get(key, 0) + 1
                     attempt += 1
@@ -167,7 +185,7 @@ def writer(args):
                     continue
                 return p, kind
 
-        _, kind = call("status", "status", "--porcelain")
+        call("status", "status", "--porcelain")
         _, kind = call("add", "add", "--", rel)
         if kind is not None:
             rec["outcome"] = "add_failed_" + kind
@@ -177,14 +195,18 @@ def writer(args):
             time.sleep(args.gap_ms / 1000.0)
         p, kind = call("commit", "commit", "-m", subject)
         if kind is None:
-            rec["outcome"] = "landed"
             rec["t_land"] = time.time_ns()
+            rec["outcome"] = "landed"
+            # "[main 1a2b3c4] a 007": the hash is this process's commit; the
+            # message after it may not be this writer's, which is the point.
+            m = LANDED.search(p.stdout)
+            rec["sha"] = m.group(1) if m else None
         elif kind == "nothing_to_commit":
             # Nothing staged: either the file went out in the other writer's
             # commit (it is tracked now), or it fell out of the index without
             # being committed by anyone, which would be a lost update.
             tracked = subprocess.run(["git", "ls-files", "--error-unmatch", "--", rel], cwd=args.dir,
-                                     env=ENV, capture_output=True, text=True).returncode == 0
+                                     env=wenv, capture_output=True, text=True).returncode == 0
             rec["outcome"] = "taken_by_other" if tracked else "dropped_from_index"
         else:
             rec["outcome"] = "commit_failed_" + kind
@@ -198,33 +220,45 @@ def writer(args):
 # -------------------------------------------------------------- analysis --
 
 def commits_on(repo, refs):
-    """Every non-merge commit reachable from refs, root excluded, with files."""
-    out = git(repo, "log", "--no-merges", "--format=%H%x09%s", *refs).stdout
+    """Every non-merge commit a writer made reachable from refs, with what it changed."""
+    out = git(repo, "log", "--no-merges", "--format=%H%x09%an%x09%s", *refs).stdout
     rows = []
     for line in out.splitlines():
-        sha, _, subject = line.partition("\t")
-        m = SUBJECT.match(subject)
-        if not m:
+        sha, author, subject = line.split("\t", 2)
+        a = AUTHOR.match(author)
+        if not a:
             continue
-        files = git(repo, "diff-tree", "--no-commit-id", "--name-only", "-r", sha).stdout.split()
-        rows.append({"sha": sha, "subject": subject, "owner": m.group(1), "files": files})
+        s = SUBJECT.match(subject)
+        added, deleted = [], []
+        for ns in git(repo, "diff-tree", "--no-commit-id", "--name-status", "-r", sha).stdout.splitlines():
+            status, _, path = ns.partition("\t")
+            (deleted if status == "D" else added).append(path)
+        rows.append({"sha": sha, "subject": subject, "maker": a.group(1),
+                     "message_of": s.group(1) if s else None, "added": added, "deleted": deleted})
     return rows
 
 
-def foreign_count(rows):
-    hits = []
-    for r in rows:
-        foreign = [f for f in r["files"] if f.split("/", 1)[0] != r["owner"]]
-        if foreign:
-            hits.append({"subject": r["subject"], "foreign": foreign})
-    return hits
+def findings(rows, repo, refs):
+    foreign = [{"subject": r["subject"], "by": r["maker"],
+                "foreign": [f for f in r["added"] if f.split("/", 1)[0] != r["maker"]]} for r in rows]
+    foreign = [h for h in foreign if h["foreign"]]
+    wrong = [{"subject": r["subject"], "by": r["maker"]} for r in rows if r["message_of"] != r["maker"]]
+    deleting = [{"subject": r["subject"], "by": r["maker"], "deleted": r["deleted"]} for r in rows if r["deleted"]]
+    tip = set()
+    for ref in refs:
+        tip |= set(git(repo, "ls-tree", "-r", "--name-only", ref).stdout.split())
+    return foreign, wrong, deleting, tip
 
 
 def analyze(args):
     rows = commits_on(args.repo, args.ref)
-    hits = foreign_count(rows)
-    print(json.dumps({"commits": len(rows), "commits_with_foreign_files": len(hits),
-                      "foreign_files": sum(len(h["foreign"]) for h in hits), "hits": hits}))
+    foreign, wrong, deleting, _ = findings(rows, args.repo, args.ref)
+    print(json.dumps({"commits": len(rows),
+                      "commits_with_foreign_files": len(foreign),
+                      "foreign_files": sum(len(h["foreign"]) for h in foreign),
+                      "commits_with_the_other_message": len(wrong),
+                      "commits_deleting_files": len(deleting),
+                      "foreign": foreign, "wrong_message": wrong, "deleting": deleting}))
 
 
 # ------------------------------------------------------------------ run --
@@ -270,25 +304,38 @@ def one_repeat(mode, n, args, tmp):
 
     refs = ["main"] if mode == "shared" else ["agent-a", "agent-b"]
     rows = commits_on(repo, refs)
-    hits = foreign_count(rows)
+    foreign, wrong, deleting, tip = findings(rows, repo, refs)
 
+    # When each commit returned to the process that made it, by hash.
     landed_at = {}
     for w in WRITERS:
         for c in wl[w]["commits"]:
-            if c["t_land"]:
-                landed_at[c["subject"]] = c["t_land"]
-    carrier = {}
-    for r in rows:
-        for f in r["files"]:
-            carrier[f] = r["subject"]
-    land_ms, lost = [], []
+            if c["sha"]:
+                landed_at[c["sha"]] = c["t_land"]
+
+    def returned(sha):
+        for short, t in landed_at.items():
+            if sha.startswith(short):
+                return t
+        return None
+
+    adder = {}
+    for r in reversed(rows):  # oldest first: the first commit that added a file carried it
+        for f in r["added"]:
+            adder.setdefault(f, r["sha"])
+    land_ms, never, missing = [], [], []
     for w in WRITERS:
         for c in wl[w]["commits"]:
-            subj = carrier.get(c["file"])
-            if subj is None or subj not in landed_at:
-                lost.append(c["file"])
+            f = c["file"]
+            if f not in tip:
+                missing.append(f)
+            sha = adder.get(f)
+            if sha is None:
+                never.append(f)
                 continue
-            land_ms.append((landed_at[subj] - c["t_start"]) / 1e6)
+            t = returned(sha)
+            if t is not None:
+                land_ms.append((t - c["t_start"]) / 1e6)
 
     merge = None
     if mode == "worktree":
@@ -297,17 +344,16 @@ def one_repeat(mode, n, args, tmp):
         merge = {"ms": round((time.time_ns() - t0) / 1e6, 1), "exit": p.returncode,
                  "conflicts": len(git(repo, "diff", "--name-only", "--diff-filter=U").stdout.split())}
 
-    lock = {}
+    fails = {}
     lines = {}
-    for w in WRITERS:
-        for e in wl[w]["events"]:
-            key = "%s %s" % (e["op"], e["kind"])
-            lock[key] = lock.get(key, 0) + 1
-            lines.setdefault(e["kind"], {})
-            lines[e["kind"]][e["line"]] = lines[e["kind"]].get(e["line"], 0) + 1
     outcomes = {}
     samples = {}
     for w in WRITERS:
+        for e in wl[w]["events"]:
+            key = "%s %s" % (e["op"], e["kind"])
+            fails[key] = fails.get(key, 0) + 1
+            lines.setdefault(e["kind"], {})
+            lines[e["kind"]][e["line"]] = lines[e["kind"]].get(e["line"], 0) + 1
         for c in wl[w]["commits"]:
             outcomes[c["outcome"]] = outcomes.get(c["outcome"], 0) + 1
         for k, v in wl[w]["samples"].items():
@@ -318,12 +364,17 @@ def one_repeat(mode, n, args, tmp):
         "mode": mode, "repeat": n,
         "attempted": len(WRITERS) * args.commits,
         "commits_made": len(rows),
-        "files_committed": sum(len(r["files"]) for r in rows),
-        "commits_with_foreign_files": len(hits),
-        "foreign_files": sum(len(h["foreign"]) for h in hits),
+        "commits_with_foreign_files": len(foreign),
+        "foreign_files": sum(len(h["foreign"]) for h in foreign),
+        "commits_with_the_other_message": len(wrong),
+        "commits_deleting_files": len(deleting),
+        "files_deleted": sum(len(h["deleted"]) for h in deleting),
+        "files_never_committed": len(never),
+        "files_missing_at_the_end": len(missing),
+        "missing": sorted(missing),
+        "deleting": deleting,
         "outcomes": outcomes,
-        "files_never_committed": len(lost),
-        "failed_attempts": lock,
+        "failed_attempts": fails,
         "land_ms": land_ms,
         "merge": merge,
         "lines": lines,
@@ -333,9 +384,7 @@ def one_repeat(mode, n, args, tmp):
 
 def summarise(mode, reps):
     land = [x for r in reps for x in r["land_ms"]]
-    fail = {}
-    lines = {}
-    outcomes = {}
+    fail, lines, outcomes, samples = {}, {}, {}, {}
     for r in reps:
         for k, v in r["failed_attempts"].items():
             fail[k] = fail.get(k, 0) + v
@@ -345,35 +394,42 @@ def summarise(mode, reps):
                 lines[kind][line] = lines[kind].get(line, 0) + v
         for k, v in r["outcomes"].items():
             outcomes[k] = outcomes.get(k, 0) + v
-    samples = {}
-    for r in reps:
         for k, v in r["samples"].items():
             samples.setdefault(k, v)
+
+    def total(key):
+        return sum(r[key] for r in reps)
+
     s = {
         "mode": mode,
         "repeats": len(reps),
-        "attempted": sum(r["attempted"] for r in reps),
-        "commits_made": sum(r["commits_made"] for r in reps),
-        "files_committed": sum(r["files_committed"] for r in reps),
-        "commits_with_foreign_files": sum(r["commits_with_foreign_files"] for r in reps),
-        "foreign_files": sum(r["foreign_files"] for r in reps),
+        "attempted": total("attempted"),
+        "commits_made": total("commits_made"),
+        "commits_with_foreign_files": total("commits_with_foreign_files"),
+        "foreign_files": total("foreign_files"),
         "repeats_with_a_foreign_commit": sum(1 for r in reps if r["commits_with_foreign_files"]),
+        "commits_with_the_other_message": total("commits_with_the_other_message"),
+        "commits_deleting_files": total("commits_deleting_files"),
+        "files_deleted": total("files_deleted"),
         "taken_by_other": outcomes.get("taken_by_other", 0),
         "dropped_from_index": outcomes.get("dropped_from_index", 0),
-        "files_never_committed": sum(r["files_never_committed"] for r in reps),
+        "files_never_committed": total("files_never_committed"),
+        "files_missing_at_the_end": total("files_missing_at_the_end"),
         "outcomes": outcomes,
         "index_lock_failures": sum(v for k, v in fail.items() if k.endswith("index_lock")),
         "ref_lock_failures": sum(v for k, v in fail.items() if k.endswith("ref_lock")),
-        "lock_gave_up": sum(v for k, v in outcomes.items() if k.endswith("_lock")),
+        "empty_message_aborts": sum(v for k, v in fail.items() if k.endswith("empty_message")),
+        "gave_up": sum(v for k, v in outcomes.items() if k.endswith(RETRIED)),
         "failed_attempts_by_command": dict(sorted(fail.items())),
         "land_ms": {"median": round(statistics.median(land), 1) if land else None,
                     "p95": pct(land, 0.95), "max": round(max(land), 1) if land else None,
                     "n": len(land)},
         "lines": {k: dict(sorted(v.items(), key=lambda kv: -kv[1])) for k, v in sorted(lines.items())},
         "samples": dict(sorted(samples.items())),
-        "per_repeat": [{k: r[k] for k in ("repeat", "commits_made", "commits_with_foreign_files",
-                                          "foreign_files", "files_never_committed", "failed_attempts",
-                                          "merge")} for r in reps],
+        "per_repeat": [{k: r[k] for k in (
+            "repeat", "commits_made", "commits_with_foreign_files", "commits_with_the_other_message",
+            "commits_deleting_files", "files_never_committed", "files_missing_at_the_end", "missing",
+            "deleting", "failed_attempts", "merge")} for r in reps],
     }
     if mode == "worktree":
         ms = [r["merge"]["ms"] for r in reps]
@@ -407,14 +463,18 @@ def markdown(result):
     rows = [
         ("commits attempted", "attempted"),
         ("commits made", "commits_made"),
-        ("commits carrying the other writer's file", "commits_with_foreign_files"),
+        ("commits that add the other writer's file", "commits_with_foreign_files"),
         ("repeats with at least one such commit", "repeats_with_a_foreign_commit"),
+        ("commits under the other writer's message", "commits_with_the_other_message"),
+        ("commits that delete a file", "commits_deleting_files"),
         ("own file already committed by the other", "taken_by_other"),
         ("own file dropped from the index, committed by nobody", "dropped_from_index"),
         ("files never committed", "files_never_committed"),
+        ("files missing from the final tree", "files_missing_at_the_end"),
         ("index.lock failures (each retried)", "index_lock_failures"),
         ("ref lock failures (each retried)", "ref_lock_failures"),
-        ("gave up after %d retries" % MAX_RETRIES, "lock_gave_up"),
+        ("empty-message aborts (each retried)", "empty_message_aborts"),
+        ("gave up after %d retries" % MAX_RETRIES, "gave_up"),
     ]
     out = ["## Two writers: one index, or a worktree each", "",
            "%s; %s; %d repeats x 2 writers x %d commits, think 0..%d ms, add-to-commit gap %d ms." % (
@@ -432,6 +492,10 @@ def markdown(result):
     out += ["", "Lines git printed, verbatim, with counts:", ""]
     for mode in ("shared", "worktree"):
         for kind, d in s[mode]["lines"].items():
+            if kind == "ref_lock":
+                out.append("- %s, %s, %dx: `fatal: cannot lock ref 'HEAD': is at <sha> but expected <sha>` "
+                           "(and kin; hashes differ each time)" % (mode, kind, sum(d.values())))
+                continue
             for line, v in d.items():
                 out.append("- %s, %s, %dx: `%s`" % (mode, kind, v, line))
     out += ["", "The whole message, once per command and kind:", ""]
