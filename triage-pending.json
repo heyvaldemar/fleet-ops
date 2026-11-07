@@ -1,142 +1,16 @@
 [
   {
-    "repo": "affine-traefik-letsencrypt-docker-compose",
-    "sha": "f96d6e359b8423191b4979553aa8cbdac587440c",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-07T13:38:02Z"
-  },
-  {
-    "repo": "authelia-traefik-letsencrypt-docker-compose",
-    "sha": "b7b6214f9ec698226f4abcf7d19b4a5b5e90725a",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-07T13:38:16Z"
-  },
-  {
     "repo": "confluence-traefik-letsencrypt-docker-compose",
-    "sha": "5ed585391cb8ff8f97e380de590bc2ff9a810906",
+    "sha": "08f00ae0201bee1d293a7a87accc58f3e70de535",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-07T13:38:24Z"
-  },
-  {
-    "repo": "diun-docker-compose",
-    "sha": "d67a07558f360d94b9ecbdedf58794ed7e870e18",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-07T13:38:33Z"
-  },
-  {
-    "repo": "docmost-traefik-letsencrypt-docker-compose",
-    "sha": "453c077a2bd974cd58e3708ea5502bea83d60a7b",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-07T13:38:39Z"
-  },
-  {
-    "repo": "gitea-traefik-letsencrypt-docker-compose",
-    "sha": "634ac1028fe10358dc3138a796742cbd4bf2ee89",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-07T13:38:48Z"
-  },
-  {
-    "repo": "homepage-traefik-letsencrypt-docker-compose",
-    "sha": "44820291d35d60b6292a2f48aad9892e739532a6",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-07T13:38:57Z"
-  },
-  {
-    "repo": "humanitz-server-docker-compose",
-    "sha": "6275ab46ec4bf0a77f368ba4acb58cd9e5eee6df",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-07T13:39:02Z"
+    "pushed_at": "2026-11-07T22:59:56Z"
   },
   {
     "repo": "jira-traefik-letsencrypt-docker-compose",
-    "sha": "3fbb4da50c8d58bdfe2384b2bca4e83d44336bce",
+    "sha": "0026c74f4af317d19634cd98657cedb98d446fde",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-07T13:39:09Z"
-  },
-  {
-    "repo": "joomla-traefik-letsencrypt-docker-compose",
-    "sha": "da76781de0e8e7d3bca25b3fa6f754880d5adaac",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-07T13:39:16Z"
-  },
-  {
-    "repo": "keycloak-traefik-letsencrypt-docker-compose",
-    "sha": "e823e5c125f705bd1c2d3de73e05c29d1a428f3f",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-07T13:39:21Z"
-  },
-  {
-    "repo": "kf2-server-docker-compose",
-    "sha": "66ecc0b341029df53330f680a6a54fccf2b218b3",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-07T13:39:26Z"
-  },
-  {
-    "repo": "mattermost-traefik-letsencrypt-docker-compose",
-    "sha": "993323628b44a6183f1369843e925bc4fcc9b420",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-07T13:39:34Z"
-  },
-  {
-    "repo": "nextcloud-onlyoffice-traefik-letsencrypt-docker-compose",
-    "sha": "d5dc65923a2327ff05097eed597e983cb3e352bc",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-07T13:39:50Z"
-  },
-  {
-    "repo": "nextcloud-traefik-letsencrypt-docker-compose",
-    "sha": "b0ce5572c53550077ca5c221142ec37d629e36da",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-07T13:39:56Z"
-  },
-  {
-    "repo": "outline-keycloak-traefik-letsencrypt-docker-compose",
-    "sha": "31442a9826de69a3919a86c7249cc0a573416f62",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-07T13:40:11Z"
-  },
-  {
-    "repo": "portainer-traefik-letsencrypt-docker-compose",
-    "sha": "3861f3d40242dbbd8368079a4dd4d7f0ec130906",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-07T13:40:18Z"
-  },
-  {
-    "repo": "tf2-server-docker-compose",
-    "sha": "34199338dbdc4cc561e6fb0d2f0ece4731d79a67",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-07T13:40:53Z"
-  },
-  {
-    "repo": "xwiki-traefik-letsencrypt-docker-compose",
-    "sha": "d842256e53aacac27b8e0c06fedd71ebfc3d1bb1",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-07T13:41:03Z"
-  },
-  {
-    "repo": "zabbix-docker-compose",
-    "sha": "3c956e35117767f0446300744741afb5eadac1f1",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-07T13:41:09Z"
+    "pushed_at": "2026-11-07T23:00:27Z"
   }
 ]
