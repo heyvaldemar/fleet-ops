@@ -1,46 +1,142 @@
 [
   {
-    "repo": "amazon-ec2-gitlab-pipeline-terraform",
-    "sha": "57dffffd2d50089bf57cb32b5ae6dea08b709f23",
-    "wf": "Terraform Verification",
-    "kind": "version",
-    "pushed_at": "2026-11-06T23:57:12Z",
-    "review": "\n## Upstream changes 6.71.0 -> 6.72.0\n\n**Verdict:** SAFE TO APPLY \u2014 no breaking changes in the notes for this range, and no new companion-service version requirement is introduced.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none. The `.env.example` provided is empty, and this template does not configure the provider through environment variables in a way the release notes touch. The version pin lives in `01-providers.tf`: `version = \"~> 6.71.0\"` under `required_providers.aws`, which must be bumped by hand since the `~>` constraint will not permit 6.72.0 to be picked up automatically.\n\n### Data and dependencies\n- none. No database, cache, or search-engine version requirement is named in either the 6.72.0 notes or the 6.71.0 baseline.\n- This release is purely additive at the provider level: new data sources, list resources, and resources (e.g. `aws_lambdaweb_function`, `aws_bedrockdataautomation_blueprint`, `aws_networksecuritymanager_rule`, `aws_rds_tenant_database`, `aws_quicksight_account_custom_permission`), plus enhancements to `aws_batch_compute_environment`, `aws_region`/`aws_service_principal` region resolution, `aws_cloudtrail`, `aws_elasticache_global_replication_group`, and `aws_lambdacore_network_connector`.\n- Bug fixes: `resource/aws_amplify_app: Fix access_token and oauth_token maximum length being lower than the AWS API limit` and `resource/aws_datasync_location_s3: Handles new error message returned for IAM eventual consistency`. Neither alters existing resource schemas or defaults in a way that forces action.\n\n### Before applying\n- Update the version constraint in `01-providers.tf` from `~> 6.71.0` to `~> 6.72.0` (or widen it), then run `terraform init -upgrade`.\n- Run `terraform plan` before applying to confirm no unexpected diffs appear, as routine practice \u2014 nothing in these notes indicates a plan diff is expected.\n- No state backup or manual migration step is indicated by the notes for this range.\n\n### Notes read\n- v6.72.0 (2026-11-04) \u2014 the target release notes and CHANGELOG entry\n- v6.71.0 (2026-10-28) \u2014 read as the baseline per the \"THE RELEASE THE TEMPLATE RUNS NOW\" section, used only to confirm no 6.71.0 requirement is being misattributed to this upgrade\n- Image registry metadata could not be read (401 Unauthorized); verdict and this report rely on the written notes alone, as stated by the tool's own output above\n"
-  },
-  {
-    "repo": "amazon-rds-pipeline-terraform",
-    "sha": "678185e692a499d93487bcaf14a7ad35e35607e2",
-    "wf": "Terraform Verification",
-    "kind": "version",
-    "pushed_at": "2026-11-06T23:57:50Z",
-    "review": "\n## Upstream changes 6.71.0 -> 6.72.0\n\n**Verdict:** SAFE TO APPLY \u2014 no breaking changes in the notes for this range, and no new companion-service version requirement is introduced.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none. The `.env.example` provided is empty, and this template does not configure the provider through environment variables in a way the release notes touch. The version pin lives in `01-providers.tf`: `version = \"~> 6.71.0\"` under `required_providers.aws`, which must be bumped by hand since the `~>` constraint will not permit 6.72.0 to be picked up automatically.\n\n### Data and dependencies\n- none. No database, cache, or search-engine version requirement is named in either the 6.72.0 notes or the 6.71.0 baseline.\n- This release is purely additive at the provider level: new data sources, list resources, and resources (e.g. `aws_lambdaweb_function`, `aws_bedrockdataautomation_blueprint`, `aws_networksecuritymanager_rule`, `aws_rds_tenant_database`, `aws_quicksight_account_custom_permission`), plus enhancements to `aws_batch_compute_environment`, `aws_region`/`aws_service_principal` region resolution, `aws_cloudtrail`, `aws_elasticache_global_replication_group`, and `aws_lambdacore_network_connector`.\n- Bug fixes: `resource/aws_amplify_app: Fix access_token and oauth_token maximum length being lower than the AWS API limit` and `resource/aws_datasync_location_s3: Handles new error message returned for IAM eventual consistency`. Neither alters existing resource schemas or defaults in a way that forces action.\n\n### Before applying\n- Update the version constraint in `01-providers.tf` from `~> 6.71.0` to `~> 6.72.0` (or widen it), then run `terraform init -upgrade`.\n- Run `terraform plan` before applying to confirm no unexpected diffs appear, as routine practice \u2014 nothing in these notes indicates a plan diff is expected.\n- No state backup or manual migration step is indicated by the notes for this range.\n\n### Notes read\n- v6.72.0 (2026-11-04) \u2014 the target release notes and CHANGELOG entry\n- v6.71.0 (2026-10-28) \u2014 read as the baseline per the \"THE RELEASE THE TEMPLATE RUNS NOW\" section, used only to confirm no 6.71.0 requirement is being misattributed to this upgrade\n- Image registry metadata could not be read (401 Unauthorized); verdict and this report rely on the written notes alone, as stated by the tool's own output above\n"
-  },
-  {
-    "repo": "bitbucket-traefik-letsencrypt-docker-compose",
-    "sha": "955d3fb1d7dd76cc55709e98a2891e70aadff90c",
+    "repo": "affine-traefik-letsencrypt-docker-compose",
+    "sha": "f96d6e359b8423191b4979553aa8cbdac587440c",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-06T23:58:04Z"
+    "pushed_at": "2026-11-07T13:38:02Z"
   },
   {
-    "repo": "gitlab-traefik-letsencrypt-docker-compose",
-    "sha": "7893cda9e287cbd5bfb0191ccc0357619151493e",
+    "repo": "authelia-traefik-letsencrypt-docker-compose",
+    "sha": "b7b6214f9ec698226f4abcf7d19b4a5b5e90725a",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-06T23:58:31Z"
+    "pushed_at": "2026-11-07T13:38:16Z"
   },
   {
-    "repo": "nocodb-traefik-letsencrypt-docker-compose",
-    "sha": "4d5ad66c85418832db32b79be8159aa747bbda1e",
+    "repo": "confluence-traefik-letsencrypt-docker-compose",
+    "sha": "5ed585391cb8ff8f97e380de590bc2ff9a810906",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-06T23:59:12Z"
+    "pushed_at": "2026-11-07T13:38:24Z"
   },
   {
-    "repo": "wikijs-traefik-letsencrypt-docker-compose",
-    "sha": "454f5252f20f6eea6aca9f1f91111ca3c05ff83e",
+    "repo": "diun-docker-compose",
+    "sha": "d67a07558f360d94b9ecbdedf58794ed7e870e18",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-07T00:00:28Z"
+    "pushed_at": "2026-11-07T13:38:33Z"
+  },
+  {
+    "repo": "docmost-traefik-letsencrypt-docker-compose",
+    "sha": "453c077a2bd974cd58e3708ea5502bea83d60a7b",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-07T13:38:39Z"
+  },
+  {
+    "repo": "gitea-traefik-letsencrypt-docker-compose",
+    "sha": "634ac1028fe10358dc3138a796742cbd4bf2ee89",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-07T13:38:48Z"
+  },
+  {
+    "repo": "homepage-traefik-letsencrypt-docker-compose",
+    "sha": "44820291d35d60b6292a2f48aad9892e739532a6",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-07T13:38:57Z"
+  },
+  {
+    "repo": "humanitz-server-docker-compose",
+    "sha": "6275ab46ec4bf0a77f368ba4acb58cd9e5eee6df",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-07T13:39:02Z"
+  },
+  {
+    "repo": "jira-traefik-letsencrypt-docker-compose",
+    "sha": "3fbb4da50c8d58bdfe2384b2bca4e83d44336bce",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-07T13:39:09Z"
+  },
+  {
+    "repo": "joomla-traefik-letsencrypt-docker-compose",
+    "sha": "da76781de0e8e7d3bca25b3fa6f754880d5adaac",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-07T13:39:16Z"
+  },
+  {
+    "repo": "keycloak-traefik-letsencrypt-docker-compose",
+    "sha": "e823e5c125f705bd1c2d3de73e05c29d1a428f3f",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-07T13:39:21Z"
+  },
+  {
+    "repo": "kf2-server-docker-compose",
+    "sha": "66ecc0b341029df53330f680a6a54fccf2b218b3",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-07T13:39:26Z"
+  },
+  {
+    "repo": "mattermost-traefik-letsencrypt-docker-compose",
+    "sha": "993323628b44a6183f1369843e925bc4fcc9b420",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-07T13:39:34Z"
+  },
+  {
+    "repo": "nextcloud-onlyoffice-traefik-letsencrypt-docker-compose",
+    "sha": "d5dc65923a2327ff05097eed597e983cb3e352bc",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-07T13:39:50Z"
+  },
+  {
+    "repo": "nextcloud-traefik-letsencrypt-docker-compose",
+    "sha": "b0ce5572c53550077ca5c221142ec37d629e36da",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-07T13:39:56Z"
+  },
+  {
+    "repo": "outline-keycloak-traefik-letsencrypt-docker-compose",
+    "sha": "31442a9826de69a3919a86c7249cc0a573416f62",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-07T13:40:11Z"
+  },
+  {
+    "repo": "portainer-traefik-letsencrypt-docker-compose",
+    "sha": "3861f3d40242dbbd8368079a4dd4d7f0ec130906",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-07T13:40:18Z"
+  },
+  {
+    "repo": "tf2-server-docker-compose",
+    "sha": "34199338dbdc4cc561e6fb0d2f0ece4731d79a67",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-07T13:40:53Z"
+  },
+  {
+    "repo": "xwiki-traefik-letsencrypt-docker-compose",
+    "sha": "d842256e53aacac27b8e0c06fedd71ebfc3d1bb1",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-07T13:41:03Z"
+  },
+  {
+    "repo": "zabbix-docker-compose",
+    "sha": "3c956e35117767f0446300744741afb5eadac1f1",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-07T13:41:09Z"
   }
 ]
