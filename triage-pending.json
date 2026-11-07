@@ -1,394 +1,46 @@
 [
   {
-    "repo": "affine-traefik-letsencrypt-docker-compose",
-    "sha": "5c80672c233c7c32e16cf444abfedd8ae25129e3",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:45:11Z"
-  },
-  {
-    "repo": "amazon-eks-cluster-pipeline-terraform",
-    "sha": "de7295fa012f6dc6400d336b3493442472c7bbf6",
+    "repo": "amazon-ec2-gitlab-pipeline-terraform",
+    "sha": "57dffffd2d50089bf57cb32b5ae6dea08b709f23",
     "wf": "Terraform Verification",
     "kind": "version",
-    "pushed_at": "2026-11-06T14:46:27Z",
-    "review": "\n## Upstream changes 6.71.0 -> 6.72.0\n\n**Verdict:** SAFE TO APPLY \u2014 purely additive release (new data/list/resources, enhancements, two narrow bug fixes), no breaking changes, no new companion-service version requirements.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none. There is no `.env.example` content provided (file appears empty), and this release introduces no new or renamed provider configuration variables. The compose/terraform file pins the provider via `version = \"~> 6.71.0\"` in `01-providers.tf`, which will need to be bumped to allow `6.72.0` (see Before applying).\n\n### Data and dependencies\n- none. No database, cache, or other companion service version is named anywhere in these notes.\n- Note for completeness (not a change in this range): the prior release's note \"Update the minimum Go version required to build the provider to 1.27.3. Go 1.27 requires macOS 13 Ventura or later\" belongs to 6.71.0, the baseline this template already runs, so it is not something this upgrade introduces.\n\n### Before applying\n- Edit `01-providers.tf`: the `required_providers.aws.version` constraint is `~> 6.71.0`, which excludes 6.72.0 under the pessimistic operator. It must be widened (e.g. to `~> 6.71` or `~> 6.72.0`) before `terraform init -upgrade` will pick up the new version.\n- Run `terraform init -upgrade` followed by `terraform plan` and review the diff before applying, as is good practice for any provider bump, though nothing in the notes indicates a forced change to existing resources.\n- No state backup or manual migration step is called for by the notes.\n\n### Notes read\n- hashicorp/terraform-provider-aws CHANGELOG.md: entries for 6.72.0 and 6.71.0 (baseline) read in full; earlier entries (6.70.0 down to 6.67.0) were present in the supplied changelog excerpt but fall outside the range being moved through and were not used to form the verdict.\n- Image registry comparison could not be performed: \"HTTPError: HTTP Error 401: Unauthorized\" \u2014 judged on release notes alone.\n"
+    "pushed_at": "2026-11-06T23:57:12Z",
+    "review": "\n## Upstream changes 6.71.0 -> 6.72.0\n\n**Verdict:** SAFE TO APPLY \u2014 no breaking changes in the notes for this range, and no new companion-service version requirement is introduced.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none. The `.env.example` provided is empty, and this template does not configure the provider through environment variables in a way the release notes touch. The version pin lives in `01-providers.tf`: `version = \"~> 6.71.0\"` under `required_providers.aws`, which must be bumped by hand since the `~>` constraint will not permit 6.72.0 to be picked up automatically.\n\n### Data and dependencies\n- none. No database, cache, or search-engine version requirement is named in either the 6.72.0 notes or the 6.71.0 baseline.\n- This release is purely additive at the provider level: new data sources, list resources, and resources (e.g. `aws_lambdaweb_function`, `aws_bedrockdataautomation_blueprint`, `aws_networksecuritymanager_rule`, `aws_rds_tenant_database`, `aws_quicksight_account_custom_permission`), plus enhancements to `aws_batch_compute_environment`, `aws_region`/`aws_service_principal` region resolution, `aws_cloudtrail`, `aws_elasticache_global_replication_group`, and `aws_lambdacore_network_connector`.\n- Bug fixes: `resource/aws_amplify_app: Fix access_token and oauth_token maximum length being lower than the AWS API limit` and `resource/aws_datasync_location_s3: Handles new error message returned for IAM eventual consistency`. Neither alters existing resource schemas or defaults in a way that forces action.\n\n### Before applying\n- Update the version constraint in `01-providers.tf` from `~> 6.71.0` to `~> 6.72.0` (or widen it), then run `terraform init -upgrade`.\n- Run `terraform plan` before applying to confirm no unexpected diffs appear, as routine practice \u2014 nothing in these notes indicates a plan diff is expected.\n- No state backup or manual migration step is indicated by the notes for this range.\n\n### Notes read\n- v6.72.0 (2026-11-04) \u2014 the target release notes and CHANGELOG entry\n- v6.71.0 (2026-10-28) \u2014 read as the baseline per the \"THE RELEASE THE TEMPLATE RUNS NOW\" section, used only to confirm no 6.71.0 requirement is being misattributed to this upgrade\n- Image registry metadata could not be read (401 Unauthorized); verdict and this report rely on the written notes alone, as stated by the tool's own output above\n"
   },
   {
-    "repo": "amazon-lightsail-instance-pipeline-terraform",
-    "sha": "22798ad8808f83ef07f6858d87b81da8c11cb511",
+    "repo": "amazon-rds-pipeline-terraform",
+    "sha": "678185e692a499d93487bcaf14a7ad35e35607e2",
     "wf": "Terraform Verification",
     "kind": "version",
-    "pushed_at": "2026-11-06T14:47:16Z",
-    "review": "\n## Upstream changes 6.71.0 -> 6.72.0\n\n**Verdict:** SAFE TO APPLY \u2014 purely additive release (new data/list/resources, enhancements, two narrow bug fixes), no breaking changes, no new companion-service version requirements.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none. There is no `.env.example` content provided (file appears empty), and this release introduces no new or renamed provider configuration variables. The compose/terraform file pins the provider via `version = \"~> 6.71.0\"` in `01-providers.tf`, which will need to be bumped to allow `6.72.0` (see Before applying).\n\n### Data and dependencies\n- none. No database, cache, or other companion service version is named anywhere in these notes.\n- Note for completeness (not a change in this range): the prior release's note \"Update the minimum Go version required to build the provider to 1.27.3. Go 1.27 requires macOS 13 Ventura or later\" belongs to 6.71.0, the baseline this template already runs, so it is not something this upgrade introduces.\n\n### Before applying\n- Edit `01-providers.tf`: the `required_providers.aws.version` constraint is `~> 6.71.0`, which excludes 6.72.0 under the pessimistic operator. It must be widened (e.g. to `~> 6.71` or `~> 6.72.0`) before `terraform init -upgrade` will pick up the new version.\n- Run `terraform init -upgrade` followed by `terraform plan` and review the diff before applying, as is good practice for any provider bump, though nothing in the notes indicates a forced change to existing resources.\n- No state backup or manual migration step is called for by the notes.\n\n### Notes read\n- hashicorp/terraform-provider-aws CHANGELOG.md: entries for 6.72.0 and 6.71.0 (baseline) read in full; earlier entries (6.70.0 down to 6.67.0) were present in the supplied changelog excerpt but fall outside the range being moved through and were not used to form the verdict.\n- Image registry comparison could not be performed: \"HTTPError: HTTP Error 401: Unauthorized\" \u2014 judged on release notes alone.\n"
-  },
-  {
-    "repo": "amazon-route53-pipeline-terraform",
-    "sha": "2b1ce86efe6274b20ba97c3024c392477ffea0a0",
-    "wf": "Terraform Verification",
-    "kind": "version",
-    "pushed_at": "2026-11-06T14:48:07Z",
-    "review": "\n## Upstream changes 6.71.0 -> 6.72.0\n\n**Verdict:** SAFE TO APPLY \u2014 purely additive release (new data/list/resources, enhancements, two narrow bug fixes), no breaking changes, no new companion-service version requirements.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none. There is no `.env.example` content provided (file appears empty), and this release introduces no new or renamed provider configuration variables. The compose/terraform file pins the provider via `version = \"~> 6.71.0\"` in `01-providers.tf`, which will need to be bumped to allow `6.72.0` (see Before applying).\n\n### Data and dependencies\n- none. No database, cache, or other companion service version is named anywhere in these notes.\n- Note for completeness (not a change in this range): the prior release's note \"Update the minimum Go version required to build the provider to 1.27.3. Go 1.27 requires macOS 13 Ventura or later\" belongs to 6.71.0, the baseline this template already runs, so it is not something this upgrade introduces.\n\n### Before applying\n- Edit `01-providers.tf`: the `required_providers.aws.version` constraint is `~> 6.71.0`, which excludes 6.72.0 under the pessimistic operator. It must be widened (e.g. to `~> 6.71` or `~> 6.72.0`) before `terraform init -upgrade` will pick up the new version.\n- Run `terraform init -upgrade` followed by `terraform plan` and review the diff before applying, as is good practice for any provider bump, though nothing in the notes indicates a forced change to existing resources.\n- No state backup or manual migration step is called for by the notes.\n\n### Notes read\n- hashicorp/terraform-provider-aws CHANGELOG.md: entries for 6.72.0 and 6.71.0 (baseline) read in full; earlier entries (6.70.0 down to 6.67.0) were present in the supplied changelog excerpt but fall outside the range being moved through and were not used to form the verdict.\n- Image registry comparison could not be performed: \"HTTPError: HTTP Error 401: Unauthorized\" \u2014 judged on release notes alone.\n"
-  },
-  {
-    "repo": "anythingllm-traefik-letsencrypt-docker-compose",
-    "sha": "27313e101d9524c0214c6cd10f7d22b03c6322c8",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:48:36Z",
-    "review": "\n## Upstream changes 0.40.14 -> 0.40.15\n\n**Verdict:** SAFE TO APPLY \u2014 the notes describe new model support and feature additions only, and the image configuration (user, entrypoint, command, ports, volumes, healthcheck, environment) is unchanged between the two versions.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none \u2014 `OLLAMA_INSTALL_MODELS` / `MODELS` keep working as before; no new, renamed or removed variables are mentioned in the v0.40.15 notes.\n\n### Data and dependencies\n- none. The notes name no companion service (database, cache, search engine) and no version requirement for one, so the \"SAFE TO APPLY unavailable\" rule does not apply here.\n\n### Before applying\n- No manual steps required beyond the normal pull/recreate. The compose file's `ollama-data` volume and the pinned digest in `x-images` are the only things that change; update `OLLAMA_IMAGE_VERSION`/digest to 0.40.15 as you would for any routine bump.\n- Optional, not required: if you intend to try `mimo-v2.6` or `autotrust-jev`, add them to `OLLAMA_INSTALL_MODELS` yourself \u2014 nothing pulls them automatically.\n\n### Notes read\n- v0.40.15 (2026-11-03) \u2014 upstream release notes for the version being moved to\n- v0.40.14 (2026-11-03) \u2014 given as the baseline (\"THE RELEASE THE TEMPLATE RUNS NOW\"), used only to confirm nothing in it is miscounted as a new change\n- No UPGRADING, BREAKING_CHANGES or CHANGELOG section was supplied for this range; none was available to read\n"
-  },
-  {
-    "repo": "audiobookshelf-traefik-letsencrypt-docker-compose",
-    "sha": "91e5f180af57b293412aa61db05829a666fbb6fa",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:48:46Z"
-  },
-  {
-    "repo": "authelia-traefik-letsencrypt-docker-compose",
-    "sha": "cb0d1f94ff96d8315ba2f1228350c46744b437df",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:48:55Z"
-  },
-  {
-    "repo": "beszel-traefik-letsencrypt-docker-compose",
-    "sha": "4c3a0796048ab0dc5b608f580f18cd9b54a3ebd5",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:49:09Z"
+    "pushed_at": "2026-11-06T23:57:50Z",
+    "review": "\n## Upstream changes 6.71.0 -> 6.72.0\n\n**Verdict:** SAFE TO APPLY \u2014 no breaking changes in the notes for this range, and no new companion-service version requirement is introduced.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none. The `.env.example` provided is empty, and this template does not configure the provider through environment variables in a way the release notes touch. The version pin lives in `01-providers.tf`: `version = \"~> 6.71.0\"` under `required_providers.aws`, which must be bumped by hand since the `~>` constraint will not permit 6.72.0 to be picked up automatically.\n\n### Data and dependencies\n- none. No database, cache, or search-engine version requirement is named in either the 6.72.0 notes or the 6.71.0 baseline.\n- This release is purely additive at the provider level: new data sources, list resources, and resources (e.g. `aws_lambdaweb_function`, `aws_bedrockdataautomation_blueprint`, `aws_networksecuritymanager_rule`, `aws_rds_tenant_database`, `aws_quicksight_account_custom_permission`), plus enhancements to `aws_batch_compute_environment`, `aws_region`/`aws_service_principal` region resolution, `aws_cloudtrail`, `aws_elasticache_global_replication_group`, and `aws_lambdacore_network_connector`.\n- Bug fixes: `resource/aws_amplify_app: Fix access_token and oauth_token maximum length being lower than the AWS API limit` and `resource/aws_datasync_location_s3: Handles new error message returned for IAM eventual consistency`. Neither alters existing resource schemas or defaults in a way that forces action.\n\n### Before applying\n- Update the version constraint in `01-providers.tf` from `~> 6.71.0` to `~> 6.72.0` (or widen it), then run `terraform init -upgrade`.\n- Run `terraform plan` before applying to confirm no unexpected diffs appear, as routine practice \u2014 nothing in these notes indicates a plan diff is expected.\n- No state backup or manual migration step is indicated by the notes for this range.\n\n### Notes read\n- v6.72.0 (2026-11-04) \u2014 the target release notes and CHANGELOG entry\n- v6.71.0 (2026-10-28) \u2014 read as the baseline per the \"THE RELEASE THE TEMPLATE RUNS NOW\" section, used only to confirm no 6.71.0 requirement is being misattributed to this upgrade\n- Image registry metadata could not be read (401 Unauthorized); verdict and this report rely on the written notes alone, as stated by the tool's own output above\n"
   },
   {
     "repo": "bitbucket-traefik-letsencrypt-docker-compose",
-    "sha": "decd83270545d86f147b1311b13e8182ecf9dabe",
+    "sha": "955d3fb1d7dd76cc55709e98a2891e70aadff90c",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-06T14:49:18Z"
-  },
-  {
-    "repo": "chatops-privilege-wall",
-    "sha": "5c4e0e3fad12f3cae3502812d9131eabe4f6ce46",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:49:27Z"
-  },
-  {
-    "repo": "confluence-traefik-letsencrypt-docker-compose",
-    "sha": "f5d901a3b150082d3ca43e314435e6ca500775cd",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:49:35Z"
-  },
-  {
-    "repo": "dashy-traefik-letsencrypt-docker-compose",
-    "sha": "3786d61481c2dd34b312b1aa8a3ba8b6f543b7bc",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:49:46Z"
-  },
-  {
-    "repo": "dify-traefik-letsencrypt-docker-compose",
-    "sha": "943c44488e7ee504690ae48c0f4550034d451001",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:50:08Z"
-  },
-  {
-    "repo": "docmost-traefik-letsencrypt-docker-compose",
-    "sha": "f04602ee5e94f2742918b7f639384c9109310aa7",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:50:19Z"
-  },
-  {
-    "repo": "dozzle-traefik-letsencrypt-docker-compose",
-    "sha": "6cc8049c920c1f9dce0d25f5def96f0b91a3f7a2",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:50:31Z",
-    "review": "\n## Upstream changes v11.4.0 -> v11.4.1\n\n**Verdict:** SAFE TO APPLY \u2014 notes contain only new features and dependency/bugfix updates; the image configuration itself is unchanged in every field that affects this deployment.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none \u2014 no environment variable additions, renames or removals are mentioned in the v11.4.1 notes, and the images confirm the environment is unchanged.\n\n### Data and dependencies\n- none. The notes name no companion service (database, cache, search engine) and none is pinned or implied by this compose file. The `dockerproxy`, `traefik`, and `backups` images are unaffected by this range.\n- Worth noting as already true at v11.4.0, not a change in this range: the fix \"`Drop :ro from the agent socket mount the wizard generates`\" under v11.4.1 refers to Dozzle's own setup wizard for remote agents, a feature this template does not use \u2014 it supplies the Docker socket exclusively through `dockerproxy`, never mounting it into the `dozzle` container itself. No action follows from it either way.\n\n### Before applying\n- None required. Bump `DOZZLE_IMAGE_VERSION` (or the pin in the compose file's `x-images` block) from `v11.4.0` to `v11.4.1` and redeploy as normal.\n\n### Notes read\n- v11.4.1 (2026-11-05), compared against v11.4.0...v11.4.1\n- v11.4.0 (2026-10-30), read only as the stated baseline, per instructions\n"
-  },
-  {
-    "repo": "forgejo-traefik-letsencrypt-docker-compose",
-    "sha": "0e9fecd31ee2cbc1ed3d8c3816432303c4c470e3",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:50:42Z"
-  },
-  {
-    "repo": "game-server-wireguard-relay-docker-compose",
-    "sha": "3194f21f1bb4a21fba16832578bae50dd9c21260",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:50:50Z"
-  },
-  {
-    "repo": "gaseous-server-using-docker-compose",
-    "sha": "0ba6f8080dd1d51afb46e3df39c8a270ccbc839b",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:50:59Z"
-  },
-  {
-    "repo": "ghost-traefik-letsencrypt-docker-compose",
-    "sha": "dde2db865cd0432986bab45abbd78d60988c324c",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:51:07Z",
-    "review": "\n## Upstream changes 6.74.0 -> 6.75.0\n\n**Verdict:** SAFE TO APPLY \u2014 the release notes list only new features and a bug fix, the registry diff shows no change beyond the version label, and no companion-service version requirement is introduced.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none \u2014 no renamed, removed, or newly required variables in this range\n\n### Data and dependencies\n- none \u2014 no database version requirement, migration, or path/port change is mentioned in the 6.75.0 notes or in the registry diff\n- (already true at the current version, not introduced by this range) MySQL as the database backend is already required by the compose file at 6.74.0, pinned to `mysql:8.4-oracle`; this upgrade does not change or raise that requirement\n\n### Before applying\n- Update the pin: `GHOST_IMAGE_VERSION=6.74.0` -> `6.75.0` (or let the compose file's default move, per the `x-images` block), and update the digest alongside the tag as the repository's convention requires.\n- No manual migration, config edit, or backup beyond the routine pre-upgrade backup is indicated by the notes.\n\n### Notes read\n- TryGhost/Ghost release notes for v6.75.0 (target) and v6.74.0 (baseline, already running)\n"
-  },
-  {
-    "repo": "gitea-traefik-letsencrypt-docker-compose",
-    "sha": "8c66c61e066b8d7de3d5132f75738ad8f4fedfe3",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:51:15Z"
+    "pushed_at": "2026-11-06T23:58:04Z"
   },
   {
     "repo": "gitlab-traefik-letsencrypt-docker-compose",
-    "sha": "191d01c998b4961d7c62f2307c99ec053d6e93f5",
+    "sha": "7893cda9e287cbd5bfb0191ccc0357619151493e",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-06T14:51:25Z"
-  },
-  {
-    "repo": "glpi-traefik-letsencrypt-docker-compose",
-    "sha": "38ab7f71b78d8ecad84ac4f20db81b2d8da143d4",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:51:35Z"
-  },
-  {
-    "repo": "grafana-traefik-letsencrypt-docker-compose",
-    "sha": "4689d77c5e8dcc9c1b78dcd69cff5ce1fb330ef2",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:51:44Z"
-  },
-  {
-    "repo": "homeassistant-traefik-letsencrypt-docker-compose",
-    "sha": "894f8e9bea229f86335a75651c72c331582a7598",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:51:51Z",
-    "review": "\n## Upstream changes 2026.10.4 -> 2026.11.0\n\n**Verdict:** SAFE TO APPLY \u2014 no breaking changes, no variable or schema changes, and the image configuration (user, entrypoint, ports, volumes, healthcheck, environment) is unchanged.\n\n### Breaking changes\n- none found in the notes. There is no UPGRADING, BREAKING_CHANGES, or CHANGELOG section included to check against; the release notes themselves are the standard point-release summary (\"38 new integrations, 5,827 pull requests by 557 people\") plus the beta changelogs, and name no removed features, no forced migrations, and no deprecations that take effect in this range. One deprecation is mentioned \u2014 \"Deprecate silent and default speeds in Velux covers (@gjohansson-ST - #189438)\" \u2014 which is a warning, not a break, and only affects hosts using the Velux integration with those cover speeds.\n\n### Variables\n- none. Nothing in the notes touches `HOMEASSISTANT_*` environment variables, and the .env.example / compose file need no edits for this range.\n\n### Data and dependencies\n- none introduced by this range. The notes mention many per-integration library bumps (pydaikin, zha-quirks, aioesphomeapi, zeroconf, ZHA, etc.) but these are bundled Python dependencies inside the image, not externally pinned services this compose file tracks.\n- No companion service (database, cache, search engine) version requirement appears anywhere in these notes, so the \"SAFE TO APPLY blocked by unpinned companion version\" rule does not apply here.\n\n### Before applying\n- None required beyond routine practice. The compose file's backups service already takes consistent SQLite snapshots on its normal schedule; no manual backup or migration step is called for by these notes.\n- If any host runs the Velux cover integration, check automations/scripts using \"silent\" or \"default\" cover speeds, since those are now deprecated (not yet removed).\n\n### Notes read\n- 2026.11.0, 2026.11.0b6, 2026.11.0b5, 2026.11.0b4, 2026.11.0b3, 2026.11.0b2, 2026.11.0b1, 2026.11.0b0 (home-assistant/core), covering the full range from 2026.10.4 to 2026.11.0.\n- No UPGRADING, BREAKING_CHANGES, or CHANGELOG section was provided for this range; none was available to weigh against the release notes.\n"
-  },
-  {
-    "repo": "homebox-traefik-letsencrypt-docker-compose",
-    "sha": "c0b704ef241d79cd24cdfb4487c765617453f009",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:52:00Z"
-  },
-  {
-    "repo": "immich-traefik-letsencrypt-docker-compose",
-    "sha": "c31b2ed75f479e5b8ba506f92d1b86d3221bb9da",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:52:43Z",
-    "review": "\n## Upstream changes v3.3.5 -> v3.3.6\n\n**Verdict:** SAFE TO APPLY \u2014 single bug fix (disabling unwanted telemetry), no breaking changes, no variable or dependency changes.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none. No variables are renamed, removed, or newly required. `IMMICH_ML_IMAGE_VERSION` in `.env.example` still documents `v3.3.5` as its example default and should be bumped to `v3.3.6` alongside `IMMICH_SERVER_IMAGE_VERSION` if either is overridden, per the compose file's own rule: \"The server and the machine-learning image are one release: move both or neither.\"\n\n### Data and dependencies\n- none. The note explains the only change: *\"We missed that onnxruntime enabled telemetry by default in a recent release, resulting in the ML container automatically sending anonymous metric data to Microsoft. We have now disabled it.\"* This is a privacy-relevant behavioural fix inside the ML container, not a schema, database, or port change.\n- No companion-service version is named in the v3.3.6 notes, so the compose file's existing pins (Postgres, Valkey, Traefik) are unaffected and there is no mismatch to flag.\n\n### Before applying\n- Pull and restart both `immich-server` and `immich-machine-learning` together, since the project pins them as one release \u2014 the compose file's `x-images` block default already moves both to the new tag/digest when this repo is updated.\n- No backup or manual migration step is indicated by the notes for this specific hop.\n\n### Notes read\n- v3.3.6 (the version being moved to) \u2014 full notes read.\n- v3.3.5 (the baseline, \"release the template runs now\") \u2014 read for context only, no new requirement introduced by this range.\n- v3.4.0-rc.1 notes were included in the supplied text but are out of range (a pre-release beyond the target v3.3.6) and were not used to decide this verdict, per instructions to read only the part covering the range being moved through.\n\n## Upstream changes v3.3.5 -> v3.3.6\n\n**Verdict:** SAFE TO APPLY \u2014 single bug fix (disabling unwanted telemetry), no breaking changes, no variable or dependency changes.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none. No variables are renamed, removed, or newly required. `IMMICH_ML_IMAGE_VERSION` in `.env.example` still documents `v3.3.5` as its example default and should be bumped to `v3.3.6` alongside `IMMICH_SERVER_IMAGE_VERSION` if either is overridden, per the compose file's own rule: \"The server and the machine-learning image are one release: move both or neither.\"\n\n### Data and dependencies\n- none. The note explains the only change: *\"We missed that onnxruntime enabled telemetry by default in a recent release, resulting in the ML container automatically sending anonymous metric data to Microsoft. We have now disabled it.\"* This is a privacy-relevant behavioural fix inside the ML container, not a schema, database, or port change.\n- No companion-service version is named in the v3.3.6 notes, so the compose file's existing pins (Postgres, Valkey, Traefik) are unaffected and there is no mismatch to flag.\n\n### Before applying\n- Pull and restart both `immich-server` and `immich-machine-learning` together, since the project pins them as one release \u2014 the compose file's `x-images` block default already moves both to the new tag/digest when this repo is updated.\n- No backup or manual migration step is indicated by the notes for this specific hop.\n\n### Notes read\n- v3.3.6 (the version being moved to) \u2014 full notes read.\n- v3.3.5 (the baseline, \"release the template runs now\") \u2014 read for context only, no new requirement introduced by this range.\n- v3.4.0-rc.1 notes were included in the supplied text but are out of range (a pre-release beyond the target v3.3.6) and were not used to decide this verdict, per instructions to read only the part covering the range being moved through.\n"
-  },
-  {
-    "repo": "jellyfin-traefik-letsencrypt-docker-compose",
-    "sha": "c8f57dcd41959a0f4b4a0dad771b32781dcea183",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:52:55Z"
-  },
-  {
-    "repo": "joomla-traefik-letsencrypt-docker-compose",
-    "sha": "70ee2b4d3649fd796acacfd712ca06bc04ad38fd",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:53:07Z"
-  },
-  {
-    "repo": "keycloak-traefik-letsencrypt-docker-compose",
-    "sha": "a2ae68692fb52620272733e69a0cd0bbabed03ce",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:53:15Z",
-    "review": "\n## Upstream changes 26.8.1 -> 26.8.2\n\n**Verdict:** NEEDS ATTENTION \u2014 this is a large security patch (34 CVEs, several unauthenticated DoS/account-takeover issues, one reproduced against 26.8.1 itself) and the image upgrades its embedded Quarkus runtime, but nothing in the notes or the image diff requires a config change or manual migration.\n\n### Breaking changes\n- None found in the notes. The only behavioural item called out is `#54184 Upgrade to Quarkus 3.40.1.1`, which is an internal runtime bump, not a documented breaking change.\n- No UPGRADING/BREAKING_CHANGES/CHANGELOG section was supplied for this range \u2014 only the generic boilerplate \"Before upgrading refer to the migration guide\" appears in both the 26.8.2 and 26.8.1 notes. Treat the upstream migration guide as unread; if the operator wants certainty beyond what's quoted here, it should be checked by hand at https://www.keycloak.org/docs/latest/upgrading/#migration-changes.\n\n### Variables\n- None. No variable renames, removals, or new requirements appear in the notes, and the compose file / .env.example need no edits for this range.\n\n### Data and dependencies\n- None introduced by this range. The notes mention a MySQL/MariaDB-specific fix (`#54687`, login-failure upsert trusting affected-row count) and an Infinispan cache-contention fix (`#53809`), but these are code-level fixes with no stated version floor or migration step \u2014 this template runs Postgres, not MySQL/MariaDB, so `#54687` does not apply to this deployment.\n- Companion service versions: the compose file pins `postgres:16` for the database. Nothing in the 26.8.2 notes names a required Postgres version this pin fails to meet, so this does not block the verdict.\n\n### Before applying\n- Take the routine backup before any Keycloak upgrade (the `backups` sidecar already runs continuously, but confirm a recent dump exists before pulling the new image, given the volume of auth/session-handling fixes in this release).\n- No manual migration command or config edit is indicated by the notes.\n- Because several fixes touch active sessions, SSO note handling and broker/IdP linking (`#54688`, `#54707`, `#53634`), expect that upgrading will invalidate some in-flight sessions tied to the patched flows \u2014 plan the restart for a low-traffic window.\n\n### Notes read\n- `26.8.2` (2026-11-05) \u2014 full release notes as supplied.\n- `26.8.1` (2026-10-13) \u2014 supplied as baseline only, used to confirm which items are new to this range.\n- No UPGRADING / BREAKING_CHANGES / CHANGELOG document was provided beyond the \"see migration guide\" pointer in both release notes; the migration guide itself was not supplied and was not read.\n"
-  },
-  {
-    "repo": "mailu-traefik-letsencrypt-docker-compose",
-    "sha": "477bc6fa583023642a0c3e8b7784599f9fd1ff8d",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:53:44Z"
-  },
-  {
-    "repo": "mattermost-traefik-letsencrypt-docker-compose",
-    "sha": "80589c2135cb3605f651edc3dbd080037bd0f787",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:53:53Z",
-    "review": "\n## Upstream changes 12.0.1 -> 12.0.2\n\n**Verdict:** SAFE TO APPLY \u2014 a single security-fix release, no breaking changes, no variable or dependency changes, and the image configurations are confirmed identical apart from content.\n\n### Breaking changes\n- none found in the notes. The only entry for this version is: \"Mattermost Platform Release 12.0.2 contains Medium to High severity level security fixes.\" No UPGRADING, BREAKING_CHANGES or populated CHANGELOG content is available (the CHANGELOG.md fetched only points to external docs and carries no entries for this range).\n\n### Variables\n- none. No variable additions, renames or removals are indicated by the notes, and `MATTERMOST_IMAGE_VERSION` in `.env.example` / the `x-images` default in the compose file need no edits beyond the version bump itself.\n\n### Data and dependencies\n- none introduced by this range. The compose file pins `postgres:16` for the companion database; the notes for 12.0.1 and 12.0.2 name no required engine version, so there is nothing for this upgrade to check against. (Note: the `.env.example` comment line `MATTERMOST_IMAGE_VERSION=11.10.1` under the version-pinning example is stale/inconsistent with the compose default of 12.0.1, but that predates this range and is not a change introduced by 12.0.1 -> 12.0.2.)\n\n### Before applying\n- Update the `MATTERMOST_IMAGE_VERSION` (or `MATTERMOST_IMAGE_TAG`) default/override to 12.0.2 with its correct digest, then `docker compose up -d` to pull and recreate the `mattermost` service.\n- No database migration, backup step, or config edit is required beyond the routine pre-upgrade backup already covered by the `backups` service.\n\n### Notes read\n- v12.0.2 (2026-11-04) \u2014 the version being moved to.\n- v12.0.1 (2026-10-22) \u2014 baseline, supplied as the current-running release, not a change.\n- v10.11.26, v11.7.15-rc1, v12.1.0-rc2 \u2014 present in the fetched notes but out of range (different major/minor lines or release-candidate tags), not applicable to this 12.0.1 -> 12.0.2 move.\n- CHANGELOG.md \u2014 fetched in full (142/142 characters); contains no entries, only a pointer to external documentation.\n- No UPGRADING or BREAKING_CHANGES section was supplied for this range.\n"
-  },
-  {
-    "repo": "modernuo-docker",
-    "sha": "c878c1d243d20c70ed8d4418ce4ac98ef11a22e0",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:54:04Z"
-  },
-  {
-    "repo": "mssql-server-traefik-letsencrypt-docker-compose",
-    "sha": "aacb8f33d1eb2d6ffdcc913311e3bb45e67946ae",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:54:11Z"
-  },
-  {
-    "repo": "navidrome-traefik-letsencrypt-docker-compose",
-    "sha": "9baeb33630b2a5279e86b5447c7f14e499b42518",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:54:21Z"
-  },
-  {
-    "repo": "nextcloud-onlyoffice-traefik-letsencrypt-docker-compose",
-    "sha": "0f2fa2a37569b623788f185b4349ba2474d2ecb3",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:54:39Z"
-  },
-  {
-    "repo": "nextcloud-traefik-letsencrypt-docker-compose",
-    "sha": "31c156877683f88ab0c9e36c9c1cb37e577ff1d8",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:54:50Z"
+    "pushed_at": "2026-11-06T23:58:31Z"
   },
   {
     "repo": "nocodb-traefik-letsencrypt-docker-compose",
-    "sha": "a20555d23b4d64ade04980ff95292c61c84134b5",
+    "sha": "4d5ad66c85418832db32b79be8159aa747bbda1e",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-06T14:55:00Z"
-  },
-  {
-    "repo": "ollama-traefik-letsencrypt-docker-compose",
-    "sha": "0c46381422e0697244e4362d190d4b1517107677",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:55:16Z",
-    "review": "\n## Upstream changes 0.40.14 -> 0.40.15\n\n**Verdict:** SAFE TO APPLY \u2014 the notes describe new model support and feature additions only, and the image configuration (user, entrypoint, command, ports, volumes, healthcheck, environment) is unchanged between the two versions.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none \u2014 `OLLAMA_INSTALL_MODELS` / `MODELS` keep working as before; no new, renamed or removed variables are mentioned in the v0.40.15 notes.\n\n### Data and dependencies\n- none. The notes name no companion service (database, cache, search engine) and no version requirement for one, so the \"SAFE TO APPLY unavailable\" rule does not apply here.\n\n### Before applying\n- No manual steps required beyond the normal pull/recreate. The compose file's `ollama-data` volume and the pinned digest in `x-images` are the only things that change; update `OLLAMA_IMAGE_VERSION`/digest to 0.40.15 as you would for any routine bump.\n- Optional, not required: if you intend to try `mimo-v2.6` or `autotrust-jev`, add them to `OLLAMA_INSTALL_MODELS` yourself \u2014 nothing pulls them automatically.\n\n### Notes read\n- v0.40.15 (2026-11-03) \u2014 upstream release notes for the version being moved to\n- v0.40.14 (2026-11-03) \u2014 given as the baseline (\"THE RELEASE THE TEMPLATE RUNS NOW\"), used only to confirm nothing in it is miscounted as a new change\n- No UPGRADING, BREAKING_CHANGES or CHANGELOG section was supplied for this range; none was available to read\n"
-  },
-  {
-    "repo": "otrs-traefik-letsencrypt-docker-compose",
-    "sha": "7894e4ab0db1d6db6aea77391a58d8d6cac1548b",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:55:26Z"
-  },
-  {
-    "repo": "outline-keycloak-traefik-letsencrypt-docker-compose",
-    "sha": "07c0a89d84fe28cca3b292aa184c6f426f3ce7d1",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:55:42Z",
-    "review": "\n## Upstream changes 26.8.1 -> 26.8.2\n\n**Verdict:** NEEDS ATTENTION \u2014 this is a large security patch (34 CVEs, several unauthenticated DoS/account-takeover issues, one reproduced against 26.8.1 itself) and the image upgrades its embedded Quarkus runtime, but nothing in the notes or the image diff requires a config change or manual migration.\n\n### Breaking changes\n- None found in the notes. The only behavioural item called out is `#54184 Upgrade to Quarkus 3.40.1.1`, which is an internal runtime bump, not a documented breaking change.\n- No UPGRADING/BREAKING_CHANGES/CHANGELOG section was supplied for this range \u2014 only the generic boilerplate \"Before upgrading refer to the migration guide\" appears in both the 26.8.2 and 26.8.1 notes. Treat the upstream migration guide as unread; if the operator wants certainty beyond what's quoted here, it should be checked by hand at https://www.keycloak.org/docs/latest/upgrading/#migration-changes.\n\n### Variables\n- None. No variable renames, removals, or new requirements appear in the notes, and the compose file / .env.example need no edits for this range.\n\n### Data and dependencies\n- None introduced by this range. The notes mention a MySQL/MariaDB-specific fix (`#54687`, login-failure upsert trusting affected-row count) and an Infinispan cache-contention fix (`#53809`), but these are code-level fixes with no stated version floor or migration step \u2014 this template runs Postgres, not MySQL/MariaDB, so `#54687` does not apply to this deployment.\n- Companion service versions: the compose file pins `postgres:16` for the database. Nothing in the 26.8.2 notes names a required Postgres version this pin fails to meet, so this does not block the verdict.\n\n### Before applying\n- Take the routine backup before any Keycloak upgrade (the `backups` sidecar already runs continuously, but confirm a recent dump exists before pulling the new image, given the volume of auth/session-handling fixes in this release).\n- No manual migration command or config edit is indicated by the notes.\n- Because several fixes touch active sessions, SSO note handling and broker/IdP linking (`#54688`, `#54707`, `#53634`), expect that upgrading will invalidate some in-flight sessions tied to the patched flows \u2014 plan the restart for a low-traffic window.\n\n### Notes read\n- `26.8.2` (2026-11-05) \u2014 full release notes as supplied.\n- `26.8.1` (2026-10-13) \u2014 supplied as baseline only, used to confirm which items are new to this range.\n- No UPGRADING / BREAKING_CHANGES / CHANGELOG document was provided beyond the \"see migration guide\" pointer in both release notes; the migration guide itself was not supplied and was not read.\n"
-  },
-  {
-    "repo": "owncloud-traefik-letsencrypt-docker-compose",
-    "sha": "e68c89f572f01029fb3f84cc10a175cec2dbf439",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:55:52Z"
-  },
-  {
-    "repo": "rocketchat-traefik-letsencrypt-docker-compose",
-    "sha": "eb356e794a1283f2ede1645e919eeb9a62a5a1b3",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:56:29Z",
-    "review": "\n## Upstream changes 8.9.0 -> 8.9.1\n\n**Verdict:** NEEDS ATTENTION \u2014 MongoDB engine requirement (`8.0`) is unmet by the compose pin (`mongo:7.0`); this is a pre-existing mismatch, not introduced by this upgrade, but the release itself is safe. No breaking changes land in this patch.\n\n### Breaking changes\n- none found in the notes for 8.9.1\n\n### Variables\n- none\n\n### Data and dependencies\n- The 8.9.1 notes state `MongoDB: 8.0` under Engine versions. This requirement is unchanged from the 8.9.0 baseline, which already states `MongoDB: 8.0` \u2014 so it is not a new requirement introduced by this upgrade. It is flagged here as a standing fact: the compose file pins `mongo:${ROCKETCHAT_MONGODB_IMAGE_VERSION:-7.0@sha256:...}`, which does not match. This was already true before this upgrade and does not change the verdict for this range, but it remains unresolved on this host.\n- Image registry diff: `NODE_VERSION` moves from `24.15.0` to `24.22.1`, matching the note: \"Bump the Node.js base image of the Docker images to 24.22.1 (the Debian image moves from bullseye to bookworm), which fixes a Brotli decoder out-of-bounds write (CVE-2026-111497).\" No action required beyond the image pull itself \u2014 this is a base-image change, not an application config change.\n- No container user, entrypoint, command, ports, volumes, healthcheck or environment differences were reported by the registry diff beyond `NODE_VERSION`, so the compose file's healthcheck, volumes, ports and environment block remain valid as-is.\n\n### Before applying\n- Take the normal MongoDB backup before any Rocket.Chat upgrade (the `backups` service in this compose file does this automatically on its schedule \u2014 confirm a recent backup exists, or trigger one manually, before pulling the new tag).\n- Update the version pin: set `ROCKETCHAT_IMAGE_VERSION=8.9.1` (or `ROCKETCHAT_IMAGE_TAG` with the new digest) and redeploy.\n- Separately from this upgrade: plan a MongoDB major-version upgrade path from 7.0 to 8.0 to close the standing engine-version gap, since it will matter more the longer it is deferred (and is required outright for the 9.0.0 line per its release notes).\n\n### Notes read\n- 8.9.1 (target version, full patch notes read)\n- 8.9.0 (baseline, read as the \"release the template runs now\" section)\n- 8.8.2, 8.6.4, 8.5.5, and the 9.0.0-rc.* series were present in the supplied notes but fall outside the 8.9.0 \u2192 8.9.1 range and were not used to determine breaking changes for this upgrade; the 9.0.0-rc.0 authentication/engine changes are noted only as forward-looking context, not as part of this release.\n"
-  },
-  {
-    "repo": "romm-traefik-letsencrypt-docker-compose",
-    "sha": "451d47039838efd3601dd759bdee263c634e0733",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:56:38Z"
-  },
-  {
-    "repo": "seafile-traefik-letsencrypt-docker-compose",
-    "sha": "8f920d2ef5f5f0d34eb6d7cf7663c5542b645569",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:56:48Z"
-  },
-  {
-    "repo": "sftp-traefik-letsencrypt-docker-compose",
-    "sha": "88f807b05a583d5f2052764fa6a104926af97c0e",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:56:55Z"
-  },
-  {
-    "repo": "sonarqube-traefik-letsencrypt-docker-compose",
-    "sha": "70d2d5aa568d4ebd75311ec74842d205d3b8649c",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:57:33Z",
-    "review": "\n## Upstream changes 26.10.0.133078-community -> 26.11.0.134175-community\n\n**Verdict:** NEEDS ATTENTION \u2014 no upstream release notes could be read for this version range, so the content of the upgrade is unverified; apply only after checking the points below by hand.\n\n### Breaking changes\n- none found in the notes \u2014 the notes for this range are not available (see \"Notes read\" below). This is not the same as \"no breaking changes exist\"; it means the claim cannot be verified from the source this review relies on.\n\n### Variables\n- none indicated by the notes or by the image-registry diff. The only reported difference between the two images is the internal `SONAR_VERSION` environment value (`26.10.0.133078` -> `26.11.0.134175`), which is informational and not a compose or `.env` variable.\n\n### Data and dependencies\n- Already true at the current (26.10.0.133078) version, not introduced by this upgrade: SonarQube requires PostgreSQL, pinned here via `SONARQUBE_POSTGRES_IMAGE_VERSION` (compose default `17-alpine`). This upgrade does not raise or change that requirement as far as any available source shows.\n- No database-version bump, migration note, removed default, or port/path change is named anywhere in the available material for this range.\n- WHAT THE IMAGES THEMSELVES DIFFER IN shows no change to user, entrypoint, command, ports, volumes, healthcheck or environment beyond the `SONAR_VERSION` label \u2014 so compose's healthcheck, volumes and Traefik labels remain valid as written.\n\n### Before applying\n- Take a backup before upgrading regardless: a Postgres dump (the `backups` service already does this) and the `sonarqube-data`/`sonarqube-extensions` volumes, since SonarQube runs its own internal schema migration on first boot of a new minor version and that migration is not reversible by downgrading the image.\n- Check the SonarQube upgrade guide (docs.sonarsource.com, \"Upgrade the Server\") manually for 26.11, since no UPGRADING/BREAKING_CHANGES/CHANGELOG section was supplied and the release notes could not be fetched.\n- After the new container starts, watch `/opt/sonarqube/logs` for migration completion before routing production traffic, and confirm `/api/system/status` reports `UP` (the existing healthcheck already gates this).\n- Confirm manually whether 26.11 changes the minimum supported PostgreSQL version; the compose file currently pins `17-alpine`, which is not contradicted by anything available, but this was not confirmable from release notes.\n\n### Notes read\n- None. The upstream source (SonarSource/sonarqube releases) had no entries between 26.10.0.133078-community and 26.11.0.134175-community despite 79 releases being read, and no tag-range diff was available. No UPGRADING, BREAKING_CHANGES or CHANGELOG section was supplied for this range. All statements above rest only on the image-registry diff and the compose/.env.example files shown.\n"
-  },
-  {
-    "repo": "uptime-kuma-traefik-letsencrypt-docker-compose",
-    "sha": "185c14f3134c2b8b587860864d020dcbb1217ec5",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:57:45Z"
-  },
-  {
-    "repo": "vaultwarden-traefik-letsencrypt-docker-compose",
-    "sha": "a905c4a3acdc0d5b2ed06a8da2dde274c2f2eb26",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:57:53Z"
-  },
-  {
-    "repo": "webrcade-traefik-letsencrypt-docker-compose",
-    "sha": "4954d735cd90d18e29a674fbffd1cc79dcf88039",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:58:03Z"
+    "pushed_at": "2026-11-06T23:59:12Z"
   },
   {
     "repo": "wikijs-traefik-letsencrypt-docker-compose",
-    "sha": "a46f9b059e87673bf3520b32158d2e5e00de12a8",
+    "sha": "454f5252f20f6eea6aca9f1f91111ca3c05ff83e",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-06T14:58:11Z"
-  },
-  {
-    "repo": "wordpress-traefik-letsencrypt-docker-compose",
-    "sha": "7331d462d72a2239a0bd26f7e4f8ba49166f00b0",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:58:20Z"
-  },
-  {
-    "repo": "xwiki-traefik-letsencrypt-docker-compose",
-    "sha": "29e17472741f1d5fda724e5e29239cc1c128812e",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:58:29Z"
-  },
-  {
-    "repo": "zabbix-traefik-letsencrypt-docker-compose",
-    "sha": "0250af518d90db8ae713860c8331f6c6b13efbf5",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:58:42Z"
-  },
-  {
-    "repo": "zammad-traefik-letsencrypt-docker-compose",
-    "sha": "a9db9cf9a482be7c907d20f0b5b202a6b8c8ad01",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-06T14:58:55Z"
+    "pushed_at": "2026-11-07T00:00:28Z"
   }
 ]
