@@ -16,6 +16,10 @@
 #      of it. What the waiting bought was a red pin reverted in four minutes
 #      instead of at the next run; that is the price of this change, and the
 #      third daily run is what keeps it down.
+#      An image repository (no compose file, a Dockerfile and publish.yml)
+#      gets the same for its FROM tag@sha256 lines, unless the Go or JDK
+#      version inside the image moved; it is judged the same way, and a green
+#      build is the delivery, with no release cut for it.
 #   3. VERSION LAG inside a major — bumped on the same gated path. Across
 #      a major — prepared on a branch and reported with its compare link.
 #   4. Anything a person has to decide reaches them as an issue in this
@@ -710,6 +714,134 @@ source_ref_refresh() {   # <dir> <repo> <freshness log file>; sets SRC_CHANGED a
   SRC_CHANGED=1
 }
 
+# AN IMAGE REPOSITORY PINS ITS BASES IN THE DOCKERFILE. kubectl-docker,
+# os-shell-docker, minio-client-docker and jmx-exporter-docker have no compose
+# file: they build Docker Hub images FROM debian:*-slim, golang:1.27-* and
+# maven:*-eclipse-temurin-21, each pinned as tag@sha256. Upstream repushes
+# those tags every few days, their freshness check goes red, and until
+# 2026-11-08 this run could only say "no compose file found — needs a human".
+# On 2026-11-05 and 11-07 two sessions moved the digests by hand and cut six
+# patch releases. Dependabot's docker updates were on in all four from late
+# October and never opened one pull request for a digest under an unchanged
+# tag.
+#
+# So the refresh works as it does for ci-images.pins in a terraform
+# repository: every FROM tag@sha256 is asked for the digest its tag names now,
+# and a new one is written over the old wherever the Dockerfile carries it,
+# with a Security line under [Unreleased]. The commit goes to main without a
+# tag: the push alone makes publish.yml rebuild, test and sign the image under
+# the tags it already has, and the pending row has the next run revert it if
+# that build is red. A git release stays for a version change, which is a
+# person's: the tools these images carry (yq, mc, jmx_exporter) are not moved
+# here.
+#
+# A REPUSH THAT MOVES THE TOOLCHAIN IS NOT A REBUILD. golang:1.27-trixie names
+# a minor, so its digest also moves when Go 1.27.4 lands, and the eclipse-temurin
+# tag moves its JDK the same way. jmx-exporter verifies every Maven artifact
+# against recorded checksums, its own reactor jars included, and those jars
+# are reproducible only on the JDK they were recorded with: any JDK move fails
+# its build. The image declares its toolchain in its environment (GOLANG_VERSION,
+# JAVA_VERSION), so the old and new digests are both read, and a refresh that
+# changes any *_VERSION on the platforms the fleet builds is refused and named.
+# A version that cannot be read is refused too: a refresh is cheap to retry,
+# a broken build on main is not.
+IMAGE_WORKFLOW="publish.yml"
+IMAGE_KIND="image-digest"
+image_toolchain() {  # image_toolchain <name:tag@digest> -> "<platform> VAR=value" lines, sorted; non-zero if unreadable
+  local js
+  js="$(docker buildx imagetools inspect "$1" --format '{{json .Image}}' 2>/dev/null)" || return 1
+  [ -n "$js" ] || return 1
+  # One platform answers with its config; an index answers with a map of them.
+  # Only the platforms the fleet builds count: amd64 and arm64.
+  jq -r '(if has("config") then {"image": .} else . end)
+         | [to_entries[] | select(.key == "image" or .key == "linux/amd64" or .key == "linux/arm64")]
+         | if length == 0 then error("no linux/amd64 or linux/arm64 in the image") else .[] end
+         | .key as $p | (.value.config.Env // [])[] | select(test("^[A-Z0-9_]+_VERSION=")) | "\($p) \(.)"' \
+    <<<"$js" 2>/dev/null | sort || return 1
+}
+
+image_refresh() {    # <dir> <repo> <freshness log file>; sets IMG_CHANGED and IMG_NOTED
+  local dir="$1" repo="$2" log="$3" f="$1/Dockerfile" pin ref olddg newdg oldtc newtc was now still tmpf line
+  IMG_CHANGED=0 IMG_NOTED=0
+  [ -f "$f" ] || return 0
+  while IFS= read -r pin; do
+    [ -n "$pin" ] || continue
+    ref="${pin%%@*}"; olddg="${pin##*@}"
+    case "${ref##*/}" in
+      *:*) ;;
+      *) note "$repo: $pin is pinned by digest with no tag to follow — needs a human"; IMG_NOTED=1; continue ;;
+    esac
+    newdg="$(docker buildx imagetools inspect "$ref" --format '{{json .Manifest}}' 2>/dev/null | jq -r '.digest // empty' || true)"
+    if [ -z "$newdg" ]; then
+      note "$repo: $ref did not resolve — registry hiccup or dead tag, needs a human"; IMG_NOTED=1; continue
+    fi
+    [ "$newdg" = "$olddg" ] && continue
+    IMG_NOTED=1
+    if ! oldtc="$(image_toolchain "$ref@$olddg")" || ! newtc="$(image_toolchain "$ref@$newdg")"; then
+      note "$repo: $ref was repushed ($olddg -> $newdg) and the toolchain inside could not be read from both digests — not applied, needs a human"
+      continue
+    fi
+    if [ "$oldtc" != "$newtc" ]; then
+      was="$(comm -23 <(printf '%s\n' "$oldtc") <(printf '%s\n' "$newtc") | cut -d' ' -f2- | sort -u | tr '\n' ' ' | sed 's/ $//')"
+      now="$(comm -13 <(printf '%s\n' "$oldtc") <(printf '%s\n' "$newtc") | cut -d' ' -f2- | sort -u | tr '\n' ' ' | sed 's/ $//')"
+      note "$repo: $ref was repushed with a different toolchain inside (${was:-nothing} -> ${now:-nothing}) — not applied: a Go or JDK move is a version change, and jmx-exporter's Maven checksums break on any JDK move. Needs a human"
+      continue
+    fi
+    if [ "$DRY_RUN" = "true" ]; then
+      note "$repo: would refresh $ref ($olddg -> $newdg) in the Dockerfile"
+      continue
+    fi
+    tmpf="$(mktemp)"
+    sed "s|${ref}@${olddg}|${ref}@${newdg}|g" "$f" > "$tmpf"
+    cat "$tmpf" > "$f"; rm -f "$tmpf"
+    still="$(cut -d' ' -f2- <<<"$newtc" | sort -u | awk 'NF { printf "%s`%s`", (n++ ? ", " : ""), $0 }')"
+    note "$repo: $ref repushed upstream ($olddg -> $newdg)${still:+, toolchain unchanged}"
+    changelog_line "$dir" "Security" "- **\`${ref}\` was rebuilt upstream**; the pin moved from \`${olddg:0:19}…\` to \`${newdg:0:19}…\`. Same tag${still:+ and the same toolchain inside (${still})}, a rebuilt base: the usual shape of a security fix in a base layer. The published tags carry it once the image is rebuilt, tested and signed from this commit."
+    IMG_CHANGED=1
+  done < <(grep -oE '^FROM[[:space:]]+(--platform=[^[:space:]]+[[:space:]]+)?[^[:space:]]+@sha256:[0-9a-f]{64}' "$f" | awk '{print $NF}' | sort -u)
+
+  # WHAT THE CHECK SAID BESIDES THE DIGESTS. A tool release (yq, mc,
+  # jmx_exporter) is a version and a person's; it is named here so it is not
+  # lost behind a refresh that fixed the rest.
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    note "$repo: $line — a tool version is moved by a person, needs a human"
+    IMG_NOTED=1
+  done < <( (grep -oE '##\[error\].*' "$log" 2>/dev/null || true) | tr -d '\r' | sed 's/^##\[error\]//' \
+            | { grep -vE '^Process completed with exit code' || true; } \
+            | { grep -vE '^[^ ]+ is now sha256:[0-9a-f]{64}; the Dockerfile pins sha256:[0-9a-f]{64}$' || true; } | sort -u)
+}
+
+image_push() {       # <dir> <repo>: the refreshed Dockerfile to main, and a pending row for the next run
+  local dir="$1" repo="$2" sha err="$WORKDIR/push-$2.err"
+  if ! git -C "$dir" -c user.name="$GIT_AUTHOR" -c user.email="$GIT_EMAIL" \
+    commit -aqm "fix(security): refresh base image digests" \
+    -m "The freshness check found a base image tag re-resolving to a new digest, and the toolchain the image declares (GOLANG_VERSION, JAVA_VERSION) is the same in both. This push rebuilds, tests and signs the image under the tags it already has; the next fleet triage run reverts it if that build is red. No release: a rebuilt base is not a version." >"$err" 2>&1; then
+    note "$repo: the base image refresh could not be committed: $(tail -1 "$err" | cut -c1-160) — needs a human"
+    return 0
+  fi
+  if ! git -C "$dir" push -q origin main >"$err" 2>&1; then
+    note "$repo: the base image refresh could not be pushed: $(grep -m1 -oE '(remote rejected|refusing|denied|protected)[^"]*' "$err" | cut -c1-160 || tail -1 "$err" | cut -c1-160) — needs a human"
+    return 0
+  fi
+  sha="$(git -C "$dir" rev-parse HEAD)"
+  pending_add "$repo" "$sha" "$IMAGE_WORKFLOW" "$IMAGE_KIND"
+  note "$repo: pushed base image refresh $sha — $IMAGE_WORKFLOW rebuilds, tests and signs the image from it; judged at the next run, which reverts it if red; no release"
+}
+
+image_repo_pass() {  # <dir> <repo> <freshness run id>: the whole pass for one red image repository
+  local dir="$1" repo="$2" frid="$3" imglog
+  imglog="$(mktemp)"
+  gh run view "$frid" --repo "$OWNER/$repo" --log > "$imglog" 2>/dev/null || true
+  image_refresh "$dir" "$repo" "$imglog"
+  rm -f "$imglog"
+  if [ "$IMG_CHANGED" -eq 1 ]; then
+    image_push "$dir" "$repo"
+  elif [ "$IMG_NOTED" -eq 0 ]; then
+    note "$repo: freshness is red but nothing in its Dockerfile was auto-fixable — see the run log, needs a human"
+  fi
+}
+
 # AN UNPUBLISHED TAG IS USUALLY A WAIT, NOT A DECISION. On 2026-10-07 Ghost
 # tagged 6.69.0 on GitHub at 13:58:59, one minute after this run started, and
 # the official image was hours from Docker Hub. The line said "needs a human"
@@ -935,7 +1067,16 @@ settle_pending() {
         note "$repo: the $kind refresh pushed ${age}h ago is green"
         REFRESHED=$((REFRESHED+1))
         HEALED+=("$repo")
-        if [ "$DRY_RUN" = "true" ]; then
+        if [ "$kind" = "$IMAGE_KIND" ]; then
+          # The green build IS the delivery: publish.yml rebuilt and signed the
+          # image under its tags from this commit. A release is for a version.
+          note "$repo: $wf is green on it, so the image was rebuilt from it — no release for a rebuilt base; the Security line waits under [Unreleased] for the next version"
+          if [ "$DRY_RUN" != "true" ]; then
+            fwf="$(freshness_wf_for "$repo")" || fwf="freshness.yml"
+            gh workflow run "$fwf" --repo "$OWNER/$repo" --ref main >/dev/null 2>&1 \
+              || note "$repo: refreshed and green, but re-running its freshness check failed — that verdict stays stale until the next cron"
+          fi
+        elif [ "$DRY_RUN" = "true" ]; then
           note "$repo: would cut the release for it"
         elif dir="$(workdir_for "$repo")" && [ -n "$dir" ]; then
           cut_release "$dir" "$repo"
@@ -1369,7 +1510,16 @@ for repo in "${REPOS[@]}"; do
   while IFS= read -r _f; do
     [ -n "$_f" ] && composes+=("$_f")
   done < <(find "$dir" -maxdepth 1 -name '*.yml' | sort)
-  [ "${#composes[@]}" -gt 0 ] || { note "$repo: freshness failed, no compose file found — needs a human"; continue; }
+  if [ "${#composes[@]}" -eq 0 ]; then
+    # An image repository: its pins are FROM lines, and publish.yml is what a
+    # push to main rebuilds and signs. image_refresh, above, says why.
+    if [ -f "$dir/Dockerfile" ] && [ -f "$dir/.github/workflows/$IMAGE_WORKFLOW" ]; then
+      image_repo_pass "$dir" "$repo" "$frid"
+    else
+      note "$repo: freshness failed, no compose file and no $IMAGE_WORKFLOW found — needs a human"
+    fi
+    continue
+  fi
 
   # Pins are `${X_IMAGE_TAG:-repo:${X_IMAGE_VERSION:-tag@sha256:digest}}`
   # (or the older flat form); the sed loop below folds the inner default

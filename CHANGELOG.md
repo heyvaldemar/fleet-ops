@@ -10,6 +10,20 @@ check or a job, a patch fixes one.
 ## [Unreleased]
 
 ### Added
+- **Triage refreshes the base image digests of an image repository.**
+  kubectl-docker, os-shell-docker, minio-client-docker and jmx-exporter-docker
+  have no compose file; their bases are `FROM tag@sha256` lines in the
+  Dockerfile. Debian and the Go images repush those tags every few days, the
+  freshness check went red, and triage could only say "no compose file
+  found". On 2026-11-05 and 11-07 the digests were moved by hand, with six
+  patch releases; Dependabot never opened a pull request for one. Triage now
+  writes the new digest, a Security line under [Unreleased] and a pending
+  row, and pushes to main without a tag: the push rebuilds, tests and signs
+  the image, the next run reverts a red build, and a green one cuts no
+  release. It refuses when the image's own `*_VERSION` (Go, the JDK) differs
+  between the two digests on amd64 or arm64, because jmx-exporter's recorded
+  Maven checksums break on any JDK move, and when that version cannot be
+  read. Tool versions (yq, mc, jmx_exporter) stay a person's and are named.
 - **What two writers in one working tree cost, measured.** Two coding agents
   pointed at one checkout share one index: a commit takes whatever is staged
   when it runs, and `index.lock` fails the other writer at once. The manual

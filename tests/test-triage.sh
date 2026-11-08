@@ -90,6 +90,9 @@ if ! declare -f major_branch >/dev/null; then
   echo "  FAIL  major_branch could not be sourced from scripts/fleet-triage.sh"
   exit 1
 fi
+# The real changelog writer, kept before the stand-in below replaces it: the
+# image refresh is judged on the CHANGELOG it actually writes.
+eval "$(declare -f changelog_line | sed '1s/^changelog_line/real_changelog_line/')"
 
 # What the function reads from its caller's scope.
 repo="template-repo"
@@ -494,6 +497,225 @@ OWNER="owner"
 fwcase "a moved repository is read from freshness.yml" found "freshness.yml"
 fwcase "one not moved yet is read where it always was" missing "Deployment Verification"
 fwcase "an unreadable answer is refused, not guessed" broken "REFUSED"
+
+echo "== an image repository refreshes the base digests in its Dockerfile"
+# kubectl-docker, os-shell-docker, minio-client-docker and jmx-exporter-docker
+# have no compose file. Their freshness check went red every few days on a
+# debian:*-slim or golang:1.27-* repush, triage said "no compose file found",
+# and two sessions moved the digests by hand on 2026-11-05 and 11-07.
+# Dependabot never opened a pull request for one.
+dg() { printf 'sha256:%s' "$(printf '%064d' 0 | tr 0 "$1")"; }
+D_OLD="$(dg 1)"; D_NEW="$(dg 2)"     # debian:trixie-slim, no toolchain declared
+G_OLD="$(dg 3)"; G_NEW="$(dg 4)"     # golang:1.27-trixie, Go unchanged on amd64/arm64
+M_OLD="$(dg 5)"; M_NEW="$(dg 6)"     # maven:...-temurin-21, the JDK moved
+B_OLD="$(dg 7)"; B_NEW="$(dg 8)"     # golang:1.27-bookworm, its old digest unreadable
+imgbin="$WORK/imgbin"; mkdir -p "$imgbin"
+# Reached through a docker() function in each subshell rather than PATH, so
+# the fake above stays the one the other tests see. It answers the two
+# questions triage asks: the digest a tag names now ({{json .Manifest}}) and a
+# digest's config ({{json .Image}}), an index of platforms or, for a single
+# platform, the config alone.
+cat > "$imgbin/docker" <<FAKE
+#!/usr/bin/env bash
+ref=""; fmt=""
+while [ \$# -gt 0 ]; do
+  case "\$1" in --format) fmt="\$2"; shift ;; buildx|imagetools|inspect) ;; *) ref="\$1" ;; esac
+  shift
+done
+env_of() { printf '{"architecture":"x","os":"linux","config":{"Env":["PATH=/usr/bin"%s]}}' "\${1:+,\"\$1\"}"; }
+index() { printf '{"linux/amd64":%s,"linux/arm64":%s,"linux/386":%s}' "\$(env_of "\$1")" "\$(env_of "\$2")" "\$(env_of "\$3")"; }
+case "\$fmt" in
+  *Manifest*)
+    case "\$ref" in
+      debian:trixie-slim) echo '{"digest":"$D_NEW"}' ;;
+      golang:1.27-trixie) echo '{"digest":"$G_NEW"}' ;;
+      maven:3.9.16-eclipse-temurin-21) echo '{"digest":"$M_NEW"}' ;;
+      golang:1.27-bookworm) echo '{"digest":"$B_NEW"}' ;;
+      *) exit 1 ;;
+    esac ;;
+  *Image*)
+    case "\$ref" in
+      debian:trixie-slim@$D_OLD|debian:trixie-slim@$D_NEW) index "" "" "" ;;
+      # Go moved on a platform the fleet does not build, and nowhere else.
+      golang:1.27-trixie@$G_OLD) index GOLANG_VERSION=1.27.3 GOLANG_VERSION=1.27.3 GOLANG_VERSION=1.27.3 ;;
+      golang:1.27-trixie@$G_NEW) index GOLANG_VERSION=1.27.3 GOLANG_VERSION=1.27.3 GOLANG_VERSION=1.27.4 ;;
+      maven:3.9.16-eclipse-temurin-21@$M_OLD) index JAVA_VERSION=jdk-21.0.12+8 JAVA_VERSION=jdk-21.0.12.1+1 "" ;;
+      maven:3.9.16-eclipse-temurin-21@$M_NEW) index JAVA_VERSION=jdk-21.0.13+11 JAVA_VERSION=jdk-21.0.12.1+1 "" ;;
+      golang:1.27-bookworm@$B_NEW) index GOLANG_VERSION=1.27.3 GOLANG_VERSION=1.27.3 "" ;;
+      single/go:1@*) env_of GOLANG_VERSION=1.27.3 ;;
+      other/arch:1@*) printf '{"linux/s390x":%s}' "\$(env_of GOLANG_VERSION=1.27.3)" ;;
+      *) exit 1 ;;
+    esac ;;
+  *) exit 1 ;;
+esac
+FAKE
+chmod +x "$imgbin/docker"
+
+imgrepo() {          # imgrepo <dir> <Dockerfile text>: a repository shaped like an image repo, pushed
+  local d="$1"
+  mkdir -p "$d/.github/workflows"
+  printf '%s\n' "$2" > "$d/Dockerfile"
+  printf 'name: Publish Docker Image\n' > "$d/.github/workflows/publish.yml"
+  printf '# Changelog\n\n## [Unreleased]\n\n## [1.0.1] - 2026-11-05\n\n### Changed\n\n- Debian.\n' > "$d/CHANGELOG.md"
+  git -C "$d" init -q -b main
+  git -C "$d" -c user.name=t -c user.email=t@t add -A
+  git -C "$d" -c user.name=t -c user.email=t@t commit -qm init
+  git init -q --bare "$d.git"
+  git -C "$d" remote add origin "$d.git"
+  git -C "$d" push -q -u origin main
+}
+# The log of the 2026-11-07 os-shell run, in its shape: the echo the step
+# prints, the error it raised for a digest, the exit, and a tool release.
+# Not named imglog: image_repo_pass has a local by that name, and the stand-in
+# gh below, called from inside it, would read the local (bash scopes dynamically).
+FRESH_LOG="$WORK/freshness.log"
+{
+  # shellcheck disable=SC2016  # the step's own source line, printed unexpanded as GitHub shows it
+  printf 'pins\tUNKNOWN STEP\t2026-11-07T11:51:26.58Z \033[36;1m    echo "::error::${name} is now ${current}; the Dockerfile pins ${pinned#*@}"; fail=1\033[0m\n'
+  printf 'pins\tUNKNOWN STEP\t2026-11-07T11:51:28.33Z ##[error]debian:trixie-slim is now %s; the Dockerfile pins %s\r\n' "$D_NEW" "$D_OLD"
+  printf 'pins\tUNKNOWN STEP\t2026-11-07T11:51:30.57Z ##[error]Process completed with exit code 1.\n'
+  printf 'pins\tUNKNOWN STEP\t2026-11-07T11:51:32.41Z ##[error]mikefarah/yq v4.55.0 is out; the Dockerfile pins v4.54.2 (update YQ with the tag and its commit)\n'
+  printf 'pins\tUNKNOWN STEP\t2026-11-07T11:51:32.42Z ##[error]Process completed with exit code 1.\n'
+} > "$FRESH_LOG"
+
+img="$WORK/img"
+imgrepo "$img" "# syntax=docker/dockerfile:1
+FROM --platform=\$BUILDPLATFORM golang:1.27-trixie@$G_OLD AS build
+ARG YQ_VERSION=v4.54.2
+FROM --platform=\$BUILDPLATFORM maven:3.9.16-eclipse-temurin-21@$M_OLD AS jvm
+FROM debian:trixie-slim@$D_OLD AS builder
+FROM scratch AS checksums
+FROM debian:trixie-slim@$D_OLD AS final"
+(
+  docker() { "$imgbin/docker" "$@"; }
+  PENDING="$WORK/img-pending.json"; DRY_RUN=false; OWNER=owner
+  changelog_line() { real_changelog_line "$@"; }
+  gh() { case "$1 $2" in "run view") cat "$FRESH_LOG" ;; *) return 1 ;; esac; }
+  NOTES=()
+  image_repo_pass "$img" kubectl-docker 42369927826
+  printf 'changed=%s noted=%s\n' "$IMG_CHANGED" "$IMG_NOTED"
+  printf 'NOTE %s\n' "${NOTES[@]}"
+) > "$WORK/img.out" 2>&1
+out="$(cat "$WORK/img.out")"
+remote_df="$(git -C "$img.git" show main:Dockerfile)"
+same "the debian pin moved on both FROM lines that carry it" "2" "$(grep -c "debian:trixie-slim@$D_NEW" <<<"$remote_df")"
+same "and the old debian digest is gone" "0" "$(grep -c "$D_OLD" <<<"$remote_df")"
+case "$remote_df" in *"golang:1.27-trixie@$G_NEW AS build"*) ok "golang moved: Go changed only on a platform the fleet does not build" ;; *) no "golang did not move: $remote_df" ;; esac
+case "$remote_df" in *"maven:3.9.16-eclipse-temurin-21@$M_OLD AS jvm"*) ok "the maven pin stays: its JDK moved" ;; *) no "a JDK move was applied: $remote_df" ;; esac
+case "$remote_df" in *"ARG YQ_VERSION=v4.54.2"*) ok "the tool version is left alone" ;; *) no "the yq pin was touched: $remote_df" ;; esac
+case "$out" in *"different toolchain inside (JAVA_VERSION=jdk-21.0.12+8 -> JAVA_VERSION=jdk-21.0.13+11)"*"Needs a human"*) ok "the refusal names the JDK it moved from and to" ;; *) no "the JDK refusal was not said: $out" ;; esac
+case "$out" in *"mikefarah/yq v4.55.0 is out"*"needs a human"*) ok "the tool release in the log is a person's, and named" ;; *) no "the yq line was lost: $out" ;; esac
+same "the digest line in the log is not handed to a person" "0" "$(grep -c 'is now sha256.*needs a human' <<<"$out")"
+same "nor is the step's exit" "0" "$(grep -c 'Process completed' <<<"$out")"
+# shellcheck disable=SC2016  # a literal ${name}, the unexpanded echo
+same "nor the echo the step printed" "0" "$(grep -c '\${name}' <<<"$out")"
+case "$out" in *"changed=1 noted=1"*) ok "the pass says it changed something" ;; *) no "flags: $out" ;; esac
+same "one commit was pushed to main" "1" "$(git -C "$img.git" rev-list --count main~1..main)"
+same "its message says what it is" "fix(security): refresh base image digests" "$(git -C "$img.git" log -1 --format=%s main)"
+same "no tag: a rebuilt base is not a release" "" "$(git -C "$img.git" tag)"
+remote_cl="$(git -C "$img.git" show main:CHANGELOG.md)"
+same "the CHANGELOG carries one Security line per refreshed image" "2" "$(sed -n '/^## \[Unreleased\]/,/^## \[1/p' <<<"$remote_cl" | grep -c 'was rebuilt upstream')"
+case "$remote_cl" in *"### Security"*"golang:1.27-trixie"*"the same toolchain inside (\`GOLANG_VERSION=1.27.3\`)"*) ok "the golang line names the Go it still has" ;; *) no "the golang line: $remote_cl" ;; esac
+case "$(grep 'debian:trixie-slim' <<<"$remote_cl")" in *"toolchain"*) no "the debian line claims a toolchain it does not declare" ;; *) ok "the debian line claims no toolchain" ;; esac
+case "$remote_cl" in *"## [1.0.1] - 2026-11-05"*) ok "the released sections are untouched" ;; *) no "a released section moved: $remote_cl" ;; esac
+row="$(jq -c '.[0] | {repo, wf, kind, sha}' "$WORK/img-pending.json" 2>/dev/null)"
+same "the push is in the pending ledger, judged by publish.yml" \
+  "{\"repo\":\"kubectl-docker\",\"wf\":\"publish.yml\",\"kind\":\"image-digest\",\"sha\":\"$(git -C "$img.git" rev-parse main)\"}" "$row"
+
+echo "== an image refresh that cannot be read is refused, never guessed"
+img2="$WORK/img2"
+imgrepo "$img2" "FROM --platform=\$BUILDPLATFORM golang:1.27-bookworm@$B_OLD AS tools
+FROM nowhere/gone:1@$D_OLD AS gone
+FROM debian@$D_OLD AS bare"
+(
+  docker() { "$imgbin/docker" "$@"; }; PENDING="$WORK/img2-pending.json"; DRY_RUN=false; OWNER=owner
+  gh() { return 1; }
+  NOTES=()
+  image_repo_pass "$img2" os-shell-docker 1
+  printf 'changed=%s noted=%s\n' "$IMG_CHANGED" "$IMG_NOTED"
+  printf 'NOTE %s\n' "${NOTES[@]}"
+) > "$WORK/img2.out" 2>&1
+out="$(cat "$WORK/img2.out")"
+case "$out" in *"golang:1.27-bookworm was repushed"*"could not be read from both digests"*"needs a human"*) ok "an old digest whose config is gone is refused" ;; *) no "an unreadable toolchain: $out" ;; esac
+case "$out" in *"nowhere/gone:1 did not resolve"*"needs a human"*) ok "a tag that does not resolve is a person's" ;; *) no "a dead tag: $out" ;; esac
+case "$out" in *"debian@$D_OLD is pinned by digest with no tag to follow"*) ok "a digest with no tag is not followed to latest" ;; *) no "a bare digest: $out" ;; esac
+case "$out" in *"changed=0 noted=1"*) ok "nothing changed, and the reasons are said" ;; *) no "flags: $out" ;; esac
+same "nothing was pushed" "1" "$(git -C "$img2.git" rev-list --count main)"
+same "and nothing is pending" "no" "$([ -s "$WORK/img2-pending.json" ] && echo yes || echo no)"
+
+echo "== a dry run writes nothing, and a current Dockerfile is not a finding of its own"
+img3="$WORK/img3"
+imgrepo "$img3" "FROM debian:trixie-slim@$D_OLD AS final"
+(
+  docker() { "$imgbin/docker" "$@"; }; PENDING="$WORK/img3-pending.json"; DRY_RUN=true; OWNER=owner
+  gh() { return 1; }
+  NOTES=()
+  image_repo_pass "$img3" jmx-exporter-docker 1
+  printf 'changed=%s noted=%s\n' "$IMG_CHANGED" "$IMG_NOTED"
+  printf 'NOTE %s\n' "${NOTES[@]}"
+  git -C "$img3" status --porcelain
+  # Already current: no refresh, and the pass itself says so once.
+  DRY_RUN=false; NOTES=()
+  printf 'FROM debian:trixie-slim@%s AS final\n' "$D_NEW" > "$img3/Dockerfile"
+  image_repo_pass "$img3" jmx-exporter-docker 1
+  printf 'current changed=%s noted=%s\n' "$IMG_CHANGED" "$IMG_NOTED"
+  printf 'CURRENT %s\n' "${NOTES[@]}"
+) > "$WORK/img3.out" 2>&1
+out="$(cat "$WORK/img3.out")"
+case "$out" in *"would refresh debian:trixie-slim"*) ok "a dry run says what it would refresh" ;; *) no "dry run: $out" ;; esac
+case "$out" in *" M "*|*"M Dockerfile"*|*"M CHANGELOG"*) no "a dry run edited the tree: $out" ;; *) ok "and edits nothing" ;; esac
+case "$out" in *"current changed=0 noted=0"*) ok "a current Dockerfile changes nothing" ;; *) no "current: $out" ;; esac
+case "$out" in *"CURRENT jmx-exporter-docker: freshness is red but nothing in its Dockerfile was auto-fixable"*"needs a human"*) ok "and a red check with nothing to fix still reaches a person" ;; *) no "silent red: $out" ;; esac
+
+echo "== what an image declares as its toolchain"
+tc() { ( docker() { "$imgbin/docker" "$@"; }; image_toolchain "$1" ) && echo "rc=0" || echo "rc=1"; }
+same "an index: only the platforms the fleet builds" $'linux/amd64 GOLANG_VERSION=1.27.3\nlinux/arm64 GOLANG_VERSION=1.27.3\nrc=0' "$(tc "golang:1.27-trixie@$G_NEW")"
+same "one platform: its config alone" $'image GOLANG_VERSION=1.27.3\nrc=0' "$(tc "single/go:1@$G_NEW")"
+same "an image declaring none is read as none" "rc=0" "$(tc "debian:trixie-slim@$D_NEW")"
+same "an index without amd64 or arm64 is unreadable, not empty" "rc=1" "$(tc "other/arch:1@$G_NEW")"
+same "a digest the registry will not describe is unreadable" "rc=1" "$(tc "golang:1.27-bookworm@$B_OLD")"
+
+echo "== a green image build is the delivery, a red one is reverted"
+judge() {            # judge <conclusion> -> what settle_pending did with an image-digest row on $img
+  (
+    sha="$(git -C "$img.git" rev-parse main)"
+    PENDING="$(mktemp)"; REPORT="$(mktemp)"; DRY_RUN=false; STALE_HOURS=12; OWNER=owner
+    REFRESHED=0; HEALED=(); CALLS="$(mktemp)"; RUNS="$(mktemp)"
+    printf '[{"repo":"kubectl-docker","sha":"%s","wf":"publish.yml","kind":"image-digest","pushed_at":"%s"}]\n' \
+      "$sha" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$PENDING"
+    printf '[{"headBranch":"main","createdAt":"2026-11-08T10:00:00Z","headSha":"%s","status":"completed","conclusion":"%s","databaseId":7}]\n' \
+      "$sha" "$1" > "$RUNS"
+    gh() {
+      printf '%s\n' "$*" >> "$CALLS"
+      case "$1 $2" in
+        "run list") cat "$RUNS" ;;
+        "run view") echo "Build and publish" ;;
+        "workflow run") return 0 ;;
+        "api repos/owner/kubectl-docker/contents/.github/workflows/freshness.yml") return 0 ;;
+        *) return 1 ;;
+      esac
+    }
+    sleep() { :; }
+    cut_release() { echo "CUT $*" >> "$CALLS"; }
+    workdir_for() { echo "$img"; }
+    NOTES=()
+    settle_pending >/dev/null 2>&1
+    printf 'NOTE %s\n' "${NOTES[@]+"${NOTES[@]}"}"
+    sed 's/^/CALL /' "$CALLS"
+    printf 'LEDGER %s\n' "$(jq -c 'length' "$PENDING")"
+    rm -f "$PENDING" "$REPORT" "$CALLS" "$RUNS"
+  )
+}
+out="$(judge success)"
+case "$out" in *"CALL CUT"*) no "a release was cut for a rebuilt base" ;; *) ok "green cuts no release" ;; esac
+case "$out" in *"publish.yml is green on it"*"no release for a rebuilt base"*) ok "and says the green build is the delivery" ;; *) no "green: $out" ;; esac
+case "$out" in *"CALL workflow run freshness.yml --repo owner/kubectl-docker --ref main"*) ok "the freshness check is asked again" ;; *) no "freshness not rerun: $out" ;; esac
+case "$out" in *"needs a human"*) no "a green image refresh asked a person: $out" ;; *) ok "nobody is asked" ;; esac
+case "$out" in *"LEDGER 0"*) ok "the row is settled" ;; *) no "the row stayed: $out" ;; esac
+out="$(judge failure)"
+case "$out" in *"CI answered 'failure' on the image-digest refresh — reverted, needs a human"*) ok "a red build is reverted and a person told" ;; *) no "red: $out" ;; esac
+same "main is back on the old debian digest" "2" "$(git -C "$img.git" show main:Dockerfile | grep -c "debian:trixie-slim@$D_OLD")"
+case "$out" in *"CALL CUT"*) no "a release was cut for a red build" ;; *) ok "and no release is cut" ;; esac
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
