@@ -454,6 +454,15 @@ same "an edition suffix is not a minor" "patch" "$(cm 19.3.1-ee.0 19.3.2-ee.0)"
 same "a calendar month is a minor" "minor" "$(cm 2026.9.3 2026.10.0)"
 same "a calendar day inside the month is not" "patch" "$(cm 2026.9.2 2026.9.3)"
 
+# A LINE IS NOT A VERSION. Open WebUI's check says "pinned minor 0.12" over a
+# tag 0.12.0; the bump must name 0.13.0, never 0.13.0.0.
+same "a minor line over a full tag moves the whole version" "ghcr.io/open-webui/open-webui:0.13.0" "$(bumped_ref ghcr.io/open-webui/open-webui:0.12.0 0.12 0.13.0)"
+same "and keeps the tag's suffix" "vendor/app:0.13.0-cuda" "$(bumped_ref vendor/app:0.12.4-cuda 0.12 0.13.0)"
+same "and its v" "vendor/app:v0.13.0" "$(bumped_ref vendor/app:v0.12.4 0.12 v0.13.0)"
+same "a tag that is the line itself moves as before" "traefik:3.8" "$(bumped_ref traefik:3.7 3.7 3.8)"
+same "an edition suffix moves as before" "server/app:19.4.0-ee.0" "$(bumped_ref server/app:19.3.2-ee.0 19.3.2 19.4.0)"
+same "a registry port is not a tag" "reg.example:5000/app:0.13.0" "$(bumped_ref reg.example:5000/app:0.12.1 0.12 0.13.0)"
+
 # AND WHAT MUST STILL MATCH NOTHING. rathena counts commits behind a branch:
 # real, reported, and not a version bump anybody can make automatically.
 same "a commits-behind line is not a version lag" "" \

@@ -297,7 +297,7 @@ major_branch() {
     def="${pin#*:-}"; def="${def%\}}"
     case "$def" in *"$oldv"*@sha256:*) ;; *) continue ;; esac
     ref="${def%%@*}"; olddg="${def##*@}"
-    newref="${ref//$oldv/$newv}"
+    newref="$(bumped_ref "$ref" "$oldv" "$newv")"
     newdg="$(docker buildx imagetools inspect "$newref" --format '{{json .Manifest}}' 2>/dev/null | jq -r '.digest // empty' || true)"
     [ -n "$newdg" ] || { note "$repo: $newref does not resolve yet — nothing prepared"; continue; }
     if [ "$DRY_RUN" = "true" ]; then note "$repo: would prepare branch $br for $ref -> $newref"; continue; fi
@@ -1140,6 +1140,24 @@ is_prerelease() {    # is_prerelease <version> -> 0 for alpha, beta, rc, preview
 # images moved, while the plugin daemon on its own version line and three
 # vendored nginx files stayed at 1.18.0, and v1.1.13 shipped half an upgrade.
 # A patch keeps the old rule: it rides unless the review says do not.
+# A LINE IS NOT A VERSION. Some freshness checks compare minor lines and say
+# "pinned minor 0.12, latest release is 0.13.0" over an image tagged 0.12.0.
+# Putting the new version where the line stood inside the tag made 0.13.0.0
+# for Open WebUI on 2026-11-03, a tag that never existed, and the bump waited
+# for it for four days as "announced but not published". When the tag is the
+# reported line followed by more version components, the whole version moves
+# to the new one and the tag keeps its own prefix and suffix (v, -cuda).
+bumped_ref() {       # bumped_ref <ref> <oldv> <newv> -> the ref at the new version
+  local ref="$1" oldv="${2#v}" newv="${3#v}" name tag pre after
+  name="${ref%:*}"; tag="${ref##*:}"
+  case "$tag" in
+    "$oldv".[0-9]*|v"$oldv".[0-9]*)
+      pre="${tag%%"$oldv"*}"; after="${tag#*"$oldv"}"
+      printf '%s:%s%s%s\n' "$name" "$pre" "$newv" "$(sed -E 's/^(\.[0-9]+)+//' <<<"$after")" ;;
+    *) printf '%s\n' "${ref//$2/$3}" ;;
+  esac
+}
+
 crosses_minor() {    # crosses_minor <old> <new> -> 0 when major.minor differs
   local o n
   o="$(sed -E 's/^v?([0-9]+)(\.([0-9]+))?.*/\1.\3/' <<<"$1")"
@@ -1422,7 +1440,7 @@ for repo in "${REPOS[@]}"; do
       def="${pin#*:-}"; def="${def%\}}"
       pin_lags "$pin" "$lag" "$oldv" || continue
       ref="${def%%@*}"; olddg="${def##*@}"
-      newref="${ref//$oldv/$newv}"
+      newref="$(bumped_ref "$ref" "$oldv" "$newv")"
       newdg="$(docker buildx imagetools inspect "$newref" --format '{{json .Manifest}}' 2>/dev/null | jq -r '.digest // empty' || true)"
       if [ -z "$newdg" ]; then
         # The vendor's own freshness feed names a version whose image is not
