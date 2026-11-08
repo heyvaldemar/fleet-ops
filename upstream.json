@@ -131,6 +131,36 @@
    "url": "https://github.com/docker/sbx-releases/issues/818",
    "role": "issue with a reproduction",
    "found_in": "kubernetes-ai-agent-sandbox"
+  },
+  {
+   "url": "https://github.com/oscal-compass/compliance-to-policy-go/issues/323",
+   "role": "issue with a reproduction",
+   "found_in": "kubernetes-oscal-evidence"
+  },
+  {
+   "url": "https://github.com/oscal-compass/compliance-to-policy-go/issues/324",
+   "role": "issue with a reproduction",
+   "found_in": "kubernetes-oscal-evidence"
+  },
+  {
+   "url": "https://github.com/oscal-compass/compliance-to-policy-go/issues/325",
+   "role": "issue with a reproduction",
+   "found_in": "kubernetes-oscal-evidence"
+  },
+  {
+   "url": "https://github.com/oscal-compass/compliance-to-policy-go/issues/326",
+   "role": "issue with a reproduction",
+   "found_in": "kubernetes-oscal-evidence"
+  },
+  {
+   "url": "https://github.com/kyverno/kyverno/issues/18436",
+   "role": "issue with a reproduction",
+   "found_in": "kubernetes-oscal-evidence"
+  },
+  {
+   "url": "https://github.com/kyverno/website/issues/2246",
+   "role": "issue",
+   "found_in": "kubernetes-oscal-evidence"
   }
  ]
 }
