@@ -242,6 +242,7 @@ echo "== a lookup that fails is not a CI that never answered"
   fakebin="$(mktemp -d)"
   printf '#!/usr/bin/env bash\nexit 1\n' > "$fakebin/gh"; chmod +x "$fakebin/gh"
   sleep() { :; }
+  # shellcheck disable=SC2030  # this subshell's PATH only, which is the point
   PATH="$fakebin:$PATH"
   # DRY_RUN off, so "kept" means the ledger was rewritten and the row survived.
   PENDING="$(mktemp)"; REPORT="$(mktemp)"; WORKDIR="$(mktemp -d)"; STALE_HOURS=12; DRY_RUN=false
@@ -469,6 +470,140 @@ same "and its v" "vendor/app:v0.13.0" "$(bumped_ref vendor/app:v0.12.4 0.12 v0.1
 same "a tag that is the line itself moves as before" "traefik:3.8" "$(bumped_ref traefik:3.7 3.7 3.8)"
 same "an edition suffix moves as before" "server/app:19.4.0-ee.0" "$(bumped_ref server/app:19.3.2-ee.0 19.3.2 19.4.0)"
 same "a registry port is not a tag" "reg.example:5000/app:0.13.0" "$(bumped_ref reg.example:5000/app:0.12.1 0.12 0.13.0)"
+
+# A NEWER MINOR HIDES THE PATCHES OF THE ONE PINNED. Open WebUI sat at 0.12.0
+# on 2026-11-08 with 0.12.1-0.12.5 published, because every alarm named 0.13.x
+# and only a branch came of it. The registry is asked for the pinned line.
+#
+# registry_tags against a fake registry: a 401 that names its token realm,
+# an anonymous token, a second page behind a Link header. The token reaches
+# curl on stdin only; an argument is what ps shows every user on the host.
+CURLLOG="$WORK/curl.log"
+fake_curl() {
+  local a=" $* " o="" d="" cfg url
+  while [ $# -gt 0 ]; do case "$1" in -o) o="$2"; shift 2 ;; -D) d="$2"; shift 2 ;; *) shift ;; esac; done
+  if [[ "$a" != *" --config - "* ]]; then
+    printf 'TOKEN%s\n' "$a" >> "$CURLLOG"; printf '{"token":"tok-not-for-argv"}\n'; return 0
+  fi
+  cfg="$(cat)"; url="$(sed -nE 's/^url = "(.*)"$/\1/p' <<<"$cfg")"
+  if ! grep -q 'Authorization: Bearer tok-not-for-argv' <<<"$cfg"; then
+    printf 'GET %s ANON%s\n' "$url" "$a" >> "$CURLLOG"
+    case "$url" in
+      *broken*) printf 'HTTP/1.1 500\r\n\r\n' > "$d"; : > "$o"; printf 500; return 0 ;;
+      *mcr.example*) printf 'HTTP/1.1 200\r\n\r\n' > "$d"; printf '{"tags":["1.0.0","1.0.1"]}\n' > "$o"; printf 200; return 0 ;;
+    esac
+    printf 'HTTP/1.1 401\r\nWww-Authenticate: Bearer realm="https://auth.example/token",service="reg.example",scope="repository:team/app:pull"\r\n\r\n' > "$d"
+    : > "$o"; printf 401; return 0
+  fi
+  printf 'GET %s AUTH%s\n' "$url" "$a" >> "$CURLLOG"
+  case "$url" in
+    *"last=0.12."|*"last=0.12.&"*)
+      printf 'HTTP/1.1 200\r\nLink: </v2/team/app/tags/list?last=0.13.0&n=1000>; rel="next"\r\n\r\n' > "$d"
+      printf '{"tags":["0.12.0","0.12.4","0.13.0"]}\n' > "$o" ;;
+    *last=*) printf 'HTTP/1.1 200\r\n\r\n' > "$d"; printf '{"tags":["0.12.5","0.13.0"]}\n' > "$o" ;;
+    *) printf 'HTTP/1.1 200\r\nLink: </v2/team/app/tags/list?last=0.12.4&n=1000>; rel="next"\r\n\r\n' > "$d"
+       printf '{"tags":["0.12.0","0.12.4"]}\n' > "$o" ;;
+  esac
+  printf 200
+}
+rt() { : > "$CURLLOG"; ( curl() { fake_curl "$@"; }; registry_tags "$1" | tr '\n' ' ' ); }
+same "every page of tags is read, the token fetched once" "0.12.0 0.12.4 0.12.5 0.13.0 " "$(rt reg.example/team/app)"
+same "the token is asked of the realm the 401 named, for its scope" "1" \
+  "$(grep -c '^TOKEN .*service=reg.example .*scope=repository:team/app:pull https://auth.example/token' "$CURLLOG")"
+same "the second page is the Link header's, on the same host" "1" \
+  "$(grep -c '^GET https://reg.example/v2/team/app/tags/list?last=0.12.4&n=1000 AUTH' "$CURLLOG")"
+same "the token is never an argument" "0" "$(grep -c 'tok-not-for-argv' "$CURLLOG")"
+rt postgres >/dev/null
+same "a bare name is Docker Hub's library" "https://registry-1.docker.io/v2/library/postgres/tags/list?n=1000" \
+  "$(head -1 "$CURLLOG" | cut -d' ' -f2)"
+rt grafana/grafana >/dev/null
+same "a two-part name with no host is Docker Hub's too" "https://registry-1.docker.io/v2/grafana/grafana/tags/list?n=1000" \
+  "$(head -1 "$CURLLOG" | cut -d' ' -f2)"
+same "a registry that needs no token is read without one" "1.0.0 1.0.1 " "$(rt mcr.example/team/app)"
+rtp() { : > "$CURLLOG"; ( curl() { fake_curl "$@"; }; registry_tags reg.example/team/app "$@" | tr '\n' ' ' ); }
+same "asked from a line, only the line's tags come back" "0.12.0 0.12.4 " "$(rtp 0.12.)"
+same "and the list stops where the line's block ends" "0" "$(grep -c 'last=0.13.0' "$CURLLOG")"
+same "asked from after a tag, the list is read past it" "0.12.5 " "$(rtp 0.12. 0.12.4)"
+same "from that tag" "1" "$(grep -c 'tags/list?n=1000&last=0.12.4 AUTH' "$CURLLOG")"
+if ( curl() { fake_curl "$@"; }; registry_tags reg.broken/team/app >/dev/null ); then
+  no "a registry answering 500 was read as an empty list"
+else ok "a registry answering 500 is not an answer"; fi
+
+# line_newest over a stubbed tag list: the tag's own shape, its own line.
+WEBUI_TAGS='0.11.6 0.12.0 0.12.0-cuda 0.12.1 0.12.4-cuda 0.12.5 0.12.5-cuda 0.12.5-cuda126 0.12.6-rc1 0.13.0 0.13.2 latest main'
+tag_line() { ( registry_tags() { echo "registry asked" >> "$CURLLOG"; tr ' ' '\n' <<<"$WEBUI_TAGS"; }; line_newest "$1" ); }
+same "the newest patch of the pinned line, not the newest release" "0.12.0	0.12.5	0.12" "$(tag_line ghcr.io/open-webui/open-webui:0.12.0)"
+same "the suffix is kept: -cuda moves to -cuda" "0.12.4	0.12.5	0.12" "$(tag_line vendor/app:0.12.4-cuda)"
+WEBUI_TAGS='0.12.4-cuda 0.12.6-cuda126 0.12.7'
+same "and matched exactly: -cuda126 and a bare tag are other images" "" "$(tag_line vendor/app:0.12.4-cuda)"
+WEBUI_TAGS='0.11.6 0.12.0 0.12.0-cuda 0.12.1 0.12.4-cuda 0.12.5 0.12.5-cuda 0.12.5-cuda126 0.12.6-rc1 0.13.0 0.13.2 latest main'
+same "a pre-release in the line is not a patch" "" "$(tag_line vendor/app:0.12.5)"
+WEBUI_TAGS='v1.2.3 v1.2.9 v1.2.10 1.2.11 v1.3.0'
+same "patches compare as numbers, and the v prefix is part of the shape" "v1.2.3	v1.2.10	1.2" "$(tag_line vendor/app:v1.2.3)"
+WEBUI_TAGS='0.12.0 0.13.0'
+same "a line with nothing newer gives nothing" "" "$(tag_line vendor/app:0.12.0)"
+: > "$CURLLOG"
+same "a tag that is a line itself (traefik:3.7) gives nothing" "" "$(tag_line traefik:3.7)"
+same "and the registry is not even asked" "0" "$(grep -c 'registry asked' "$CURLLOG")"
+# ghcr.io keeps tags in push order and answers `last=0.12.` with nothing at
+# all; the whole list is read when the pinned tag is not in the block.
+WEBUI_TAGS='main git-509d2a6 0.12.5 latest 0.12.0 0.13.2'
+pref() { : > "$CURLLOG"; ( registry_tags() { echo "asked $2 after ${3:-none}" >> "$CURLLOG"; [ -z "${3:-}" ] || tr ' ' '\n' <<<"$WEBUI_TAGS" | grep "^$2"; }; line_newest "$1" ); }
+same "a block without the pinned tag is asked again from after that tag" "0.12.0	0.12.5	0.12" "$(pref ghcr.io/open-webui/open-webui:0.12.0)"
+same "from the line first, then from the pinned tag" "asked 0.12. after none asked 0.12. after 0.12.0" "$(tr '\n' ' ' < "$CURLLOG" | sed 's/ $//')"
+blk() { : > "$CURLLOG"; ( registry_tags() { echo "asked $2 after ${3:-none}" >> "$CURLLOG"; tr ' ' '\n' <<<"0.12.0 0.12.7"; }; line_newest "$1" ); }
+same "a block that has it is the answer" "0.12.0	0.12.7	0.12" "$(blk vendor/app:0.12.0)"
+same "and nothing more is asked" "asked 0.12. after none" "$(tr '\n' ' ' < "$CURLLOG" | sed 's/ $//')"
+if ( registry_tags() { return 1; }; line_newest vendor/app:0.12.0 >/dev/null ); then
+  no "a registry that did not answer was read as no newer patch"
+else ok "a registry that did not answer says so"; fi
+
+# all_line_lags: a lag line, in the alarms' own shape and naming its pin's
+# variable, for every pin whose own line has a newer patch.
+lc="$WORK/line-compose.yml"
+# shellcheck disable=SC2016  # ${...} is compose interpolation, written literally
+printf '%s\n' \
+  '  webui: ${WEBUI_IMAGE_TAG:-ghcr.io/open-webui/open-webui:${WEBUI_IMAGE_VERSION:-0.12.0@sha256:aaaa}}' \
+  '  db: ${DB_IMAGE_TAG:-postgres:${DB_IMAGE_VERSION:-10.12.3@sha256:bbbb}}' \
+  '  proxy: ${TRAEFIK_IMAGE_TAG:-traefik:${TRAEFIK_IMAGE_VERSION:-3.7@sha256:cccc}}' \
+  '  free: ${FREE_IMAGE_TAG:-vendor/unpinned:1.2.3}' > "$lc"
+ll() {
+  : > "$CURLLOG"
+  ( REPORT="$WORK/line-report"; : > "$REPORT"; repo=ollama
+    registry_tags() { echo "registry asked $1 $2" >> "$CURLLOG"; tr ' ' '\n' <<<"$WEBUI_TAGS"; }
+    all_line_lags "$lc" 2>/dev/null )
+}
+WEBUI_TAGS='0.12.0 0.12.1 0.12.5 0.13.0 0.13.2 10.12.3 10.12.9'
+extra="$(ll)"
+same "every full-version pin behind its own line gets one, naming its variable" \
+  "WEBUI_IMAGE_TAG is behind its line: pinned 0.12.0, latest in 0.12 is 0.12.5
+DB_IMAGE_TAG is behind its line: pinned 10.12.3, latest in 10.12 is 10.12.9" "$(sort -r <<<"$extra")"
+same "each registry is asked from its pin's own line" "2" \
+  "$(grep -cE '^registry asked (ghcr.io/open-webui/open-webui 0\.12\.|postgres 10\.12\.)$' "$CURLLOG")"
+same "a line tag (traefik:3.7) and a pin with no digest send nobody to a registry" "0" \
+  "$(grep -cE 'registry asked (traefik|vendor/unpinned)' "$CURLLOG")"
+webui_lag="$(grep '^WEBUI' <<<"$extra")"
+same "the line reads back as the patch it is" "0.12.0	0.12.5" "$(lag_pair "$webui_lag")"
+same "for that pin alone" "WEBUI_IMAGE_TAG" "$(lag_var "$webui_lag")"
+same "and does not cross a minor, so it rides as a patch" "patch" "$(cm 0.12.0 0.12.5)"
+same "the bump it makes is the published tag" "ghcr.io/open-webui/open-webui:0.12.5" \
+  "$(bumped_ref ghcr.io/open-webui/open-webui:0.12.0 "$(lag_pair "$webui_lag" | cut -f1)" "$(lag_pair "$webui_lag" | cut -f2)")"
+# shellcheck disable=SC2016  # ${...} is compose interpolation, written literally
+same "and pin_lags moves the Open WebUI pin with it" "yes" "$(pl '${WEBUI_IMAGE_TAG:-ghcr.io/open-webui/open-webui:0.12.0@sha256:aaaa}' "$webui_lag" 0.12.0)"
+# shellcheck disable=SC2016  # ${...} is compose interpolation, written literally
+same "and not the postgres pin beside it" "no" "$(pl '${DB_IMAGE_TAG:-postgres:10.12.3@sha256:bbbb}' "$webui_lag" 0.12.0)"
+WEBUI_TAGS='0.12.0 0.13.2 10.12.3'
+same "pins at the head of their lines bring nothing" "" "$(ll)"
+# note() is the test's own collector above; here it only has to reach a file.
+quiet="$( : > "$CURLLOG"; ( REPORT="$WORK/line-report"; : > "$REPORT"; repo=ollama
+  note() { printf 'NOTE %s\n' "$*" >> "$REPORT"; }
+  registry_tags() { return 1; }
+  out="$(all_line_lags "$lc" 2>/dev/null)"; printf '%s|' "$out"; cat "$REPORT" ) )"
+case "$quiet" in
+  "|"*"ghcr.io/open-webui/open-webui:0.12.0 — its own patch line not checked, the registry did not list its tags"*) ok "a registry that did not answer adds no lag and is reported as not checked" ;;
+  *) no "registry down: $quiet" ;;
+esac
+
 
 # AND WHAT MUST STILL MATCH NOTHING. rathena counts commits behind a branch:
 # real, reported, and not a version bump anybody can make automatically.
@@ -762,6 +897,160 @@ out="$(judge failure)"
 case "$out" in *"CI answered 'failure' on the image-digest refresh — reverted, needs a human"*) ok "a red build is reverted and a person told" ;; *) no "red: $out" ;; esac
 same "main is back on the old debian digest" "2" "$(git -C "$img.git" show main:Dockerfile | grep -c "debian:trixie-slim@$D_OLD")"
 case "$out" in *"CALL CUT"*) no "a release was cut for a red build" ;; *) ok "and no release is cut" ;; esac
+
+
+# THE WHOLE RUN, ON TWO TEMPLATES. The refresh pass and the patch-line pass
+# are the script's body, not functions, so the body is what runs here. A fake
+# gh serves Ollama, red with Open WebUI's own sentence about 0.13.2, and
+# Mailu, green with ten digest checks and no version check; a fake docker
+# resolves digests; a fake curl is the registries' tag lists; git clones from
+# local remotes. Once dry, once for real.
+e2e="$WORK/e2e"; mkdir -p "$e2e/bin"
+E2E_RED=ollama-traefik-letsencrypt-docker-compose
+E2E_GREEN=mailu-traefik-letsencrypt-docker-compose
+dgn() { printf 'sha256:%064d' "$1"; }
+e2e_remotes() {      # fresh remotes for both templates; prints nothing
+  rm -rf "$e2e/remote" "$e2e/src-red" "$e2e/src-green"; mkdir -p "$e2e/remote"
+  git init -q -b main "$e2e/src-red"
+  printf '%s\n' 'x-images:' \
+    "  traefik: \${TRAEFIK_IMAGE_TAG:-traefik:\${TRAEFIK_IMAGE_VERSION:-3.7@$(dgn 4)}}" \
+    "  ollama: \${OLLAMA_IMAGE_TAG:-ollama/ollama:\${OLLAMA_IMAGE_VERSION:-0.40.15@$(dgn 7)}}" \
+    "  webui: \${WEBUI_IMAGE_TAG:-ghcr.io/open-webui/open-webui:\${WEBUI_IMAGE_VERSION:-0.12.0@$(dgn 1)}}" \
+    > "$e2e/src-red/$E2E_RED.yml"
+  printf '%s\n' '# OLLAMA_IMAGE_TAG=ollama/ollama:0.33.2@sha256:…' \
+    '# WEBUI_IMAGE_TAG=ghcr.io/open-webui/open-webui:0.12.0@sha256:…' '# WEBUI_IMAGE_VERSION=0.12.0' > "$e2e/src-red/.env.example"
+  git init -q -b main "$e2e/src-green"
+  printf '%s\n' 'x-images:' \
+    "  admin: \${ADMIN_IMAGE_TAG:-ghcr.io/mailu/admin:\${ADMIN_IMAGE_VERSION:-2024.06.67@$(dgn 5)}}" \
+    "  redis: \${REDIS_IMAGE_TAG:-redis:\${REDIS_IMAGE_VERSION:-7.4@$(dgn 4)}}" \
+    > "$e2e/src-green/$E2E_GREEN.yml"
+  local r
+  for r in red green; do
+    printf '# Changelog\n\n## [Unreleased]\n\n## [1.0.0]\n' > "$e2e/src-$r/CHANGELOG.md"
+    git -C "$e2e/src-$r" add -A && git -C "$e2e/src-$r" -c user.name=t -c user.email=t@t commit -qm init
+  done
+  git clone -q --bare "$e2e/src-red" "$e2e/remote/$E2E_RED"
+  git clone -q --bare "$e2e/src-green" "$e2e/remote/$E2E_GREEN"
+}
+e2e_remotes
+printf 'Check pinned images for upstream drift\tUNKNOWN STEP\t2026-11-08T06:00:01Z ##[error]Open WebUI pin is behind: pinned minor 0.12, latest release is 0.13.2\n' > "$e2e/fresh.log"
+printf '[url "file://%s/remote/"]\n\tinsteadOf = https://github.com/owner/\n[user]\n\tname = t\n\temail = t@t\n' "$e2e" > "$e2e/gitconfig"
+cat > "$e2e/bin/gh" <<'GH'
+#!/bin/bash
+echo "gh $*" >> "$E2E_DIR/calls"
+sha() { git -C "$E2E_DIR/remote/$1" rev-parse main; }
+case "$*" in
+  "api user/repos"*) printf '%s\n%s\n' "$E2E_RED" "$E2E_GREEN" ;;
+  "api repos/owner/"*"/contents/.github/workflows/freshness.yml"*) echo '{}' ;;
+  "api repos/owner/$E2E_RED/commits/main"*) sha "$E2E_RED" ;;
+  "api repos/owner/$E2E_GREEN/commits/main"*) sha "$E2E_GREEN" ;;
+  "run list --repo owner/$E2E_RED --workflow freshness.yml"*) printf '[{"databaseId":7,"event":"schedule","conclusion":"failure","status":"completed","headSha":"%s"}]\n' "$(sha "$E2E_RED")" ;;
+  "run list --repo owner/$E2E_GREEN --workflow freshness.yml"*) printf '[{"databaseId":8,"event":"schedule","conclusion":"success","status":"completed","headSha":"%s"}]\n' "$(sha "$E2E_GREEN")" ;;
+  "run list"*) echo '[]' ;;
+  "run view 7"*"--log"*) cat "$E2E_DIR/fresh.log" ;;
+esac
+exit 0
+GH
+cat > "$e2e/bin/docker" <<'DK'
+#!/bin/bash
+echo "docker $*" >> "$E2E_DIR/calls"
+case "$4" in
+  *open-webui:0.12.0) n=1 ;; *open-webui:0.12.5) n=2 ;; *open-webui:0.13.2) n=3 ;;
+  *mailu/admin:2024.06.67) n=5 ;; *mailu/admin:2024.06.68) n=6 ;;
+  *ollama/ollama:0.40.15) n=7 ;; *ollama/ollama:0.40.16) n=8 ;;
+  *) n=4 ;;
+esac
+printf '{"digest":"sha256:%064d"}\n' "$n"
+DK
+cat > "$e2e/bin/curl" <<'CU'
+#!/bin/bash
+o="" d=""; a=" $* "
+while [ $# -gt 0 ]; do case "$1" in -o) o="$2"; shift 2 ;; -D) d="$2"; shift 2 ;; *) shift ;; esac; done
+[[ "$a" == *" --config - "* ]] || exit 22
+url="$(sed -nE 's/^url = "(.*)"$/\1/p')"
+echo "curl $url" >> "$E2E_DIR/calls"
+case "$url" in
+  https://ghcr.io/v2/open-webui/open-webui/tags/list*) t='["0.12.0","0.12.1","0.12.5","0.12.5-cuda","0.13.0","0.13.2"]' ;;
+  https://ghcr.io/v2/mailu/admin/tags/list*) t='["2024.06.66","2024.06.67","2024.06.68","2024.06.68-arm64","master"]' ;;
+  https://registry-1.docker.io/v2/ollama/ollama/tags/list*) t='["0.40.15","0.40.16","0.40.16-rocm","0.41.0"]' ;;
+  *) printf 'HTTP/1.1 404\r\n\r\n' > "$d"; : > "$o"; printf 404; exit 0 ;;
+esac
+printf 'HTTP/1.1 200\r\n\r\n' > "$d"; printf '{"tags":%s}\n' "$t" > "$o"; printf 200
+CU
+chmod +x "$e2e/bin/gh" "$e2e/bin/docker" "$e2e/bin/curl"
+e2e_run() {          # e2e_run <true|false> [ledger] -> the script's output; the exit code in $e2e/rc
+  printf '%s\n' "${2:-[]}" > "$e2e/pending.json"; : > "$e2e/calls"
+  # shellcheck disable=SC2031  # the outer PATH is meant; the image tests change it inside their own subshell only
+  (cd "$e2e" && env -u ACTIONS_ID_TOKEN_REQUEST_URL -u ACTIONS_ID_TOKEN_REQUEST_TOKEN -u GITHUB_WORKSPACE \
+    "PATH=$e2e/bin:$PATH" GH_TOKEN=dummy DRY_RUN="$1" FLEET_OWNER=owner \
+    FLEET_PENDING="$e2e/pending.json" GIT_CONFIG_GLOBAL="$e2e/gitconfig" GITHUB_STEP_SUMMARY='' \
+    E2E_DIR="$e2e" E2E_RED="$E2E_RED" E2E_GREEN="$E2E_GREEN" \
+    bash "$ROOT/scripts/fleet-triage.sh" 2>&1; echo "$?" > "$e2e/rc")
+}
+has() { case "$2" in *"$3"*) ok "$1" ;; *) no "$1 — not in the output: $3"$'\n'"$2" ;; esac; }
+red_main0="$(git -C "$e2e/remote/$E2E_RED" rev-parse main)"; green_main0="$(git -C "$e2e/remote/$E2E_GREEN" rev-parse main)"
+e2e_out="$(e2e_run true)"
+same "the dry run finishes" "0" "$(cat "$e2e/rc")"
+has "the alarm's own minor is still handled as before" "$e2e_out" \
+  "$E2E_RED: would bump ghcr.io/open-webui/open-webui:0.12.0 -> ghcr.io/open-webui/open-webui:0.13.2@$(dgn 3)"
+has "and the pinned line's patch is offered beside it" "$e2e_out" \
+  "$E2E_RED: would bump ghcr.io/open-webui/open-webui:0.12.0 -> ghcr.io/open-webui/open-webui:0.12.5@$(dgn 2)"
+has "a pin the alarm never named is moved within its line as well" "$e2e_out" \
+  "$E2E_RED: would bump ollama/ollama:0.40.15 -> ollama/ollama:0.40.16@$(dgn 8)"
+has "a green template's pin with no version check is moved within its line" "$e2e_out" \
+  "$E2E_GREEN: would bump ghcr.io/mailu/admin:2024.06.67 -> ghcr.io/mailu/admin:2024.06.68@$(dgn 6)"
+same "a pin on a line tag (redis:7.4) sends nobody to a registry" "0" "$(grep -c '^curl .*library/redis' "$e2e/calls")"
+same "a dry run pushes nothing to the red template" "$red_main0" "$(git -C "$e2e/remote/$E2E_RED" rev-parse main)"
+same "nor to the green one" "$green_main0" "$(git -C "$e2e/remote/$E2E_GREEN" rev-parse main)"
+
+e2e_out="$(e2e_run false)"
+same "the real run finishes" "0" "$(cat "$e2e/rc")"
+same "Open WebUI's patch is on main" "1" \
+  "$(git -C "$e2e/remote/$E2E_RED" show "main:$E2E_RED.yml" | grep -c "open-webui:\${WEBUI_IMAGE_VERSION:-0.12.5@$(dgn 2)}")"
+same "its minor waits on a branch" "1" \
+  "$(git -C "$e2e/remote/$E2E_RED" show "bump/0.13.2:$E2E_RED.yml" | grep -c "open-webui:\${WEBUI_IMAGE_VERSION:-0.13.2@$(dgn 3)}")"
+same "and the branch did not take the patch with it" "0" \
+  "$(git -C "$e2e/remote/$E2E_RED" show "bump/0.13.2:$E2E_RED.yml" | grep -c '0\.12\.5')"
+same "the example's whole pin moves with it" "1" \
+  "$(git -C "$e2e/remote/$E2E_RED" show main:.env.example | grep -cxF '# WEBUI_IMAGE_TAG=ghcr.io/open-webui/open-webui:0.12.5@sha256:…')"
+same "and so does its version line" "1" \
+  "$(git -C "$e2e/remote/$E2E_RED" show main:.env.example | grep -cxF '# WEBUI_IMAGE_VERSION=0.12.5')"
+same "on the branch, the example names the minor" "1" \
+  "$(git -C "$e2e/remote/$E2E_RED" show bump/0.13.2:.env.example | grep -cxF '# WEBUI_IMAGE_TAG=ghcr.io/open-webui/open-webui:0.13.2@sha256:…')"
+same "an example that was already stale is not guessed at" "1" \
+  "$(git -C "$e2e/remote/$E2E_RED" show main:.env.example | grep -cxF '# OLLAMA_IMAGE_TAG=ollama/ollama:0.33.2@sha256:…')"
+same "Ollama moved within its line in the same commit" "1" \
+  "$(git -C "$e2e/remote/$E2E_RED" show "main:$E2E_RED.yml" | grep -c "ollama/ollama:\${OLLAMA_IMAGE_VERSION:-0.40.16@$(dgn 8)}")"
+same "Mailu's admin image is on main at 2024.06.68" "1" \
+  "$(git -C "$e2e/remote/$E2E_GREEN" show "main:$E2E_GREEN.yml" | grep -c "mailu/admin:\${ADMIN_IMAGE_VERSION:-2024.06.68@$(dgn 6)}")"
+same "its redis pin is untouched" "1" \
+  "$(git -C "$e2e/remote/$E2E_GREEN" show "main:$E2E_GREEN.yml" | grep -c "redis:\${REDIS_IMAGE_VERSION:-7.4@$(dgn 4)}")"
+same "the commit says what moved it" "fix(security): move pins to the newest patch of their own line" \
+  "$(git -C "$e2e/remote/$E2E_GREEN" log -1 --format=%s main)"
+bt='`'
+same "the changelog says it under Unreleased" "1" \
+  "$(git -C "$e2e/remote/$E2E_GREEN" show main:CHANGELOG.md | grep -cF "ghcr.io/mailu/admin:2024.06.67$bt moved to ${bt}ghcr.io/mailu/admin:2024.06.68$bt")"
+same "both pushes wait in the ledger for the next run's verdict" \
+  "$E2E_GREEN digest Deployment Verification|$E2E_RED digest Deployment Verification" \
+  "$(jq -r 'sort_by(.repo) | map("\(.repo) \(.kind) \(.wf)") | join("|")' "$e2e/pending.json")"
+same "each row names the commit on main" \
+  "$(git -C "$e2e/remote/$E2E_GREEN" rev-parse main) $(git -C "$e2e/remote/$E2E_RED" rev-parse main)" \
+  "$(jq -r 'sort_by(.repo) | map(.sha) | join(" ")' "$e2e/pending.json")"
+same "a template pushed by the refresh pass is not pushed twice" "1" \
+  "$(git -C "$e2e/remote/$E2E_RED" rev-list --count "$red_main0..main")"
+has "and the report says the green one was pushed for its line" "$e2e_out" "$E2E_GREEN: pushed patch-line refresh"
+
+# A refresh pushed and not judged yet keeps its repository out of the pass:
+# the ledger has one row per repository, and a second push would inherit it.
+e2e_remotes
+green_main0="$(git -C "$e2e/remote/$E2E_GREEN" rev-parse main)"
+waiting="$(printf '[{"repo":"%s","sha":"%s","wf":"Deployment Verification","kind":"digest","pushed_at":"%s"}]' \
+  "$E2E_GREEN" "$green_main0" "$(date -u +%Y-%m-%dT%H:%M:%SZ)")"
+e2e_out="$(e2e_run false "$waiting")"
+same "a run with an unjudged push finishes" "0" "$(cat "$e2e/rc")"
+same "that repository's main is not touched" "$green_main0" "$(git -C "$e2e/remote/$E2E_GREEN" rev-parse main)"
+same "and its row is still the one waiting" "$green_main0" \
+  "$(jq -r --arg r "$E2E_GREEN" '.[] | select(.repo == $r) | .sha' "$e2e/pending.json")"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

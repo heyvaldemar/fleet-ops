@@ -127,15 +127,23 @@ readme_version() {
 # compose file pinned, and a reader uncommenting one would have pinned the
 # past. The same narrowness as readme_version: only the variable this pin
 # declares, only where the string is exactly the tag being moved off.
+#
+# The same file also shows the whole pin as an example,
+#     # WEBUI_IMAGE_TAG=ghcr.io/open-webui/open-webui:0.11@sha256:…
+# and on 2026-11-08 sixty-one of the fleet's 115 such lines named an older tag
+# than the compose file, Open WebUI's still 0.11 over a pin at 0.12.0. That
+# line moves too, by the same rule: the X_IMAGE_TAG this X_IMAGE_VERSION
+# belongs to, and only where its tag is exactly the one being moved off.
 example_version() {
   local d="$1" var="$2" oldtag="$3" newtag="$4"
   local f="$d/.env.example"
   [ -f "$f" ] || return 0
   [ -n "$var" ] && [ -n "$oldtag" ] && [ "$oldtag" != "$newtag" ] || return 0
-  local esc tmpf
+  local esc tmpf tagvar="${var%_IMAGE_VERSION}_IMAGE_TAG"
   esc="$(printf '%s' "$oldtag" | sed -e 's/[][\.*^$|]/\\&/g')"
   tmpf="$(mktemp)"
-  sed -E "s|^(#? *${var}=)${esc}([[:space:]#].*)?$|\1${newtag}\2|" "$f" > "$tmpf"
+  sed -E -e "s|^(#? *${var}=)${esc}([[:space:]#].*)?$|\1${newtag}\2|" \
+         -e "s|^(#? *${tagvar}=[^ ]*:)${esc}(@[^ ]*)?([[:space:]#].*)?$|\1${newtag}\2\3|" "$f" > "$tmpf"
   if ! cmp -s "$f" "$tmpf"; then
     cat "$tmpf" > "$f"
     note "$repo: .env.example now names $newtag for $var where it named $oldtag"
@@ -1357,6 +1365,280 @@ lag_pair() {         # lag_pair <line> -> old<TAB>new
   printf '%s\t%s\n' "$old" "$new"
 }
 
+# A NEWER MINOR HIDES THE PATCHES OF THE ONE PINNED. A freshness alarm names
+# upstream's newest release, and when that release is on another minor line
+# the bump goes to a branch for a person. Nothing then asked whether the line
+# the pin is on had moved too. Open WebUI was pinned at 0.12.0 on 2026-11-08
+# while 0.12.1 to 0.12.5 sat published: every alarm since 11-03 named 0.13.x,
+# a branch was all that came of it, and the patches nobody had to decide on
+# were never offered. The registry is asked, not the alarm, so no template has
+# to learn to name its own line: a pin tagged with a full version gets the
+# newest tag of the same shape in its own major.minor (same prefix, same
+# suffix, a higher patch), and that rides as the patch it is.
+registry_get() {     # registry_get <url> <token or empty> <header file> <body file> -> HTTP status
+  # The token goes to curl on stdin, never as an argument: ps shows arguments
+  # to every user on the host, and the fleet's conformance reads for exactly that.
+  local out
+  out="$({ printf 'url = "%s"\n' "$1"
+           if [ -n "$2" ]; then printf 'header = "Authorization: Bearer %s"\n' "$2"; fi
+         } | curl -sS -L --max-time 30 --config - -o "$4" -D "$3" -w '%{http_code}' 2>/dev/null)" || out=000
+  printf '%s' "$out"
+}
+
+# THE LIST IS ASKED FROM THE LINE ON. The distribution spec has a registry
+# list tags in lexical order and take `last` to start after one, so every tag
+# of a line sits in one block right after its prefix: Docker Hub lists more
+# than fifty thousand tags for semitechnologies/weaviate, past the fifty pages
+# read here, and its 1.27 line is on the first page asked from "1.27.". The
+# block ends at the first tag past the prefix that does not carry it.
+# line_newest, below, checks the answer, because not every registry keeps the
+# spec's order; with a third argument the list is asked from after that tag
+# instead, read to its end.
+registry_tags() {    # registry_tags <name> [prefix [after]] -> the tags starting with prefix; non-zero if it did not answer
+  local name="$1" prefix="${2:-}" after="${3:-}" host path url hdr body code auth realm service scope tok="" page=0 next
+  case "$name" in
+    */*) host="${name%%/*}"; path="${name#*/}"
+         case "$host" in *.*|*:*|localhost) ;; *) host="docker.io"; path="$name" ;; esac ;;
+    *) host="docker.io"; path="library/$name" ;;
+  esac
+  [ "$host" = "docker.io" ] && host="registry-1.docker.io"
+  hdr="$(mktemp)"; body="$(mktemp)"
+  url="https://$host/v2/$path/tags/list?n=1000"
+  if [ -n "$after$prefix" ]; then url="$url&last=${after:-$prefix}"; fi
+  while [ -n "$url" ]; do
+    page=$((page+1))
+    if [ "$page" -gt 50 ]; then rm -f "$hdr" "$body"; return 1; fi
+    code="$(registry_get "$url" "$tok" "$hdr" "$body")"
+    if [ "$code" = 401 ] && [ -z "$tok" ]; then
+      # Anonymous pull token, the way docker itself gets one: the 401 names
+      # the realm, the service and the scope to ask it for.
+      auth="$(tr -d '\r' < "$hdr" | grep -i '^www-authenticate: *bearer' | tail -1)"
+      realm="$(sed -nE 's/.*realm="([^"]*)".*/\1/p' <<<"$auth")"
+      service="$(sed -nE 's/.*service="([^"]*)".*/\1/p' <<<"$auth")"
+      scope="$(sed -nE 's/.*scope="([^"]*)".*/\1/p' <<<"$auth")"
+      [ -n "$scope" ] || scope="repository:$path:pull"
+      if [ -n "$realm" ]; then
+        tok="$(curl -fsS --max-time 30 --get --data-urlencode "service=$service" --data-urlencode "scope=$scope" "$realm" 2>/dev/null \
+               | jq -r '.token // .access_token // empty' 2>/dev/null || true)"
+      fi
+      if [ -z "$tok" ]; then rm -f "$hdr" "$body"; return 1; fi
+      code="$(registry_get "$url" "$tok" "$hdr" "$body")"
+    fi
+    if [ "$code" != 200 ]; then rm -f "$hdr" "$body"; return 1; fi
+    if ! jq -r --arg p "$prefix" '.tags // [] | .[] | select(startswith($p))' "$body" 2>/dev/null; then rm -f "$hdr" "$body"; return 1; fi
+    if [ -z "$after" ] && [ -n "$prefix" ] && jq -e --arg p "$prefix" '[.tags // [] | .[] | select(. > $p and (startswith($p) | not))] | length > 0' "$body" >/dev/null 2>&1; then
+      break
+    fi
+    next="$(tr -d '\r' < "$hdr" | sed -nE 's/^[Ll]ink: *<([^>]*)>.*rel="?next"?.*/\1/p' | tail -1)"
+    case "$next" in
+      "") url="" ;;
+      http*) url="$next" ;;
+      *) url="https://$host$next" ;;
+    esac
+  done
+  rm -f "$hdr" "$body"
+}
+
+# line_newest <name:tag> -> old<TAB>new<TAB>line for the tag's own patch line,
+# when the registry has a higher patch of the same shape; nothing when it has
+# none or the tag is not a full version; non-zero when the registry did not
+# answer. Versions keep the tag's prefix (v) and drop its suffix (-alpine),
+# the way a freshness alarm names them, so the bump below builds the new tag
+# the same way it does for any other lag.
+line_newest() {
+  local name="${1%:*}" tag="${1##*:}" pre maj min pat suf esc tags best
+  [[ "$tag" =~ ^(v?)([0-9]+)\.([0-9]+)\.([0-9]+)(-[A-Za-z0-9._-]+)?$ ]] || return 0
+  pre="${BASH_REMATCH[1]}"; maj="${BASH_REMATCH[2]}"; min="${BASH_REMATCH[3]}"
+  pat="${BASH_REMATCH[4]}"; suf="${BASH_REMATCH[5]}"
+  if is_prerelease "$tag"; then return 0; fi
+  tags="$(registry_tags "$name" "${pre}${maj}.${min}.")" || return 1
+  # Not every registry keeps that order: ghcr.io lists tags as they were
+  # pushed and takes `last` only as a tag it has, so the block asked for came
+  # back empty for Open WebUI and Mailu, pinned tag and all. A list without
+  # the tag that is pinned is no answer. The list is then asked from after the
+  # pinned tag, which in push order is everything pushed since (two pages for
+  # Open WebUI's 1674 tags, where the whole list of immich's machine-learning
+  # image runs past fifty), and a registry that ignores `last` altogether
+  # gives its whole list that way, which is slower and still an answer.
+  if ! grep -qxF -- "$tag" <<<"$tags"; then
+    tags="$(registry_tags "$name" "${pre}${maj}.${min}." "$tag")" || return 1
+  fi
+  esc="$(printf '%s' "$suf" | sed -e 's/[][\.*^$|+?(){}]/\\&/g')"
+  best="$({ grep -E "^${pre}${maj}\.${min}\.[0-9]+${esc}\$" <<<"$tags" || true; } \
+          | sed -E "s/^${pre}${maj}\.${min}\.([0-9]+).*/\1/" | sort -n | tail -1)"
+  [ -n "$best" ] && [ "$((10#$best))" -gt "$((10#$pat))" ] || return 0
+  printf '%s%s.%s.%s\t%s%s.%s.%s\t%s.%s\n' "$pre" "$maj" "$min" "$pat" "$pre" "$maj" "$min" "$best" "$maj" "$min"
+}
+
+compose_pins() {     # compose_pins <compose...> -> every pin folded to ${X_IMAGE_TAG:-name:tag@digest}
+  grep -h -oE '\$\{[A-Z0-9_]+_IMAGE_TAG:-.*' "$@" | sed -E -e ':a' -e 's/(\$\{[A-Z0-9_]+_IMAGE_TAG:-[^{}]*)\$\{[A-Z0-9_]+:-([^{}]*)\}/\1\2/' -e 'ta' | sort -u
+}
+
+pin_line_lag() {     # pin_line_lag <var> <name:tag> -> its lag line, or nothing; non-zero when not checked
+  local got
+  if ! got="$(line_newest "$2")"; then
+    # stderr, because stdout is the list of lags; note() still files it.
+    note "$repo: $2 — its own patch line not checked, the registry did not list its tags; the next run asks again" >&2
+    return 1
+  fi
+  [ -n "$got" ] || return 0
+  printf '%s is behind its line: pinned %s, latest in %s is %s\n' \
+    "$1" "$(cut -f1 <<<"$got")" "$(cut -f3 <<<"$got")" "$(cut -f2 <<<"$got")"
+}
+
+# THE ALARM IS NOT THE ONLY WITNESS. Measured on 2026-11-08, fifteen compose
+# pins in the fleet were behind a patch of their own line and no alarm said
+# so: the ten Mailu images, Zammad's Elasticsearch, Dify's plugin daemon and
+# its Weaviate have digest checks and no version check; Nextcloud's check reads
+# releases/latest, which named the 33.0.10 maintenance release, so 35.0.1 was
+# "ahead" while 35.0.2 had been out since 10-15; Open WebUI's compared minor
+# lines over a full tag and then named only 0.13. Each template writes its
+# own check, and a check that does not know a pin's line can never go red
+# about it. The registry answers for every pin the same way.
+all_line_lags() {    # all_line_lags <compose...> -> a lag line for every pin whose own patch line has moved
+  local pin def ref var
+  while IFS= read -r pin; do
+    def="${pin#*:-}"; def="${def%\}}"
+    case "$def" in *@sha256:*) ;; *) continue ;; esac
+    ref="${def%%@*}"; var="${pin#\$\{}"; var="${var%%:-*}"
+    pin_line_lag "$var" "$ref" || true
+  done < <(compose_pins "$@")
+}
+
+# apply_lags <lags>: one repository's lag lines, each moved, prepared on a
+# branch or reported. It reads and sets the refresh pass's own variables (dir,
+# repo, composes; drift_fixed, PREPARED_MAJOR, UNRESOLVED_TAG), because it is
+# that pass's body, lifted out so the patch-line pass below runs the very same
+# rules rather than a copy of them.
+apply_lags() {
+  local lags="$1" lag
+  while IFS= read -r lag; do
+    if [ -z "$lag" ]; then continue; fi
+    oldv="$(lag_pair "$lag" | cut -f1)"
+    newv="$(lag_pair "$lag" | cut -f2)"
+    ob="${oldv#v}"; nb="${newv#v}"
+    if is_prerelease "$newv"; then
+      note "$repo: upstream names $newv as its latest, which is a pre-release whatever its flag says — not applied, not prepared; the freshness check should read stable releases only"
+      continue
+    fi
+    # THE MAJOR IS THE LINE. Inside one major, a minor or a patch rides the
+    # same commit, CI gate and revert as a digest refresh: the deploy job boots
+    # the stack on the new image before anything stays on main. Across a
+    # major, the change is made on a BRANCH and reported with its compare
+    # link, so the decision is one click and the work is already done. The
+    # freshness jobs that scope themselves to one line (mssql 2022) never
+    # report across it, so this never sees those.
+    if [ "${ob%%.*}" != "${nb%%.*}" ]; then
+      while IFS= read -r pin; do
+        def="${pin#*:-}"; def="${def%\}}"
+        case "$def" in *"$oldv"*@sha256:*) review_bump "$dir" "$repo" "${def%%@*}" "$oldv" "$newv" ;; esac
+      done < <(grep -h -oE '\$\{[A-Z0-9_]+_IMAGE_TAG:-.*' "${composes[@]}" | sed -E -e ':a' -e 's/(\$\{[A-Z0-9_]+_IMAGE_TAG:-[^{}]*)\$\{[A-Z0-9_]+:-([^{}]*)\}/\1\2/' -e 'ta' | sort -u)
+      major_branch "$oldv" "$newv"
+      continue
+    fi
+    while IFS= read -r pin; do
+      def="${pin#*:-}"; def="${def%\}}"
+      pin_lags "$pin" "$lag" "$oldv" || continue
+      ref="${def%%@*}"; olddg="${def##*@}"
+      newref="$(bumped_ref "$ref" "$oldv" "$newv")"
+      rc=0; resolve_digest "$newref" || rc=$?
+      newdg="$RESOLVED_DIGEST"
+      if [ "$rc" -ne 0 ] && [ "$rc" -ne 3 ]; then
+        # Not an unpublished tag: the registry did not say. Reported as not
+        # checked, and the bump waits for a run where it answers.
+        note "$repo: $newref not checked, the registry did not answer ($RESOLVE_WHY) — not bumped, the next run asks again"
+        UNRESOLVED_TAG=1
+        continue
+      fi
+      if [ -z "$newdg" ]; then
+        # The vendor's own freshness feed names a version whose image is not
+        # published. Nothing here can fix that and the next run retries, but it
+        # is not nothing either: a tag that never appears leaves this
+        # repository red forever, so it is said once, plainly, instead of twice
+        # as itself and again as "nothing was auto-fixable".
+        unpublished_note "$repo" "$newref" "$newv"
+        UNRESOLVED_TAG=1
+        continue
+      fi
+      # A LAG THE PIN DOES NOT HAVE IS NOT A BUMP. When the freshness check
+      # misreads a pin, the version it reports is the one already pinned, and
+      # the substitution below swapped a string for itself: "0.12.0 moved to
+      # 0.12.0" went into Ollama's changelog twice on 2026-10-13, as a commit,
+      # and once as release v1.6.11. The check is the thing to fix.
+      if [ "${ref##*:}@${olddg}" = "${newref##*:}@${newdg}" ]; then
+        note "$repo: $ref is already pinned at the digest upstream serves — the freshness check reported a lag that is not there; nothing written, the check needs a look"
+        continue
+      fi
+      if [ "$DRY_RUN" = "true" ]; then
+        note "$repo: would bump $ref -> $newref@$newdg"
+        continue
+      fi
+      # Upstream first. A verdict of DO NOT APPLY UNATTENDED turns this bump
+      # into a prepared branch, exactly as a major: the CI gate proves a fresh
+      # start and the upgrade drill proves the data path, but neither reads a
+      # release note that says "rename this variable before you start".
+      review_bump "$dir" "$repo" "$ref" "$oldv" "$newv"
+      case "$REVIEW_VERDICT" in
+        "DO NOT APPLY UNATTENDED"*)
+          note "$repo: $ref $oldv -> $newv is inside a major but the upstream review says do not apply unattended — prepared on a branch instead"
+          major_branch "$oldv" "$newv"
+          # BREAK, NOT CONTINUE. major_branch takes every pin carrying this
+          # version onto the branch, so the remaining pins in this loop are
+          # already handled and must not also be bumped on main. Continuing
+          # here is how GitLab's runner reached main at 19.4.0 on 2026-09-18
+          # while the server it is supposed to track stayed at 19.3.2 — the
+          # server was held for review, the runner walked past it, and the
+          # review attached to that same run was the thing warning against
+          # exactly that.
+          break ;;
+        "SAFE TO APPLY"*) ;;
+        *)
+          # crosses_minor, above: a minor needs the review's SAFE TO APPLY.
+          if crosses_minor "$ob" "$nb"; then
+            said="${REVIEW_VERDICT%% —*}"
+            note "$repo: $ref $oldv -> $newv crosses a minor and the upstream review is ${said:-missing}, not SAFE TO APPLY — prepared on a branch instead"
+            major_branch "$oldv" "$newv"
+            break
+          fi ;;
+      esac
+      # A BUMP THAT EDITED NOTHING IS NOT A BUMP. Skipping a compose file that
+      # does not carry the old version and digest is right; running the lines
+      # below anyway was not. Until 2026-09-13 the report said "version bump",
+      # the changelog announced the new version, the CI gate passed and a
+      # release went out, while the pin on main had never moved. The gate
+      # passed because nothing had changed, which is all a gate can prove when
+      # the change it guards never happened.
+      #
+      # GitLab shipped v1.6.6 that way. The freshness check reports the version
+      # as 19.3.1 while the image tag is 19.3.1-ee.0, so the substitution built
+      # from the reported version matched nothing, and the release announced
+      # 19.3.2 over a file still pinning 19.3.1.
+      # The tag, for the reason written against the same substitution in
+      # major_branch: the reported version and the image tag are not always
+      # the same string, and the file contains the tag.
+      oldtag="${ref##*:}"; newtag="${newref##*:}"
+      bumped=0
+      for _c in "${composes[@]}"; do
+        grep -q "${oldtag}@${olddg}" "$_c" || continue
+        tmpf="$(mktemp)"
+        sed "s|${oldtag}@${olddg}|${newtag}@${newdg}|" "$_c" > "$tmpf"
+        cat "$tmpf" > "$_c"; rm -f "$tmpf"
+        bumped=1
+      done
+      if [ "$bumped" -eq 0 ]; then
+        note "$repo: $ref $oldv -> $newv could NOT be applied — no compose file carries ${oldtag}@${olddg}, so the pin was left alone and nothing was written. Needs a person."
+        continue
+      fi
+      readme_version "$dir" "$oldv" "$newv"
+      vervar="${pin#\$\{}"; vervar="${vervar%%:-*}"; vervar="${vervar%_IMAGE_TAG}_IMAGE_VERSION"
+      example_version "$dir" "$vervar" "$oldtag" "$newtag"
+      note "$repo: version bump $ref -> $newref"
+      changelog_line "$dir" "Changed" "- **\`${ref}\` moved to \`${newref}\`.** The freshness check reported the lag; the deploy job booted the stack on the new image before this landed."
+      drift_fixed=1
+    done < <(grep -h -oE '\$\{[A-Z0-9_]+_IMAGE_TAG:-.*' "${composes[@]}" | sed -E -e ':a' -e 's/(\$\{[A-Z0-9_]+_IMAGE_TAG:-[^{}]*)\$\{[A-Z0-9_]+:-([^{}]*)\}/\1\2/' -e 'ta' | sort -u)
+  done <<<"$lags"
+}
+
 if [ -n "${FLEET_TEST_SOURCE_ONLY:-}" ]; then return 0; fi
 
 list_repos
@@ -1487,6 +1769,7 @@ if [ "$RERUns" -eq 0 ]; then echo "- nothing rerun" >> "$REPORT"; fi
 section "Pin refreshes (digest repushes + releases inside a major)"
 NOT_REACHED=()
 PREPARED_THIS_RUN=()
+LINE_DONE=()
 SWEPT=0
 for repo in "${REPOS[@]}"; do
   # Each refresh below pushes and then waits for that repository's whole CI,
@@ -1610,131 +1893,15 @@ for repo in "${REPOS[@]}"; do
   # the same major.minor ride the same commit and CI gate as digest
   # refreshes. Anything wider is a decision, not a chore — reported only.
   lags="$( (gh run view "$frid" --repo "$OWNER/$repo" --log 2>/dev/null || true) | lag_lines)"
-  while IFS= read -r lag; do
-    if [ -z "$lag" ]; then continue; fi
-    oldv="$(lag_pair "$lag" | cut -f1)"
-    newv="$(lag_pair "$lag" | cut -f2)"
-    ob="${oldv#v}"; nb="${newv#v}"
-    if is_prerelease "$newv"; then
-      note "$repo: upstream names $newv as its latest, which is a pre-release whatever its flag says — not applied, not prepared; the freshness check should read stable releases only"
-      continue
-    fi
-    # THE MAJOR IS THE LINE. Inside one major, a minor or a patch rides the
-    # same commit, CI gate and revert as a digest refresh: the deploy job boots
-    # the stack on the new image before anything stays on main. Across a
-    # major, the change is made on a BRANCH and reported with its compare
-    # link, so the decision is one click and the work is already done. The
-    # freshness jobs that scope themselves to one line (mssql 2022) never
-    # report across it, so this never sees those.
-    if [ "${ob%%.*}" != "${nb%%.*}" ]; then
-      while IFS= read -r pin; do
-        def="${pin#*:-}"; def="${def%\}}"
-        case "$def" in *"$oldv"*@sha256:*) review_bump "$dir" "$repo" "${def%%@*}" "$oldv" "$newv" ;; esac
-      done < <(grep -h -oE '\$\{[A-Z0-9_]+_IMAGE_TAG:-.*' "${composes[@]}" | sed -E -e ':a' -e 's/(\$\{[A-Z0-9_]+_IMAGE_TAG:-[^{}]*)\$\{[A-Z0-9_]+:-([^{}]*)\}/\1\2/' -e 'ta' | sort -u)
-      major_branch "$oldv" "$newv"
-      continue
-    fi
-    while IFS= read -r pin; do
-      def="${pin#*:-}"; def="${def%\}}"
-      pin_lags "$pin" "$lag" "$oldv" || continue
-      ref="${def%%@*}"; olddg="${def##*@}"
-      newref="$(bumped_ref "$ref" "$oldv" "$newv")"
-      rc=0; resolve_digest "$newref" || rc=$?
-      newdg="$RESOLVED_DIGEST"
-      if [ "$rc" -ne 0 ] && [ "$rc" -ne 3 ]; then
-        # Not an unpublished tag: the registry did not say. Reported as not
-        # checked, and the bump waits for a run where it answers.
-        note "$repo: $newref not checked, the registry did not answer ($RESOLVE_WHY) — not bumped, the next run asks again"
-        UNRESOLVED_TAG=1
-        continue
-      fi
-      if [ -z "$newdg" ]; then
-        # The vendor's own freshness feed names a version whose image is not
-        # published. Nothing here can fix that and the next run retries, but it
-        # is not nothing either: a tag that never appears leaves this
-        # repository red forever, so it is said once, plainly, instead of twice
-        # as itself and again as "nothing was auto-fixable".
-        unpublished_note "$repo" "$newref" "$newv"
-        UNRESOLVED_TAG=1
-        continue
-      fi
-      # A LAG THE PIN DOES NOT HAVE IS NOT A BUMP. When the freshness check
-      # misreads a pin, the version it reports is the one already pinned, and
-      # the substitution below swapped a string for itself: "0.12.0 moved to
-      # 0.12.0" went into Ollama's changelog twice on 2026-10-13, as a commit,
-      # and once as release v1.6.11. The check is the thing to fix.
-      if [ "${ref##*:}@${olddg}" = "${newref##*:}@${newdg}" ]; then
-        note "$repo: $ref is already pinned at the digest upstream serves — the freshness check reported a lag that is not there; nothing written, the check needs a look"
-        continue
-      fi
-      if [ "$DRY_RUN" = "true" ]; then
-        note "$repo: would bump $ref -> $newref@$newdg"
-        continue
-      fi
-      # Upstream first. A verdict of DO NOT APPLY UNATTENDED turns this bump
-      # into a prepared branch, exactly as a major: the CI gate proves a fresh
-      # start and the upgrade drill proves the data path, but neither reads a
-      # release note that says "rename this variable before you start".
-      review_bump "$dir" "$repo" "$ref" "$oldv" "$newv"
-      case "$REVIEW_VERDICT" in
-        "DO NOT APPLY UNATTENDED"*)
-          note "$repo: $ref $oldv -> $newv is inside a major but the upstream review says do not apply unattended — prepared on a branch instead"
-          major_branch "$oldv" "$newv"
-          # BREAK, NOT CONTINUE. major_branch takes every pin carrying this
-          # version onto the branch, so the remaining pins in this loop are
-          # already handled and must not also be bumped on main. Continuing
-          # here is how GitLab's runner reached main at 19.4.0 on 2026-09-18
-          # while the server it is supposed to track stayed at 19.3.2 — the
-          # server was held for review, the runner walked past it, and the
-          # review attached to that same run was the thing warning against
-          # exactly that.
-          break ;;
-        "SAFE TO APPLY"*) ;;
-        *)
-          # crosses_minor, above: a minor needs the review's SAFE TO APPLY.
-          if crosses_minor "$ob" "$nb"; then
-            said="${REVIEW_VERDICT%% —*}"
-            note "$repo: $ref $oldv -> $newv crosses a minor and the upstream review is ${said:-missing}, not SAFE TO APPLY — prepared on a branch instead"
-            major_branch "$oldv" "$newv"
-            break
-          fi ;;
-      esac
-      # A BUMP THAT EDITED NOTHING IS NOT A BUMP. Skipping a compose file that
-      # does not carry the old version and digest is right; running the lines
-      # below anyway was not. Until 2026-09-13 the report said "version bump",
-      # the changelog announced the new version, the CI gate passed and a
-      # release went out, while the pin on main had never moved. The gate
-      # passed because nothing had changed, which is all a gate can prove when
-      # the change it guards never happened.
-      #
-      # GitLab shipped v1.6.6 that way. The freshness check reports the version
-      # as 19.3.1 while the image tag is 19.3.1-ee.0, so the substitution built
-      # from the reported version matched nothing, and the release announced
-      # 19.3.2 over a file still pinning 19.3.1.
-      # The tag, for the reason written against the same substitution in
-      # major_branch: the reported version and the image tag are not always
-      # the same string, and the file contains the tag.
-      oldtag="${ref##*:}"; newtag="${newref##*:}"
-      bumped=0
-      for _c in "${composes[@]}"; do
-        grep -q "${oldtag}@${olddg}" "$_c" || continue
-        tmpf="$(mktemp)"
-        sed "s|${oldtag}@${olddg}|${newtag}@${newdg}|" "$_c" > "$tmpf"
-        cat "$tmpf" > "$_c"; rm -f "$tmpf"
-        bumped=1
-      done
-      if [ "$bumped" -eq 0 ]; then
-        note "$repo: $ref $oldv -> $newv could NOT be applied — no compose file carries ${oldtag}@${olddg}, so the pin was left alone and nothing was written. Needs a person."
-        continue
-      fi
-      readme_version "$dir" "$oldv" "$newv"
-      vervar="${pin#\$\{}"; vervar="${vervar%%:-*}"; vervar="${vervar%_IMAGE_TAG}_IMAGE_VERSION"
-      example_version "$dir" "$vervar" "$oldtag" "$newtag"
-      note "$repo: version bump $ref -> $newref"
-      changelog_line "$dir" "Changed" "- **\`${ref}\` moved to \`${newref}\`.** The freshness check reported the lag; the deploy job booted the stack on the new image before this landed."
-      drift_fixed=1
-    done < <(grep -h -oE '\$\{[A-Z0-9_]+_IMAGE_TAG:-.*' "${composes[@]}" | sed -E -e ':a' -e 's/(\$\{[A-Z0-9_]+_IMAGE_TAG:-[^{}]*)\$\{[A-Z0-9_]+:-([^{}]*)\}/\1\2/' -e 'ta' | sort -u)
-  done <<<"$lags"
+  # all_line_lags, above: every pin's own patch line, asked of the registry.
+  # Read AFTER the alarm's own lines, so a minor that rides to main moves the
+  # pin first and its line's patch then finds nothing left to move, while a
+  # minor held for a person leaves the pin where it was and the patch moves it
+  # on main. The patch-line pass below then leaves this repository alone.
+  line_extra="$(all_line_lags "${composes[@]}")"
+  LINE_DONE+=("$repo")
+  if [ -n "$line_extra" ]; then lags="$lags"$'\n'"$line_extra"; fi
+  apply_lags "$lags"
 
   if [ "$drift_fixed" -eq 1 ]; then
     if [ "$DRY_RUN" = "true" ]; then
@@ -1773,6 +1940,61 @@ instead and never bumped automatically."
   fi
 done
 if [ "$REFRESHED" -eq 0 ]; then echo "- nothing refreshed" >> "$REPORT"; fi
+
+# PATCH LINES, ASKED OF THE REGISTRY FOR EVERY TEMPLATE. all_line_lags, above,
+# says why the alarms are not enough. This comes after the refresh pass, so a
+# red repository is handled by its own alarm first and the budget goes there
+# first, and a repository that pass already asked about is not asked again. A
+# repository with a pushed refresh nobody has judged yet is left alone: the
+# ledger keeps one row per repository, and a second push would take the first
+# one's verdict as its own; its lines are asked about once that is judged. Every lag found goes through apply_lags,
+# the refresh pass's own rules: the upstream review, a patch rides unless it
+# says do not, and the next run judges the commit, cuts the release or reverts.
+section "Patch lines (every pin with a full version, asked of its registry)"
+LINE_SEEN=0
+for repo in "${REPOS[@]}"; do
+  case "$repo" in *-terraform|*-docker) continue ;; esac
+  if ! budget_left; then
+    case " ${NOT_REACHED[*]:-} " in *" $repo "*) ;; *) NOT_REACHED+=("$repo") ;; esac
+    continue
+  fi
+  case " ${LINE_DONE[*]:-} " in *" $repo "*) continue ;; esac
+  if jq -e --arg r "$repo" 'any(.[]?; .repo == $r)' "$PENDING" >/dev/null 2>&1; then continue; fi
+  if ! dir="$(workdir_for "$repo")"; then
+    note "$repo: could not be cloned, so its patch lines were not checked this run"
+    continue
+  fi
+  composes=()
+  while IFS= read -r _f; do
+    [ -n "$_f" ] && composes+=("$_f")
+  done < <(find "$dir" -maxdepth 1 -name '*.yml' | sort)
+  [ "${#composes[@]}" -gt 0 ] || continue
+  lags="$(all_line_lags "${composes[@]}")"
+  [ -n "$lags" ] || continue
+  LINE_SEEN=1
+  drift_fixed=0 PREPARED_MAJOR=0 UNRESOLVED_TAG=0
+  apply_lags "$lags"
+  [ "$drift_fixed" -eq 1 ] || continue
+  if [ "$DRY_RUN" = "true" ]; then
+    note "$repo: would commit and push the patch-line refresh"
+    continue
+  fi
+  if ! git -C "$dir" -c user.name="$GIT_AUTHOR" -c user.email="$GIT_EMAIL" \
+      commit -aqm "fix(security): move pins to the newest patch of their own line
+
+The registry lists a newer patch in the line each of these pins is on,
+and the freshness check did not report it: it compares another way, or
+not at all. The deploy job boots and smoke-tests the new combination
+before this stays on main, and the next triage run cuts the release or
+reverts." || ! git -C "$dir" push -q origin main; then
+    note "$repo: the patch-line refresh could not be committed or pushed — needs a human"
+    continue
+  fi
+  sha="$(git -C "$dir" rev-parse HEAD)"
+  pending_add "$repo" "$sha" "$(workflow_for "$repo")" "digest"
+  note "$repo: pushed patch-line refresh $sha — its CI is judged at the next run, which also cuts the release or reverts"
+done
+if [ "$LINE_SEEN" -eq 0 ]; then echo "- no pin is behind its own line" >> "$REPORT"; fi
 
 section "Prepared branches"
 for repo in "${REPOS[@]}"; do sweep_prepared_branches "$repo"; done

@@ -10,6 +10,40 @@ check or a job, a patch fixes one.
 ## [Unreleased]
 
 ### Added
+- **Triage asks the registry for every pin's own patch line.** A template's
+  freshness check names one version, upstream's newest, and a check that does
+  not know a pin's line can never go red about it. Measured on 2026-11-08,
+  fifteen compose pins were behind a newer patch of their own major.minor and
+  no alarm said so: the ten Mailu images (2024.06.67, .68 out), Zammad's
+  Elasticsearch, Dify's plugin daemon and Weaviate have digest checks and no
+  version check; Nextcloud's check reads `releases/latest`, which named the
+  33.0.10 maintenance release, so 35.0.1 counted as ahead while 35.0.2 had
+  been out since 10-15; Open WebUI's check cut a full tag (0.12.0) to its
+  minor line, so 0.12.1 to 0.12.5 never showed, and once 0.13 was out the
+  alarm named only 0.13 and a branch was all that came of it. Every pin
+  tagged with a full version is now looked up in its registry (Docker Hub,
+  ghcr.io, quay.io, mcr.microsoft.com, any v2 registry, anonymous token,
+  passed to curl on stdin), and the newest tag of the same shape in the same
+  major.minor (same prefix, same suffix, a higher patch, no pre-release)
+  becomes a lag line naming that pin's variable. It runs through the refresh
+  pass's own rules: the upstream review, a patch rides to main unless the
+  review says do not, the next run judges the push and cuts the release or
+  reverts. A red template gets it beside its alarm, read after the alarm so a
+  minor that rides moves the pin first. Every other template gets it in a
+  pass of its own after the refresh pass, skipped while it has a push nobody
+  has judged yet, because the ledger keeps one row per repository. The list
+  is asked from the line's prefix (`last=1.27.`), which puts Weaviate's line
+  on the first page of more than fifty thousand tags; ghcr.io keeps tags in
+  push order and answers that with nothing, so a block without the pinned
+  tag is asked again from after that tag, which in push order is everything
+  pushed since (two pages of Open WebUI's 1674). A registry that does not
+  answer is reported as not checked, never as current. The `.env.example`
+  whole-pin example (`# X_IMAGE_TAG=name:tag@sha256:…`) now moves with the
+  pin the same way the `X_IMAGE_VERSION` line does, on an exact match: 61 of the
+  fleet's 115 such lines are stale today and are left for a sweep. 64 new
+  cases in `tests/test-triage.sh` (222), among them the whole script run dry
+  and for real on a red and a green template against fake gh, docker, curl
+  and local git remotes.
 - **Conformance: no secret on a command line.** Every repository's shipped
   scripts, compose files, Dockerfiles, entrypoints and `*.tpl`, and at a
   level of its own its tests, are read for a secret handed to a program as an
