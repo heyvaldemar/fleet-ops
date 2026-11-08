@@ -1,1 +1,31 @@
-[]
+[
+  {
+    "repo": "bitbucket-traefik-letsencrypt-docker-compose",
+    "sha": "67ba94cfe9ab6fee69a183b318a4d3eef43fcd7d",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-08T13:55:46Z"
+  },
+  {
+    "repo": "dashy-traefik-letsencrypt-docker-compose",
+    "sha": "5c1f767b6912714bc631459862f8e40850cb2212",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-08T13:56:10Z",
+    "review": "\n## Upstream changes 4.9.15 -> 4.9.17\n\n**Verdict:** SAFE TO APPLY \u2014 only a UI bug fix and dev/transitive dependency bumps; the image config itself is unchanged.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none. No database, cache, or other companion service version requirements appear in these commits.\n\n### Before applying\n- Update the pin: `DASHY_IMAGE_VERSION=4.9.17` (or the `x-images` default in the compose file), matching the documented pattern in `.env.example`. No other action needed.\n- Optional: confirm sub-page navigation works as expected after upgrade, since the one functional fix \u2014 \"\ud83d\udc1b Fixes a slow sub-page load replacing the page navigated to\" \u2014 touches that code path, but it is a fix, not a behaviour change requiring host-side action.\n\n### Notes read\n- Commit log from the compare API between 4.9.15 and 4.9.17 (Lissy93/dashy), used as the record since \"no release notes were found for these tags.\"\n"
+  },
+  {
+    "repo": "glpi-traefik-letsencrypt-docker-compose",
+    "sha": "2b66112c6be1cc31fa5aa98a167104581b2206d6",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-08T13:56:28Z"
+  },
+  {
+    "repo": "zabbix-traefik-letsencrypt-docker-compose",
+    "sha": "c7a910abbb47aceba8e801ce2ca290d72767501f",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-08T13:58:00Z"
+  }
+]
