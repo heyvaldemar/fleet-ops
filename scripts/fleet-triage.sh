@@ -268,6 +268,36 @@ review_bump() {
   fi
 }
 
+# WHAT A REGISTRY SAID IS NOT WHAT IT FAILED TO SAY. Every digest here used to
+# be read as `imagetools inspect ... 2>/dev/null || true`, so any refusal - a
+# 429 from Docker Hub after a burst of anonymous requests, a timeout, a 5xx,
+# an auth hiccup - came back as an empty digest, and an empty digest was read
+# as "this tag is not published yet". A new release was then reported as
+# announced but unpublished while the registry had only not answered.
+# resolve_digest <ref>: 0 with RESOLVED_DIGEST set when the registry names a
+# digest; 3 when it says there is no such manifest or tag; 4, with RESOLVE_WHY,
+# for anything else. 4 is "not checked": never "current", never "unpublished".
+resolve_digest() {
+  local out err rc=0
+  RESOLVED_DIGEST=""; RESOLVE_WHY=""
+  err="$(mktemp)"
+  out="$(docker buildx imagetools inspect "$1" --format '{{json .Manifest}}' 2>"$err")" || rc=$?
+  if [ "$rc" -eq 0 ]; then
+    rm -f "$err"
+    RESOLVED_DIGEST="$(jq -r '.digest // empty' <<<"$out" 2>/dev/null || true)"
+    [ -n "$RESOLVED_DIGEST" ] && return 0
+    RESOLVE_WHY="the registry answered without a digest"
+    return 4
+  fi
+  RESOLVE_WHY="$(tr -s '\n' ' ' < "$err" | sed -E 's/[[:space:]]+$//' | cut -c1-160)"
+  rm -f "$err"
+  case "$RESOLVE_WHY" in
+    *"manifest unknown"*|*"MANIFEST_UNKNOWN"*|*": not found"*|*"NAME_UNKNOWN"*) return 3 ;;
+  esac
+  [ -n "$RESOLVE_WHY" ] || RESOLVE_WHY="docker exited $rc and said nothing"
+  return 4
+}
+
 # A major bump is prepared, never landed: the compose file and the changelog
 # are changed on a branch, pushed, and the compare link goes to the report.
 # Opening the pull request is the decision, and it is one click.
@@ -302,8 +332,12 @@ major_branch() {
     case "$def" in *"$oldv"*@sha256:*) ;; *) continue ;; esac
     ref="${def%%@*}"; olddg="${def##*@}"
     newref="$(bumped_ref "$ref" "$oldv" "$newv")"
-    newdg="$(docker buildx imagetools inspect "$newref" --format '{{json .Manifest}}' 2>/dev/null | jq -r '.digest // empty' || true)"
-    [ -n "$newdg" ] || { note "$repo: $newref does not resolve yet — nothing prepared"; continue; }
+    rc=0; resolve_digest "$newref" || rc=$?
+    case "$rc" in
+      0) newdg="$RESOLVED_DIGEST" ;;
+      3) note "$repo: $newref does not resolve yet — nothing prepared"; continue ;;
+      *) note "$repo: $newref not checked, the registry did not answer ($RESOLVE_WHY) — nothing prepared, the next run asks again"; continue ;;
+    esac
     if [ "$DRY_RUN" = "true" ]; then note "$repo: would prepare branch $br for $ref -> $newref"; continue; fi
     # THE TAG, NOT THE REPORTED VERSION. A freshness check reports the version
     # it compares, and several of them strip a suffix to get it: GitLab's says
@@ -444,8 +478,12 @@ terraform_refresh() {
     pin="$(grep -m1 -oE "^${var}=.*" "$dir/ci-images.pins" 2>/dev/null | sed -E "s/^${var}=//" || true)"
     case "$pin" in *@sha256:*) ;; *) continue ;; esac
     ref="${pin%%@*}"; olddg="${pin##*@}"
-    newdg="$(docker buildx imagetools inspect "$ref" --format '{{json .Manifest}}' 2>/dev/null | jq -r '.digest // empty' || true)"
-    [ -n "$newdg" ] || { note "$repo: $ref did not resolve — registry hiccup, needs a human"; continue; }
+    rc=0; resolve_digest "$ref" || rc=$?
+    case "$rc" in
+      0) newdg="$RESOLVED_DIGEST" ;;
+      3) note "$repo: $ref did not resolve — the registry has no such tag any more, needs a human"; continue ;;
+      *) note "$repo: $ref not checked, the registry did not answer ($RESOLVE_WHY) — the next run asks again"; continue ;;
+    esac
     [ "$newdg" = "$olddg" ] && continue
     if [ "$DRY_RUN" = "true" ]; then note "$repo: would refresh $var ($olddg -> $newdg)"; continue; fi
     sed -i "s|${olddg}|${newdg}|" "$dir/ci-images.pins"
@@ -479,8 +517,12 @@ terraform_refresh() {
         # The line the image is tagged with, not a patch: hashicorp/terraform:1.16
         local newref newdg2
         newref="${tfimage%%:*}:${newv}"
-        newdg2="$(docker buildx imagetools inspect "$newref" --format '{{json .Manifest}}' 2>/dev/null | jq -r '.digest // empty' || true)"
-        [ -n "$newdg2" ] || { note "$repo: $newref does not resolve yet — skipping this bump"; continue; }
+        rc=0; resolve_digest "$newref" || rc=$?
+        case "$rc" in
+          0) newdg2="$RESOLVED_DIGEST" ;;
+          3) note "$repo: $newref does not resolve yet — skipping this bump"; continue ;;
+          *) note "$repo: $newref not checked, the registry did not answer ($RESOLVE_WHY) — skipping this bump, the next run asks again"; continue ;;
+        esac
         if [ "$DRY_RUN" = "true" ]; then note "$repo: would move TERRAFORM_IMAGE $oldv -> $newv"; continue; fi
         sed -i "s|^TERRAFORM_IMAGE=.*|TERRAFORM_IMAGE=${newref}@${newdg2}|" "$dir/ci-images.pins"
         note "$repo: TERRAFORM_IMAGE moved $oldv -> $newv"
@@ -771,10 +813,12 @@ image_refresh() {    # <dir> <repo> <freshness log file>; sets IMG_CHANGED and I
       *:*) ;;
       *) note "$repo: $pin is pinned by digest with no tag to follow — needs a human"; IMG_NOTED=1; continue ;;
     esac
-    newdg="$(docker buildx imagetools inspect "$ref" --format '{{json .Manifest}}' 2>/dev/null | jq -r '.digest // empty' || true)"
-    if [ -z "$newdg" ]; then
-      note "$repo: $ref did not resolve — registry hiccup or dead tag, needs a human"; IMG_NOTED=1; continue
-    fi
+    rc=0; resolve_digest "$ref" || rc=$?
+    case "$rc" in
+      0) newdg="$RESOLVED_DIGEST" ;;
+      3) note "$repo: $ref did not resolve — the registry has no such tag, a dead tag, needs a human"; IMG_NOTED=1; continue ;;
+      *) note "$repo: $ref not checked, the registry did not answer ($RESOLVE_WHY) — the next run asks again"; IMG_NOTED=1; continue ;;
+    esac
     [ "$newdg" = "$olddg" ] && continue
     IMG_NOTED=1
     if ! oldtc="$(image_toolchain "$ref@$olddg")" || ! newtc="$(image_toolchain "$ref@$newdg")"; then
@@ -1530,8 +1574,12 @@ for repo in "${REPOS[@]}"; do
     def="${pin#*:-}"; def="${def%\}}"
     case "$def" in *@sha256:*) ;; *) continue ;; esac
     ref="${def%%@*}"; old_digest="${def##*@}"
-    new_digest="$(docker buildx imagetools inspect "$ref" --format '{{json .Manifest}}' 2>/dev/null | jq -r '.digest // empty' || true)"
-    [ -n "$new_digest" ] || { note "$repo: $ref did not resolve — registry hiccup or dead tag, needs a human"; continue; }
+    rc=0; resolve_digest "$ref" || rc=$?
+    case "$rc" in
+      0) new_digest="$RESOLVED_DIGEST" ;;
+      3) note "$repo: $ref did not resolve — the registry has no such tag, a dead tag, needs a human"; continue ;;
+      *) note "$repo: $ref not checked, the registry did not answer ($RESOLVE_WHY) — the next run asks again"; continue ;;
+    esac
     if [ "$new_digest" != "$old_digest" ]; then
       for _c in "${composes[@]}"; do
         grep -q "@${old_digest}" "$_c" || continue
@@ -1591,7 +1639,15 @@ for repo in "${REPOS[@]}"; do
       pin_lags "$pin" "$lag" "$oldv" || continue
       ref="${def%%@*}"; olddg="${def##*@}"
       newref="$(bumped_ref "$ref" "$oldv" "$newv")"
-      newdg="$(docker buildx imagetools inspect "$newref" --format '{{json .Manifest}}' 2>/dev/null | jq -r '.digest // empty' || true)"
+      rc=0; resolve_digest "$newref" || rc=$?
+      newdg="$RESOLVED_DIGEST"
+      if [ "$rc" -ne 0 ] && [ "$rc" -ne 3 ]; then
+        # Not an unpublished tag: the registry did not say. Reported as not
+        # checked, and the bump waits for a run where it answers.
+        note "$repo: $newref not checked, the registry did not answer ($RESOLVE_WHY) — not bumped, the next run asks again"
+        UNRESOLVED_TAG=1
+        continue
+      fi
       if [ -z "$newdg" ]; then
         # The vendor's own freshness feed names a version whose image is not
         # published. Nothing here can fix that and the next run retries, but it

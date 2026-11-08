@@ -10,6 +10,22 @@ check or a job, a patch fixes one.
 ## [Unreleased]
 
 ### Added
+- **Conformance: no secret on a command line.** Every repository's shipped
+  scripts, compose files, Dockerfiles, entrypoints and `*.tpl`, and at a
+  level of its own its tests, are read for a secret handed to a program as an
+  argument, where every user on the host reads it with `ps`: a MySQL or
+  MariaDB client given `-p`, `--password=`, `docker -e NAME=value` for a name
+  with PASS, PWD, SECRET, TOKEN, KEY or CRED in it, `env`/`sudo NAME=value`,
+  `sqlcmd -P`, an `Authorization` header built from a variable, `mc alias set`
+  with the secret key, a secret in `sed`'s arguments, a crontab line carrying
+  one, a Source server's `+rcon_password`, and a secret compose interpolates
+  into `command:` or `entrypoint:`. `redis-server` is let through by
+  measurement: it overwrites its own arguments as it starts. A line may be
+  declared with `# conformance: allow-argv-secret - <why>`. Found on
+  2026-11-08 in 26 repositories of the fleet and the shared `tests/dr-drill.sh`
+  of 47; every one fixed on main before this rule went live. Fourteen new cases
+  in `tests/test-conformance.sh`, the planted text written in pieces so this
+  repository does not trip its own rule.
 - **Triage refreshes the base image digests of an image repository.**
   kubectl-docker, os-shell-docker, minio-client-docker and jmx-exporter-docker
   have no compose file; their bases are `FROM tag@sha256` lines in the
@@ -113,6 +129,16 @@ check or a job, a patch fixes one.
   that the unregistered ones hold no code to rate.
 
 ### Fixed
+- **Triage tells "no such tag" from "the registry did not answer".** Every
+  digest was read as `imagetools inspect ... 2>/dev/null || true`, so any
+  refusal, a Docker Hub 429 included, came back empty and was reported as a
+  tag not published yet. `resolve_digest` now returns the digest, "no such
+  manifest" (manifest unknown, not found) or "not checked" with the
+  registry's reason, and every caller says which: a 429 is never "current"
+  and never "unpublished". Ten new cases in `tests/test-triage.sh`; with the
+  old reading restored, six of them fail.
+- **`verify-mapping.sh` sends the GitHub token in a curl config file**, not as
+  `-H` on curl's command line.
 - **The public heartbeat no longer asks about private repositories.** Its
   sweep looked for stuck Dependabot pull requests and dead schedules in the
   private repositories too, and a finding there carries the repository's name

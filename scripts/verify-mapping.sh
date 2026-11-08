@@ -6,10 +6,16 @@ set -euo pipefail
 repo="$1"
 pin="$2"
 api="https://api.github.com/repos/$repo"
-auth=(-H "Authorization: Bearer ${GITHUB_TOKEN:?}")
 lower() { tr '[:upper:]' '[:lower:]' <<<"$1"; }
 body=$(mktemp)
-trap 'rm -f "$body"' EXIT
+# THE TOKEN GOES TO CURL IN A FILE, NOT AS -H ON ITS COMMAND LINE, where every
+# user on the machine reads it with ps for as long as the request runs. mktemp
+# makes the file 600, and printf is bash's own, so writing it shows the token
+# to no process either.
+auth_file=$(mktemp)
+trap 'rm -f "$body" "$auth_file"' EXIT
+printf 'header = "Authorization: Bearer %s"\n' "${GITHUB_TOKEN:?}" > "$auth_file"
+auth=(-K "$auth_file")
 
 code=$(curl -sSL -o "$body" -w '%{http_code}' "${auth[@]}" "$api" || true)   # a transport failure prints 000
 case "$code" in

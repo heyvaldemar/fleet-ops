@@ -573,5 +573,83 @@ d="$(fixture heapnotitzg)"; tag_all "$d"; heap_in "$d" <<'YML'
 YML
 expect_clean "$WORK/heapnotitzg"
 
+# NO SECRET ON A COMMAND LINE. Each case plants one shape the fleet carried
+# until 2026-11-08 into a shipped script, a test or the compose file. The
+# planted text is assembled from pieces ('-''p', 'P''ASSWORD'): written whole,
+# this file would be the violation, since fleet-ops is under the same rule.
+put() {             # put <repo-dir> <path> <line>: a script holding one line
+  mkdir -p "$(dirname "$1/$2")"
+  printf '#!/bin/sh\n%s\n' "$3" > "$1/$2"
+}
+P='P''ASSWORD'
+d="$(fixture argvdump)"; tag_all "$d"; put "$d" tools/dump.sh "mariadb-dump -u app -""p\"\$DB_$P\" appdb"
+expect "a MariaDB client given its password as dash-p is caught" "$WORK/argvdump" "a MySQL/MariaDB client given its password as -p"
+d="$(fixture argvlong)"; tag_all "$d"; put "$d" tools/ping.sh "mysqladmin ping --pass""word=\$DB_$P"
+expect "a password given as a long password option is caught" "$WORK/argvlong" "a password given as --password"
+d="$(fixture argvenv)"; tag_all "$d"; put "$d" restore.sh "docker exec -e MYSQL_P""WD=\"\$DB_PASS\" backups sh -c true"
+expect "docker -e with MYSQL_PWD and its value (no PASS in the name) is caught" "$WORK/argvenv" "a secret handed to -e NAME=value"
+d="$(fixture argvsudo)"; tag_all "$d"; put "$d" templates/user_data.sh.tpl "sudo PG$P=\$DB_$P psql -U app"
+expect "an assignment of PGPASSWORD handed to sudo is caught" "$WORK/argvsudo" "a secret set through env/sudo NAME=value"
+d="$(fixture argvsqlcmd)"; tag_all "$d"; put "$d" tools/q.sh "sqlcmd -S db -U sa -""P \"\$SA_$P\" -Q 'SELECT 1'"
+expect "sqlcmd given its password as dash-P is caught" "$WORK/argvsqlcmd" "sqlcmd given its password as -P"
+d="$(fixture argvbearer)"; tag_all "$d"; put "$d" init/init.sh "H=\"Author""ization: Bearer \${ADMIN_TOKEN}\""
+expect "an Authorization header built from a variable is caught" "$WORK/argvbearer" "an Authorization header built from a variable"
+d="$(fixture argvmc)"; tag_all "$d"; put "$d" tools/mc.sh "mc alias ""set s http://s3:9000 \"\$ROOT_USER\" \"\$ROOT_$P\""
+expect "mc alias set with the secret key as an argument is caught" "$WORK/argvmc" "mc alias set given its secret key as an argument"
+d="$(fixture argvsed)"; tag_all "$d"; put "$d" entrypoint.sh "s""ed \"s|%PW%|\${RCON_$P}|g\" in.cfg > out.cfg"
+expect "a secret written through sed's arguments is caught" "$WORK/argvsed" "a secret written into a file through sed's arguments"
+d="$(fixture argvcron)"; tag_all "$d"; put "$d" templates/cron.sh.tpl "echo \"0 2 * * * PG$P=\${db_password} pg_dump -U app\" >> \"\$CRON\""
+expect "a secret in a crontab line is caught" "$WORK/argvcron" "a secret in a crontab line"
+d="$(fixture argvtest)"; tag_all "$d"; put "$d" tests/e2e-x.sh "docker exec db mariadb -u app -""p\"\$DB_PASS\" -e 'select 1'"
+expect "a test is held to it too, and says it is one" "$WORK/argvtest" "in a test, on the CI runner: tests/e2e-x.sh:2"
+d="$(fixture argvrcon)"; tag_all "$d"; compose_file="$(compose_of "$d")"
+# shellcheck disable=SC2016  # the ${...} belongs to the compose file
+printf '  game:\n    image: alpine:3\n    command:\n      - ./srcds_run\n      - +rcon''_password\n      - "${GAME_RCON_%s:?set}"\n' "$P" > "$d/x-compose.part"
+python3 - "$compose_file" "$d/x-compose.part" <<'PY'
+import sys
+c, part = sys.argv[1], open(sys.argv[2]).read()
+s = open(c).read()
+i = s.index("\nservices:\n") + len("\nservices:\n")
+open(c, "w").write(s[:i] + part + s[i:])
+PY
+rm -f "$d/x-compose.part"
+expect "a secret compose interpolates into a command is caught" "$WORK/argvrcon" "GAME_RCON_${P} interpolated by compose into the container's command"
+expect "and the Source +rcon_password item with it" "$WORK/argvrcon" "a game server given a secret on its own command line"
+# What is NOT a finding: a name without a value, an assignment the shell keeps
+# in the environment, a header built by printf, a *_FILE path, redis-server
+# (it overwrites its own arguments as it starts, measured), and mkdir -p.
+d="$(fixture argvfine)"; tag_all "$d"
+put "$d" tools/fine.sh "docker exec -e MYSQL_P""WD backups mariadb -u app -e 'select 1'"
+put "$d" tools/fine2.sh "MYSQL_P""WD=\"\$DB_$P\" mariadb-dump -u app appdb"
+put "$d" tools/fine3.sh "printf 'header = \"Author""ization: Bearer %s\"\\n' \"\$TOKEN\" | curl -K - https://example.test"
+put "$d" tools/fine4.sh "docker run -e DB_${P}_FILE=\"\$SECRET_PATH\" app"
+put "$d" tools/fine5.sh "mkdir -p \"\$BACKUP_DIR\""
+compose_file="$(compose_of "$d")"
+python3 - "$compose_file" <<'PY'
+import sys
+c = sys.argv[1]; s = open(c).read()
+i = s.index("\nservices:\n") + len("\nservices:\n")
+part = '  cache:\n    image: redis:7\n    command: ["redis-server", "--requirepass", "${CACHE_REDIS_P' + 'ASSWORD:?set}"]\n'
+open(c, "w").write(s[:i] + part + s[i:])
+PY
+out="$(run_on "$WORK/argvfine")"
+if printf '%s' "$out" | grep -qE 'secret|password|Authorization|interpolated'; then
+  echo "  FAIL: a name, an environment assignment, a printf header, a _FILE path, redis-server or mkdir -p was reported:"
+  printf '%s\n' "$out" | grep -E 'secret|password|Authorization|interpolated' | sed 's/^/        /' | head -6
+  FAILED=$((FAILED+1))
+else
+  echo "  PASS: none of the shapes that keep a secret off the command line is reported"; PASSED=$((PASSED+1))
+fi
+# THE DOOR: a declared line is listed as an exemption, with its reason, and passes.
+d="$(fixture argvallow)"; tag_all "$d"
+allow_line='# conformance: allow-argv-secret - a fixture: the value is a public test constant'
+put "$d" tools/allow.sh "$allow_line"$'\n'"mariadb -u app -""p\"\$PUBLIC_TEST_$P\" appdb"
+out="$(run_on "$WORK/argvallow")"
+if printf '%s' "$out" | grep -q 'Every repository meets the standard' && printf '%s' "$out" | grep -qF 'declared: a fixture: the value is a public test constant'; then
+  echo "  PASS: a declared exemption passes and is listed with its reason"; PASSED=$((PASSED+1))
+else
+  echo "  FAIL: a declared exemption was not handled:"; printf '%s\n' "$out" | sed 's/^/        /' | head -8; FAILED=$((FAILED+1))
+fi
+
 echo "passed: $PASSED   failed: $FAILED"
 [ "$FAILED" -eq 0 ]

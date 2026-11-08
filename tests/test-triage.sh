@@ -34,7 +34,9 @@ NEWDG_A="sha256:$(printf 'c%.0s' $(seq 64))"
 NEWDG_B="sha256:$(printf 'd%.0s' $(seq 64))"
 
 # A docker that answers for the new refs and nothing else, so a pin whose new
-# tag does not exist is exercised too.
+# tag does not exist is exercised too. A tag that is not there is answered the
+# way a registry answers it ("not found"); limited/app stands for a registry
+# that does not answer at all: Docker Hub's 429 after a burst.
 mkdir -p "$WORK/bin"
 cat > "$WORK/bin/docker" <<FAKE
 #!/usr/bin/env bash
@@ -42,9 +44,11 @@ for a in "\$@"; do
   case "\$a" in
     server/app:19.4.0-ee.0) echo '{"digest":"$NEWDG_A"}'; exit 0 ;;
     vendor/runner:ubuntu-v19.4.0) echo '{"digest":"$NEWDG_B"}'; exit 0 ;;
-    vendor/ghost:9.9.9) exit 1 ;;
+    limited/app:*) echo "ERROR: failed to authorize: unexpected status from GET request to https://auth.docker.io/token: 429 Too Many Requests" >&2; exit 1 ;;
+    vendor/ghost:9.9.9) echo "ERROR: docker.io/vendor/ghost:9.9.9: not found" >&2; exit 1 ;;
   esac
 done
+echo "ERROR: \${!#}: not found" >&2
 exit 1
 FAKE
 chmod +x "$WORK/bin/docker"
@@ -531,7 +535,8 @@ case "\$fmt" in
       golang:1.27-trixie) echo '{"digest":"$G_NEW"}' ;;
       maven:3.9.16-eclipse-temurin-21) echo '{"digest":"$M_NEW"}' ;;
       golang:1.27-bookworm) echo '{"digest":"$B_NEW"}' ;;
-      *) exit 1 ;;
+      limited/*) echo "ERROR: unexpected status from HEAD request: 429 Too Many Requests" >&2; exit 1 ;;
+      *) echo "ERROR: docker.io/\$ref: not found" >&2; exit 1 ;;
     esac ;;
   *Image*)
     case "\$ref" in
@@ -642,6 +647,47 @@ case "$out" in *"debian@$D_OLD is pinned by digest with no tag to follow"*) ok "
 case "$out" in *"changed=0 noted=1"*) ok "nothing changed, and the reasons are said" ;; *) no "flags: $out" ;; esac
 same "nothing was pushed" "1" "$(git -C "$img2.git" rev-list --count main)"
 same "and nothing is pending" "no" "$([ -s "$WORK/img2-pending.json" ] && echo yes || echo no)"
+
+echo "== a registry that does not answer is not checked, never unpublished or current"
+rd() { resolve_digest "$1"; echo "rc=$? digest=$RESOLVED_DIGEST why=$RESOLVE_WHY"; }
+out="$(rd server/app:19.4.0-ee.0)"
+case "$out" in "rc=0 digest=$NEWDG_A why=") ok "a tag the registry names resolves to its digest" ;; *) no "a resolving tag: $out" ;; esac
+out="$(rd vendor/ghost:9.9.9)"
+case "$out" in "rc=3 digest= why="*"not found"*) ok "a tag the registry says is not there is unpublished (3)" ;; *) no "a missing tag: $out" ;; esac
+out="$(rd limited/app:1.0)"
+case "$out" in "rc=4 digest= why="*"429 Too Many Requests"*) ok "a 429 is not checked (4), with the registry's reason" ;; *) no "a 429: $out" ;; esac
+# shellcheck disable=SC2329  # resolve_digest calls the docker below
+out="$( (docker() { return 1; }; rd any/image:1) )"
+case "$out" in "rc=4 digest= why=docker exited 1 and said nothing") ok "a failure with no message is not checked either, and says so" ;; *) no "a silent failure: $out" ;; esac
+# shellcheck disable=SC2329  # resolve_digest calls the docker below
+out="$( (docker() { echo '{}'; }; rd any/image:1) )"
+case "$out" in "rc=4 digest= why=the registry answered without a digest") ok "an answer without a digest is not checked, not current" ;; *) no "an empty answer: $out" ;; esac
+
+dir3="$WORK/repo3"; mkdir -p "$dir3"
+# shellcheck disable=SC2016  # the ${...} belongs to the compose file
+printf 'x-images:\n  app: &app-image ${APP_IMAGE_TAG:-limited/app:${APP_IMAGE_VERSION:-2.0.0@%s}}\n' "$OLDDG_A" > "$dir3/stack.yml"
+out="$(
+  dir="$dir3"; composes=("$dir3/stack.yml"); NOTES=(); PREPARED_THIS_RUN=()
+  major_branch "2.0.0" "3.0.0" >/dev/null 2>&1
+  printf 'NOTE %s\n' "${NOTES[@]+"${NOTES[@]}"}"
+)"
+case "$out" in *"limited/app:3.0.0 not checked, the registry did not answer"*"429"*"nothing prepared"*) ok "a major that cannot be checked says not checked" ;; *) no "a 429 on a major: $out" ;; esac
+case "$out" in *"does not resolve yet"*) no "a 429 was reported as an unpublished tag: $out" ;; *) ok "and never as an unpublished tag" ;; esac
+
+img4="$WORK/img4"
+imgrepo "$img4" "FROM limited/base:1@$D_OLD"
+(
+  docker() { "$imgbin/docker" "$@"; }; PENDING="$WORK/img4-pending.json"; DRY_RUN=false; OWNER=owner
+  gh() { return 1; }
+  NOTES=()
+  image_repo_pass "$img4" os-shell-docker 1
+  printf 'changed=%s noted=%s\n' "$IMG_CHANGED" "$IMG_NOTED"
+  printf 'NOTE %s\n' "${NOTES[@]}"
+) > "$WORK/img4.out" 2>&1
+out="$(cat "$WORK/img4.out")"
+case "$out" in *"limited/base:1 not checked, the registry did not answer"*"next run asks again"*) ok "an image base the registry would not answer for is not checked" ;; *) no "a 429 on an image repo: $out" ;; esac
+case "$out" in *"dead tag"*|*"is current"*) no "a 429 was read as dead or current: $out" ;; *) ok "and neither dead nor current" ;; esac
+same "nothing was pushed for it" "1" "$(git -C "$img4.git" rev-list --count main)"
 
 echo "== a dry run writes nothing, and a current Dockerfile is not a finding of its own"
 img3="$WORK/img3"

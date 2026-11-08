@@ -131,6 +131,15 @@ class Repo:
         data = api(f"repos/{OWNER}/{self.name}/git/trees/HEAD?recursive=1")
         return sorted(e["path"] for e in data.get("tree", []) if e.get("type") == "blob")
 
+    def blobs(self):
+        """(path, size) for every file in the repository, recursively. One API
+        call: the size lets a rule skip a vendored installer without fetching it."""
+        if LOCAL:
+            root = os.path.join(LOCAL, self.name)
+            return [(p, os.path.getsize(os.path.join(root, p))) for p in self.tree()]
+        data = api(f"repos/{OWNER}/{self.name}/git/trees/HEAD?recursive=1")
+        return sorted((e["path"], e.get("size", 0)) for e in data.get("tree", []) if e.get("type") == "blob")
+
     def tags(self):
         if LOCAL:
             out = subprocess.run(["git", "-C", os.path.join(LOCAL, self.name), "tag"],
@@ -1009,15 +1018,153 @@ def cooldown_findings(text):
     return bad
 
 
+# A PASSWORD ON A COMMAND LINE IS PUBLISHED TO THE WHOLE HOST. Every process's
+# argv sits in /proc/<pid>/cmdline, mode 0444: any user on the machine, and any
+# container sharing its PID namespace, reads it with `ps`, and the host sees
+# every container's processes too. The environment of the same process is
+# /proc/<pid>/environ, mode 0400, its owner's alone. On 2026-11-08 the home lab
+# was found passing a restic password as `docker run -e RESTIC_PASSWORD="$RP"`
+# and a database password as `-p...`; the same shapes were in this fleet's
+# templates: nine backup sidecars dumping with `-p"$$X_DB_PASSWORD"`, eight
+# restore scripts handing the password to `docker exec -e MYSQL_PWD="$X"`, a
+# Source server holding its RCON password in its own argv for as long as it
+# ran, a Garage admin token in a curl header.
+#
+# Two levels, both failures: a shipped file runs on somebody's host; a test
+# runs on a CI runner, and is also where the next shipped line gets copied
+# from. Workflow files are not read: a GitHub-hosted runner is the job's own.
+# A line may declare an exemption the way resource limits do, with a reason:
+#   # conformance: allow-argv-secret - <why>
+ARGV_SECRET_NAME = r"[A-Za-z0-9_]*(?:PASS|PWD|SECRET|TOKEN|KEY|CRED)[A-Za-z0-9_]*"
+Q = r"\\?[\"']?"  # an optional quote, escaped or not: -P \"$$X\" inside a compose string
+ARGV_SECRET_PATTERNS = [
+    # mysql -p"$X", mariadb-dump -p$$X: the client blanks its own copy once it
+    # has parsed it, after it was readable, and after the length leaked
+    (re.compile(r"(?<![\w-])-p" + Q + r"\$"), re.compile(
+        r"\b(mysql|mariadb|mysqldump|mariadb-dump|mysqladmin|mariadb-admin|mysqlcheck|mariadb-check|mysqlimport|mariadb-import)\b"),
+     "a MySQL/MariaDB client given its password as -p"),
+    (re.compile(r"(?<![\w-])-p" + Q + r"\$\$?\{?" + ARGV_SECRET_NAME), None, "a password given as -p"),
+    (re.compile(r"(?<![\w-])--password[= ]" + Q + r"\$"), None, "a password given as --password"),
+    # docker run/exec -e NAME="$VALUE": the value is in the docker CLI's argv;
+    # -e NAME alone takes it from the caller's environment and is the fix
+    (re.compile(r"(?:^|\s)(?:-e|--env)[ =][\"']?(" + ARGV_SECRET_NAME + r")=" + Q + r"\$"), None,
+     "a secret handed to -e NAME=value, which puts the value in docker's argv"),
+    # env NAME=value cmd, sudo NAME=value cmd: env and sudo are programs, so the
+    # assignment is in their argv; a bare NAME=value prefix in a shell is not
+    (re.compile(r"\b(?:env|sudo)\s+(?:-\S+\s+)*(" + ARGV_SECRET_NAME + r")=" + Q + r"\$"), None,
+     "a secret set through env/sudo NAME=value, which is in that program's argv"),
+    (re.compile(r"\bsqlcmd\b[^|;]*\s-P\s*" + Q + r"\$"), None, "sqlcmd given its password as -P"),
+    (re.compile(r"Authorization:\s*(?:Bearer|Basic|token|Token)\s+" + Q + r"\$"), None,
+     "an Authorization header built from a variable, which reaches curl's argv as -H"),
+    (re.compile(r"\balias\s+set\b.*\$\{?" + ARGV_SECRET_NAME), None, "mc alias set given its secret key as an argument"),
+    # any delimiter: a sed expression is usually written s|a|b|
+    (re.compile(r"\bsed\b.*\$\$?\{?" + ARGV_SECRET_NAME), None, "a secret written into a file through sed's arguments"),
+    # a crontab line runs as sh -c '<the line>': the expanded value is in sh's argv
+    (re.compile(r"(?:^|[\"'\s])(?:[\d*/,-]+\s+){4}[\d*/,-]+\s+.*\b(" + ARGV_SECRET_NAME + r")=" + Q + r"\$"), None,
+     "a secret in a crontab line, which cron runs as sh -c with the value in its arguments"),
+    (re.compile(r"\+(?:rcon_password|sv_password|sv_setsteamaccount)\b[\"']?\s+" + Q + r"\$"), None,
+     "a game server given a secret on its own command line, readable for as long as it runs"),
+]
+ARGV_SECRET_KEEP = re.compile(r"_(?:FILE|PATH|DIR)$")
+ARGV_SECRET_ALLOW = re.compile(r"#\s*conformance:\s*allow-argv-secret\s*[-—]\s*(\S.*)")
+ARGV_SECRET_FILES = re.compile(r"(\.(sh|bash|tpl)$|(^|/)Dockerfile[^/]*$|(^|/)[^/]*entrypoint[^/]*$|^[^/]*compose[^/]*\.ya?ml$)")
+# A compose interpolation, ${NAME} or $NAME with one dollar, inside command: or
+# entrypoint: is resolved by compose before the container starts: the value is
+# the process's argument for as long as it runs (sftp's users, a Source
+# server's +rcon_password). $$NAME is the container's shell expanding it at run
+# time and is judged by the patterns above. redis-server is let through, by
+# measurement: it overwrites its own arguments with its process title as it
+# starts (/proc/1/cmdline reads "redis-server *:6379" on redis 7.4, 2026-11-08).
+ARGV_SECRET_INTERP = re.compile(r"(?<!\$)\$\{?(" + ARGV_SECRET_NAME + r")\b")
+ARGV_SECRET_SELF_HIDING = re.compile(r"\bredis-server\b")
+
+
+def compose_command_secrets(path, lines, exempt):
+    """Secrets compose interpolates into a service's command: or entrypoint:."""
+    bad, i = [], 0
+    while i < len(lines):
+        m = re.match(r"^(\s+)(command|entrypoint):(.*)$", lines[i])
+        if not m:
+            i += 1
+            continue
+        indent, block = len(m.group(1)), [(i, lines[i])]
+        j = i + 1
+        while j < len(lines) and (not lines[j].strip() or len(lines[j]) - len(lines[j].lstrip()) > indent
+                                  or re.match(r"^\s*-", lines[j]) and len(lines[j]) - len(lines[j].lstrip()) == indent):
+            block.append((j, lines[j]))
+            j += 1
+        code = [(n, l) for n, l in block if not l.lstrip().startswith("#")]
+        if not ARGV_SECRET_SELF_HIDING.search("\n".join(l for _, l in code)):
+            for n, l in code:
+                hit = ARGV_SECRET_INTERP.search(l)
+                if not hit or ARGV_SECRET_KEEP.search(hit.group(1)):
+                    continue
+                allow = ARGV_SECRET_ALLOW.search(l) or (n and ARGV_SECRET_ALLOW.search(lines[n - 1]))
+                what = f"{path}:{n + 1} {hit.group(1)} interpolated by compose into the container's {m.group(2)}"
+                if allow:
+                    exempt.append(f"{what}, declared: {allow.group(1).strip()}")
+                else:
+                    bad.append(f"{what} (\"{l.strip()[:90]}\"): the value is the process's argument for as long as it "
+                               f"runs, readable by every user on the host with ps; hand it over in environment: or a file")
+                break
+        i = j
+    return bad
+
+
+def argv_secret_findings(repo, exempt):
+    """Secrets handed to a program as arguments, in the files this repository
+    ships and in its tests. Read from raw.githubusercontent.com: no API quota
+    beyond the one tree listing."""
+    bad = []
+    try:
+        blobs = repo.blobs()
+    except urllib.error.HTTPError as e:
+        return [f"could not list files to look for secrets on command lines: HTTP {e.code}"]
+    for path, size in blobs:
+        if path.startswith(".github/") or not ARGV_SECRET_FILES.search(path) or size > 512 * 1024:
+            continue
+        text = raw_read(repo, path)
+        if text is None:
+            continue
+        where = "in a test, on the CI runner: " if re.match(r"(.*/)?tests?/", path) else ""
+        lines = text.splitlines()
+        if re.search(r"\.ya?ml$", path):
+            bad += compose_command_secrets(path, lines, exempt)
+        for i, line in enumerate(lines):
+            if line.lstrip().startswith("#"):
+                continue
+            # a compose list item `- +rcon_password` with its value on the next item
+            probe = line
+            if re.search(r"^\s*-\s*[\"']?\+(rcon_password|sv_password|sv_setsteamaccount)[\"']?\s*$", line) and i + 1 < len(lines):
+                probe = line.rstrip() + " " + re.sub(r"^\s*-\s*", "", lines[i + 1])
+            for pat, ctx, what in ARGV_SECRET_PATTERNS:
+                m = pat.search(probe)
+                if not m or (ctx is not None and not ctx.search(probe)):
+                    continue
+                if m.groups() and m.group(1) and ARGV_SECRET_KEEP.search(m.group(1)):
+                    continue
+                allow = ARGV_SECRET_ALLOW.search(line) or (i and ARGV_SECRET_ALLOW.search(lines[i - 1]))
+                if allow:
+                    exempt.append(f"{path}:{i + 1} {what}, declared: {allow.group(1).strip()}")
+                else:
+                    bad.append(f"{where}{path}:{i + 1} {what} (\"{line.strip()[:90]}\"): every user on the host "
+                               f"reads a process's arguments with ps; pass it in the environment by name or in a file")
+                break
+    return bad
+
+
 def check(repo, exempt=None):
-    """check_repo, and the cooldown rule, which holds for every kind of repository."""
+    """check_repo, and the rules that hold for every kind of repository: the
+    Dependabot cooldown, and no secret on a command line."""
+    if exempt is None:
+        exempt = []
     found = check_repo(repo, exempt)
     if found == ["repository listing is empty or unreadable"]:
         return found
-    cd = cooldown_findings(raw_read(repo, ".github/dependabot.yml"))
-    if not cd:
+    extra = cooldown_findings(raw_read(repo, ".github/dependabot.yml")) + argv_secret_findings(repo, exempt)
+    if not extra:
         return found
-    return cd if (found is NOT_APPLICABLE or found == NOT_APPLICABLE) else list(found) + cd
+    return extra if (found is NOT_APPLICABLE or found == NOT_APPLICABLE) else list(found) + extra
 
 
 def check_repo(repo, exempt=None):
