@@ -306,6 +306,46 @@ resolve_digest() {
   return 4
 }
 
+# A NEW INDEX IS NOT A NEW IMAGE. A multi-platform tag resolves to an index,
+# a list of one image per platform, and an index can be pushed again over the
+# very same images: a platform added or dropped, an attestation rewritten.
+# On 2026-11-08 postgres:15 moved from index 1149d804 to 1aac5b49 while its
+# linux/amd64 image stayed 61a5b377afa2, and zabbix v1.10.17 was released for
+# a rewritten manifest list and no new code. Bitbucket 10.5.2 and GLPI 11.0.12
+# moved in the same run with new amd64 builds, which is an update. The
+# templates run, and CI proves, linux/amd64, so that build is the one read:
+# two digests name the same image when they are the same digest or when they
+# carry the same linux/amd64 build. A digest names fixed content, so what it
+# carries is remembered for the run.
+declare -A AMD64_OF=()
+amd64_of() {         # amd64_of <name:tag> <digest>: AMD64_DIGEST = its linux/amd64 build; non-zero if unreadable
+  local raw got
+  AMD64_DIGEST=""
+  if [ -n "${AMD64_OF[$2]+x}" ]; then AMD64_DIGEST="${AMD64_OF[$2]}"; return 0; fi
+  raw="$(docker buildx imagetools inspect --raw "$1@$2" 2>/dev/null)" || return 1
+  if jq -e '(.manifests? | type) == "array"' <<<"$raw" >/dev/null 2>&1; then
+    got="$(jq -r '[.manifests[] | select(.platform.os == "linux" and .platform.architecture == "amd64" and ((.platform.variant // "") == ""))][0].digest // empty' <<<"$raw" 2>/dev/null)"
+  elif jq -e '.config? != null' <<<"$raw" >/dev/null 2>&1; then
+    got="$2"     # a single image is its own build
+  else
+    got=""
+  fi
+  [ -n "$got" ] || return 1
+  AMD64_OF[$2]="$got"; AMD64_DIGEST="$got"
+}
+
+same_build() {       # same_build <name:tag> <old digest> <new digest> -> 0 when both carry one linux/amd64 build
+  local a
+  [ "$2" = "$3" ] && return 0
+  amd64_of "$1" "$2" || return 1; a="$AMD64_DIGEST"
+  amd64_of "$1" "$3" || return 1
+  [ "$a" = "$AMD64_DIGEST" ]
+}
+
+same_build_note() {  # same_build_note <prefix> <name:tag> <old> <new>: the report's line for an index re-pushed over one build
+  note "$1$2 index re-pushed over the same linux/amd64 build — not an update (index ${3:7:12} -> ${4:7:12}, linux/amd64 ${AMD64_DIGEST:7:12} in both); the pin stays"
+}
+
 # A major bump is prepared, never landed: the compose file and the changelog
 # are changed on a branch, pushed, and the compare link goes to the report.
 # Opening the pull request is the decision, and it is one click.
@@ -493,6 +533,7 @@ terraform_refresh() {
       *) note "$repo: $ref not checked, the registry did not answer ($RESOLVE_WHY) — the next run asks again"; continue ;;
     esac
     [ "$newdg" = "$olddg" ] && continue
+    if same_build "$ref" "$olddg" "$newdg"; then same_build_note "$repo: $var — " "$ref" "$olddg" "$newdg"; continue; fi
     if [ "$DRY_RUN" = "true" ]; then note "$repo: would refresh $var ($olddg -> $newdg)"; continue; fi
     sed -i "s|${olddg}|${newdg}|" "$dir/ci-images.pins"
     note "$repo: $var — $ref rebuilt upstream ($olddg -> $newdg)"
@@ -810,9 +851,14 @@ image_toolchain() {  # image_toolchain <name:tag@digest> -> "<platform> VAR=valu
     <<<"$js" 2>/dev/null | sort || return 1
 }
 
-image_refresh() {    # <dir> <repo> <freshness log file>; sets IMG_CHANGED and IMG_NOTED
-  local dir="$1" repo="$2" log="$3" f="$1/Dockerfile" pin ref olddg newdg oldtc newtc was now still tmpf line
-  IMG_CHANGED=0 IMG_NOTED=0
+# from_refresh <dir> <repo> <Dockerfile> <closing sentence>: every
+# `FROM tag@sha256` line of one Dockerfile against what its tag names now.
+# Adds to IMG_CHANGED and IMG_NOTED; the caller zeroes them. Image
+# repositories and compose templates that build an image of their own both
+# come here, and only the changelog's last sentence differs between them.
+from_refresh() {
+  local dir="$1" repo="$2" f="$3" closing="$4" pin ref olddg newdg oldtc newtc was now still tmpf where
+  where="${f#"$dir"/}"
   [ -f "$f" ] || return 0
   while IFS= read -r pin; do
     [ -n "$pin" ] || continue
@@ -829,6 +875,7 @@ image_refresh() {    # <dir> <repo> <freshness log file>; sets IMG_CHANGED and I
     esac
     [ "$newdg" = "$olddg" ] && continue
     IMG_NOTED=1
+    if same_build "$ref" "$olddg" "$newdg"; then same_build_note "$repo: " "$ref" "$olddg" "$newdg"; continue; fi
     if ! oldtc="$(image_toolchain "$ref@$olddg")" || ! newtc="$(image_toolchain "$ref@$newdg")"; then
       note "$repo: $ref was repushed ($olddg -> $newdg) and the toolchain inside could not be read from both digests — not applied, needs a human"
       continue
@@ -840,7 +887,7 @@ image_refresh() {    # <dir> <repo> <freshness log file>; sets IMG_CHANGED and I
       continue
     fi
     if [ "$DRY_RUN" = "true" ]; then
-      note "$repo: would refresh $ref ($olddg -> $newdg) in the Dockerfile"
+      note "$repo: would refresh $ref ($olddg -> $newdg) in $where"
       continue
     fi
     tmpf="$(mktemp)"
@@ -848,9 +895,16 @@ image_refresh() {    # <dir> <repo> <freshness log file>; sets IMG_CHANGED and I
     cat "$tmpf" > "$f"; rm -f "$tmpf"
     still="$(cut -d' ' -f2- <<<"$newtc" | sort -u | awk 'NF { printf "%s`%s`", (n++ ? ", " : ""), $0 }')"
     note "$repo: $ref repushed upstream ($olddg -> $newdg)${still:+, toolchain unchanged}"
-    changelog_line "$dir" "Security" "- **\`${ref}\` was rebuilt upstream**; the pin moved from \`${olddg:0:19}…\` to \`${newdg:0:19}…\`. Same tag${still:+ and the same toolchain inside (${still})}, a rebuilt base: the usual shape of a security fix in a base layer. The published tags carry it once the image is rebuilt, tested and signed from this commit."
+    changelog_line "$dir" "Security" "- **\`${ref}\` was rebuilt upstream**; the pin moved from \`${olddg:0:19}…\` to \`${newdg:0:19}…\`. Same tag${still:+ and the same toolchain inside (${still})}, a rebuilt base: the usual shape of a security fix in a base layer. ${closing}"
     IMG_CHANGED=1
   done < <(grep -oE '^FROM[[:space:]]+(--platform=[^[:space:]]+[[:space:]]+)?[^[:space:]]+@sha256:[0-9a-f]{64}' "$f" | awk '{print $NF}' | sort -u)
+}
+
+image_refresh() {    # <dir> <repo> <freshness log file>; sets IMG_CHANGED and IMG_NOTED
+  local dir="$1" repo="$2" log="$3" line
+  IMG_CHANGED=0 IMG_NOTED=0
+  [ -f "$1/Dockerfile" ] || return 0
+  from_refresh "$dir" "$repo" "$dir/Dockerfile" "The published tags carry it once the image is rebuilt, tested and signed from this commit."
 
   # WHAT THE CHECK SAID BESIDES THE DIGESTS. A tool release (yq, mc,
   # jmx_exporter) is a version and a person's; it is named here so it is not
@@ -1851,7 +1905,7 @@ for repo in "${REPOS[@]}"; do
   # Pins are `${X_IMAGE_TAG:-repo:${X_IMAGE_VERSION:-tag@sha256:digest}}`
   # (or the older flat form); the sed loop below folds the inner default
   # so every pin reads as `${X_IMAGE_TAG:-repo:tag@sha256:digest}`.
-  drift_fixed=0 lag_seen=0 PREPARED_MAJOR=0 UNRESOLVED_TAG=0 SRC_CHANGED=0 SRC_NOTED=0
+  drift_fixed=0 lag_seen=0 PREPARED_MAJOR=0 UNRESOLVED_TAG=0 SRC_CHANGED=0 SRC_NOTED=0 SAME_BUILD=0
   while IFS= read -r pin; do
     var="${pin#\$\{}"; var="${var%%:-*}"
     def="${pin#*:-}"; def="${def%\}}"
@@ -1863,7 +1917,10 @@ for repo in "${REPOS[@]}"; do
       3) note "$repo: $ref did not resolve — the registry has no such tag, a dead tag, needs a human"; continue ;;
       *) note "$repo: $ref not checked, the registry did not answer ($RESOLVE_WHY) — the next run asks again"; continue ;;
     esac
-    if [ "$new_digest" != "$old_digest" ]; then
+    if [ "$new_digest" != "$old_digest" ] && same_build "$ref" "$old_digest" "$new_digest"; then
+      same_build_note "$repo: $var — " "$ref" "$old_digest" "$new_digest"
+      SAME_BUILD=1
+    elif [ "$new_digest" != "$old_digest" ]; then
       for _c in "${composes[@]}"; do
         grep -q "@${old_digest}" "$_c" || continue
         tmpf="$(mktemp)"
@@ -1875,6 +1932,21 @@ for repo in "${REPOS[@]}"; do
       drift_fixed=1
     fi
   done < <(grep -h -oE '\$\{[A-Z0-9_]+_IMAGE_TAG:-.*' "${composes[@]}" | sed -E -e ':a' -e 's/(\$\{[A-Z0-9_]+_IMAGE_TAG:-[^{}]*)\$\{[A-Z0-9_]+:-([^{}]*)\}/\1\2/' -e 'ta' | sort -u)
+
+  # A TEMPLATE THAT BUILDS AN IMAGE HAS BASES OF ITS OWN. rathena-docker
+  # builds its server on alpine and its password page on python, from its own
+  # Dockerfiles, and until 2026-11-08 neither base was pinned or read here:
+  # `FROM alpine:${ALPINE}` with ALPINE=3.24 took whatever 3.24 was at build
+  # time, and alpine 3.24.4 (2026-11-05) could not be seen as a lag by any
+  # check. A pinned `FROM tag@sha256` in any Dockerfile of a compose template
+  # now moves the way an image repository's does, toolchain check included,
+  # and rides the same commit, gate and release as the compose pins.
+  IMG_CHANGED=0 IMG_NOTED=0
+  while IFS= read -r _df; do
+    from_refresh "$dir" "$repo" "$_df" "The deploy job builds the image from it and boots the stack on it before the release."
+  done < <(find "$dir" -maxdepth 2 -name Dockerfile -not -path '*/.git/*' | sort)
+  if [ "$IMG_CHANGED" -eq 1 ]; then drift_fixed=1; fi
+  BASE_NOTED="$IMG_NOTED"
 
   if grep -qE '^ARG [A-Z0-9_]+_REF=[0-9a-f]{40}$' "$dir/Dockerfile" 2>/dev/null; then
     srclog="$(mktemp)"
@@ -1932,7 +2004,10 @@ instead and never bumped automatically."
     # a wait, and it already says so one line above. Only the third case is a
     # person's to look at, and lumping the other two in with it is what made
     # this report count five decisions on a day it had three.
-    if [ "$PREPARED_MAJOR" -eq 1 ] || [ "$UNRESOLVED_TAG" -eq 1 ] || [ "$SRC_NOTED" -eq 1 ]; then
+    # A red that is only an index re-pushed over the same build has had its
+    # line already, and it is not a person's to look at.
+    if [ "$PREPARED_MAJOR" -eq 1 ] || [ "$UNRESOLVED_TAG" -eq 1 ] || [ "$SRC_NOTED" -eq 1 ] || [ "$BASE_NOTED" -eq 1 ] \
+       || { [ "$SAME_BUILD" -eq 1 ] && [ -z "$(tr -d '[:space:]' <<<"$lags")" ]; }; then
       :
     else
       note "$repo: freshness is red but nothing was auto-fixable — see the run log, needs a human"

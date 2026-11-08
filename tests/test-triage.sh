@@ -648,6 +648,7 @@ D_OLD="$(dg 1)"; D_NEW="$(dg 2)"     # debian:trixie-slim, no toolchain declared
 G_OLD="$(dg 3)"; G_NEW="$(dg 4)"     # golang:1.27-trixie, Go unchanged on amd64/arm64
 M_OLD="$(dg 5)"; M_NEW="$(dg 6)"     # maven:...-temurin-21, the JDK moved
 B_OLD="$(dg 7)"; B_NEW="$(dg 8)"     # golang:1.27-bookworm, its old digest unreadable
+A_OLD="$(dg 9)"; A_NEW="$(dg a)"     # alpine:3.24, a new index over the same linux/amd64 build
 imgbin="$WORK/imgbin"; mkdir -p "$imgbin"
 # Reached through a docker() function in each subshell rather than PATH, so
 # the fake above stays the one the other tests see. It answers the two
@@ -658,9 +659,22 @@ cat > "$imgbin/docker" <<FAKE
 #!/usr/bin/env bash
 ref=""; fmt=""
 while [ \$# -gt 0 ]; do
-  case "\$1" in --format) fmt="\$2"; shift ;; buildx|imagetools|inspect) ;; *) ref="\$1" ;; esac
+  case "\$1" in --format) fmt="\$2"; shift ;; --raw) fmt=raw ;; buildx|imagetools|inspect) ;; *) ref="\$1" ;; esac
   shift
 done
+# --raw: the index itself. Debian's two digests carry two amd64 builds, a real
+# rebuild; Alpine's two carry one, a manifest list written again over it.
+plat() { printf '{"digest":"%s","platform":{"os":"%s","architecture":"%s"}}' "\$1" "\$2" "\$3"; }
+if [ "\$fmt" = raw ]; then
+  case "\$ref" in
+    debian:trixie-slim@$D_OLD) printf '{"manifests":[%s]}' "\$(plat $(dg b) linux amd64)" ;;
+    debian:trixie-slim@$D_NEW) printf '{"manifests":[%s]}' "\$(plat $(dg c) linux amd64)" ;;
+    alpine:3.24@$A_OLD) printf '{"manifests":[%s,%s]}' "\$(plat $(dg d) linux amd64)" "\$(plat $(dg e) linux arm64)" ;;
+    alpine:3.24@$A_NEW) printf '{"manifests":[%s,%s,%s]}' "\$(plat $(dg d) linux amd64)" "\$(plat $(dg f) linux arm64)" "\$(plat $(dg 1) unknown unknown)" ;;
+    *) exit 1 ;;
+  esac
+  exit 0
+fi
 env_of() { printf '{"architecture":"x","os":"linux","config":{"Env":["PATH=/usr/bin"%s]}}' "\${1:+,\"\$1\"}"; }
 index() { printf '{"linux/amd64":%s,"linux/arm64":%s,"linux/386":%s}' "\$(env_of "\$1")" "\$(env_of "\$2")" "\$(env_of "\$3")"; }
 case "\$fmt" in
@@ -670,6 +684,7 @@ case "\$fmt" in
       golang:1.27-trixie) echo '{"digest":"$G_NEW"}' ;;
       maven:3.9.16-eclipse-temurin-21) echo '{"digest":"$M_NEW"}' ;;
       golang:1.27-bookworm) echo '{"digest":"$B_NEW"}' ;;
+      alpine:3.24) echo '{"digest":"$A_NEW"}' ;;
       limited/*) echo "ERROR: unexpected status from HEAD request: 429 Too Many Requests" >&2; exit 1 ;;
       *) echo "ERROR: docker.io/\$ref: not found" >&2; exit 1 ;;
     esac ;;
@@ -848,6 +863,80 @@ case "$out" in *" M "*|*"M Dockerfile"*|*"M CHANGELOG"*) no "a dry run edited th
 case "$out" in *"current changed=0 noted=0"*) ok "a current Dockerfile changes nothing" ;; *) no "current: $out" ;; esac
 case "$out" in *"CURRENT jmx-exporter-docker: freshness is red but nothing in its Dockerfile was auto-fixable"*"needs a human"*) ok "and a red check with nothing to fix still reaches a person" ;; *) no "silent red: $out" ;; esac
 
+echo "== an index re-pushed over the same linux/amd64 build is not an update"
+img5="$WORK/img5"
+imgrepo "$img5" "FROM alpine:3.24@$A_OLD AS final"
+# shellcheck disable=SC2329  # image_repo_pass calls the docker below
+(
+  docker() { "$imgbin/docker" "$@"; }; PENDING="$WORK/img5-pending.json"; DRY_RUN=false; OWNER=owner
+  gh() { return 1; }
+  NOTES=()
+  image_repo_pass "$img5" rathena-docker 1
+  printf 'changed=%s noted=%s\n' "$IMG_CHANGED" "$IMG_NOTED"
+  printf 'NOTE %s\n' "${NOTES[@]}"
+) > "$WORK/img5.out" 2>&1
+out="$(cat "$WORK/img5.out")"
+case "$out" in *"rathena-docker: alpine:3.24 index re-pushed over the same linux/amd64 build — not an update"*"the pin stays"*) ok "a new index over the same amd64 build is said to be no update" ;; *) no "same build: $out" ;; esac
+case "$out" in *"changed=0 noted=1"*) ok "and changes nothing" ;; *) no "flags: $out" ;; esac
+case "$out" in *"needs a human"*) no "a rewritten index went to a person: $out" ;; *) ok "and asks nobody" ;; esac
+same "the Dockerfile keeps its pin" "1" "$(git -C "$img5.git" show main:Dockerfile | grep -c "alpine:3.24@$A_OLD")"
+same "nothing was pushed" "1" "$(git -C "$img5.git" rev-list --count main)"
+same "and nothing is pending" "no" "$([ -s "$WORK/img5-pending.json" ] && echo yes || echo no)"
+
+# amd64_of and same_build over raw indexes, the way imagetools --raw prints them.
+RAW_LOG="$WORK/raw.log"
+rawfake() {          # the answer for one digest: $5 is name:tag@digest
+  echo "raw ${5##*@}" >> "$RAW_LOG"
+  local amd='{"os":"linux","architecture":"amd64"}' arm='{"os":"linux","architecture":"arm64","variant":"v8"}' att='{"os":"unknown","architecture":"unknown"}'
+  case "${5##*@}" in
+    sha256:i1) printf '{"manifests":[{"digest":"sha256:amd1","platform":%s},{"digest":"sha256:arm1","platform":%s},{"digest":"sha256:att1","platform":%s}]}' "$amd" "$arm" "$att" ;;
+    sha256:i2) printf '{"manifests":[{"digest":"sha256:arm2","platform":%s},{"digest":"sha256:amd1","platform":%s}]}' "$arm" "$amd" ;;
+    sha256:i3) printf '{"manifests":[{"digest":"sha256:amd3","platform":%s}]}' "$amd" ;;
+    sha256:amd1) printf '{"schemaVersion":2,"config":{"digest":"sha256:cfg"},"layers":[]}' ;;
+    sha256:i4) printf '{"manifests":[{"digest":"sha256:arm4","platform":%s}]}' "$arm" ;;
+    sha256:i5) printf '{"manifests":[{"digest":"sha256:v3","platform":{"os":"linux","architecture":"amd64","variant":"v3"}},{"digest":"sha256:amd1","platform":%s}]}' "$amd" ;;
+    *) return 1 ;;
+  esac
+}
+sb() { : > "$RAW_LOG"; ( docker() { rawfake "$@"; }; if same_build postgres:15 "$1" "$2"; then echo same; else echo "differ or unread"; fi ); }
+same "two indexes over one amd64 build are one image (zabbix's postgres:15)" "same" "$(sb sha256:i1 sha256:i2)"
+same "a new amd64 build is an update (Bitbucket 10.5.2, GLPI 11.0.12)" "differ or unread" "$(sb sha256:i1 sha256:i3)"
+same "one digest is one image, and nothing is asked" "same 0" "$(sb sha256:i1 sha256:i1) $(grep -c . "$RAW_LOG")"
+same "a single-platform image is its own build" "same" "$(sb sha256:amd1 sha256:i1)"
+same "an amd64 with a variant is not the plain amd64 build" "same" "$(sb sha256:i5 sha256:i1)"
+same "an index with no linux/amd64 cannot be compared, so it is an update" "differ or unread" "$(sb sha256:i4 sha256:i1)"
+same "nor can one the registry will not show" "differ or unread" "$(sb sha256:gone sha256:i1)"
+cached="$( : > "$RAW_LOG"; ( docker() { rawfake "$@"; }; same_build postgres:15 sha256:i1 sha256:i2; same_build postgres:15 sha256:i2 sha256:i1 ); grep -c . "$RAW_LOG")"
+same "a digest is read once a run: it names fixed content" "2" "$cached"
+
+echo "== a terraform template's CI images: the same rule"
+tfd="$WORK/tf-repo"; mkdir -p "$tfd"
+printf 'TERRAFORM_IMAGE=hashicorp/terraform:1.17@sha256:i1\nTFLINT_IMAGE=ghcr.io/terraform-linters/tflint:v0.60.0@sha256:t1\n' > "$tfd/ci-images.pins"
+printf '# Changelog\n\n## [Unreleased]\n\n## [1.0.0]\n' > "$tfd/CHANGELOG.md"
+tfidx() { printf '{"manifests":[{"digest":"%s","platform":{"os":"linux","architecture":"amd64"}}]}\n' "$1"; }
+out="$(
+  # shellcheck disable=SC2329  # terraform_refresh calls these
+  docker() {
+    case "$*" in
+      *"--raw hashicorp/terraform:1.17@sha256:i1"|*"--raw hashicorp/terraform:1.17@sha256:i2") tfidx sha256:tf-amd64 ;;
+      *"--raw ghcr.io/terraform-linters/tflint:v0.60.0@sha256:t1") tfidx sha256:lint-amd64-1 ;;
+      *"--raw ghcr.io/terraform-linters/tflint:v0.60.0@sha256:t2") tfidx sha256:lint-amd64-2 ;;
+      *"inspect hashicorp/terraform:1.17 --format"*) echo '{"digest":"sha256:i2"}' ;;
+      *"inspect ghcr.io/terraform-linters/tflint:v0.60.0 --format"*) echo '{"digest":"sha256:t2"}' ;;
+      *) return 1 ;;
+    esac
+  }
+  # shellcheck disable=SC2329
+  gh() { return 1; }
+  NOTES=(); DRY_RUN=false; OWNER=owner; repo=aws-tf-terraform
+  terraform_refresh "$tfd" aws-tf-terraform 1
+  printf 'changed=%s\n' "$TF_CHANGED"; printf 'NOTE %s\n' "${NOTES[@]+"${NOTES[@]}"}"
+)"
+case "$out" in *"aws-tf-terraform: TERRAFORM_IMAGE — hashicorp/terraform:1.17 index re-pushed over the same linux/amd64 build — not an update"*) ok "a terraform image index re-pushed over one build is no update" ;; *) no "terraform same build: $out" ;; esac
+same "its pin stays" "1" "$(grep -c '^TERRAFORM_IMAGE=hashicorp/terraform:1.17@sha256:i1$' "$tfd/ci-images.pins")"
+same "tflint's new build moves" "1" "$(grep -c '^TFLINT_IMAGE=ghcr.io/terraform-linters/tflint:v0.60.0@sha256:t2$' "$tfd/ci-images.pins")"
+case "$out" in *"changed=1"*) ok "and that is the change" ;; *) no "terraform flags: $out" ;; esac
+
 echo "== what an image declares as its toolchain"
 tc() { ( docker() { "$imgbin/docker" "$@"; }; image_toolchain "$1" ) && echo "rc=0" || echo "rc=1"; }
 same "an index: only the platforms the fleet builds" $'linux/amd64 GOLANG_VERSION=1.27.3\nlinux/arm64 GOLANG_VERSION=1.27.3\nrc=0' "$(tc "golang:1.27-trixie@$G_NEW")"
@@ -917,6 +1006,7 @@ e2e_remotes() {      # fresh remotes for both templates; prints nothing
     "  ollama: \${OLLAMA_IMAGE_TAG:-ollama/ollama:\${OLLAMA_IMAGE_VERSION:-0.40.15@$(dgn 7)}}" \
     "  webui: \${WEBUI_IMAGE_TAG:-ghcr.io/open-webui/open-webui:\${WEBUI_IMAGE_VERSION:-0.12.0@$(dgn 1)}}" \
     > "$e2e/src-red/$E2E_RED.yml"
+  printf 'FROM alpine:3.24@%s AS build\nFROM alpine:3.24@%s\n' "$(dgn 11)" "$(dgn 11)" > "$e2e/src-red/Dockerfile"
   printf '%s\n' '# OLLAMA_IMAGE_TAG=ollama/ollama:0.33.2@sha256:…' \
     '# WEBUI_IMAGE_TAG=ghcr.io/open-webui/open-webui:0.12.0@sha256:…' '# WEBUI_IMAGE_VERSION=0.12.0' > "$e2e/src-red/.env.example"
   git init -q -b main "$e2e/src-green"
@@ -933,7 +1023,7 @@ e2e_remotes() {      # fresh remotes for both templates; prints nothing
   git clone -q --bare "$e2e/src-green" "$e2e/remote/$E2E_GREEN"
 }
 e2e_remotes
-printf 'Check pinned images for upstream drift\tUNKNOWN STEP\t2026-11-08T06:00:01Z ##[error]Open WebUI pin is behind: pinned minor 0.12, latest release is 0.13.2\n' > "$e2e/fresh.log"
+printf 'Check pinned images for upstream drift\tUNKNOWN STEP\t2026-01-01T00:00:00Z ##[error]Open WebUI pin is behind: pinned minor 0.12, latest release is 0.13.2\n' > "$e2e/fresh.log"
 printf '[url "file://%s/remote/"]\n\tinsteadOf = https://github.com/owner/\n[user]\n\tname = t\n\temail = t@t\n' "$e2e" > "$e2e/gitconfig"
 cat > "$e2e/bin/gh" <<'GH'
 #!/bin/bash
@@ -945,7 +1035,8 @@ case "$*" in
   "api repos/owner/$E2E_RED/commits/main"*) sha "$E2E_RED" ;;
   "api repos/owner/$E2E_GREEN/commits/main"*) sha "$E2E_GREEN" ;;
   "run list --repo owner/$E2E_RED --workflow freshness.yml"*) printf '[{"databaseId":7,"event":"schedule","conclusion":"failure","status":"completed","headSha":"%s"}]\n' "$(sha "$E2E_RED")" ;;
-  "run list --repo owner/$E2E_GREEN --workflow freshness.yml"*) printf '[{"databaseId":8,"event":"schedule","conclusion":"success","status":"completed","headSha":"%s"}]\n' "$(sha "$E2E_GREEN")" ;;
+  "run list --repo owner/$E2E_GREEN --workflow freshness.yml"*) printf '[{"databaseId":8,"event":"schedule","conclusion":"%s","status":"completed","headSha":"%s"}]\n' "${E2E_GREEN_CONCL:-success}" "$(sha "$E2E_GREEN")" ;;
+  "run view 8"*"--log"*) printf 'check\tUNKNOWN STEP\t2026-01-01T00:00:00Z ##[error]REDIS_IMAGE_TAG digest drift: pinned sha256:x, but redis:7.4 now resolves to sha256:y\n' ;;
   "run list"*) echo '[]' ;;
   "run view 7"*"--log"*) cat "$E2E_DIR/fresh.log" ;;
 esac
@@ -954,10 +1045,27 @@ GH
 cat > "$e2e/bin/docker" <<'DK'
 #!/bin/bash
 echo "docker $*" >> "$E2E_DIR/calls"
+d() { printf 'sha256:%064d' "$1"; }
+if [ "$4" = "--raw" ]; then
+  # Digest 9 is the index traefik:3.7 or redis:7.4 is re-pushed as; it
+  # carries 4's linux/amd64 build when E2E_SAME is set. Anything else is a
+  # single-platform image, its own build.
+  case "${5##*@}" in
+    "$(d 4)") a="$(d 40)" ;;
+    "$(d 9)") if [ -n "${E2E_SAME:-}" ]; then a="$(d 40)"; else a="$(d 90)"; fi ;;
+    *) printf '{"schemaVersion":2,"config":{"digest":"sha256:c"},"layers":[]}\n'; exit 0 ;;
+  esac
+  printf '{"manifests":[{"digest":"%s","platform":{"os":"linux","architecture":"amd64"}},{"digest":"%s","platform":{"os":"linux","architecture":"arm64"}}]}\n' "$a" "$(d 99)"
+  exit 0
+fi
+# A digest's config: one platform, no toolchain declared.
+case "$*" in *'.Image'*) printf '{"config":{"Env":["PATH=/usr/bin"]}}\n'; exit 0 ;; esac
 case "$4" in
   *open-webui:0.12.0) n=1 ;; *open-webui:0.12.5) n=2 ;; *open-webui:0.13.2) n=3 ;;
   *mailu/admin:2024.06.67) n=5 ;; *mailu/admin:2024.06.68) n=6 ;;
   *ollama/ollama:0.40.15) n=7 ;; *ollama/ollama:0.40.16) n=8 ;;
+  traefik:3.7) n="${E2E_TRAEFIK_DG:-4}" ;; redis:7.4) n="${E2E_REDIS_DG:-4}" ;;
+  alpine:3.24) n="${E2E_ALPINE_DG:-11}" ;;
   *) n=4 ;;
 esac
 printf '{"digest":"sha256:%064d"}\n' "$n"
@@ -971,7 +1079,8 @@ url="$(sed -nE 's/^url = "(.*)"$/\1/p')"
 echo "curl $url" >> "$E2E_DIR/calls"
 case "$url" in
   https://ghcr.io/v2/open-webui/open-webui/tags/list*) t='["0.12.0","0.12.1","0.12.5","0.12.5-cuda","0.13.0","0.13.2"]' ;;
-  https://ghcr.io/v2/mailu/admin/tags/list*) t='["2024.06.66","2024.06.67","2024.06.68","2024.06.68-arm64","master"]' ;;
+  https://ghcr.io/v2/mailu/admin/tags/list*) t='["2024.06.66","2024.06.67","2024.06.68","2024.06.68-arm64","master"]'
+    [ -z "${E2E_MAILU_HEAD:-}" ] || t='["2024.06.66","2024.06.67","master"]' ;;
   https://registry-1.docker.io/v2/ollama/ollama/tags/list*) t='["0.40.15","0.40.16","0.40.16-rocm","0.41.0"]' ;;
   *) printf 'HTTP/1.1 404\r\n\r\n' > "$d"; : > "$o"; printf 404; exit 0 ;;
 esac
@@ -985,6 +1094,9 @@ e2e_run() {          # e2e_run <true|false> [ledger] -> the script's output; the
     "PATH=$e2e/bin:$PATH" GH_TOKEN=dummy DRY_RUN="$1" FLEET_OWNER=owner \
     FLEET_PENDING="$e2e/pending.json" GIT_CONFIG_GLOBAL="$e2e/gitconfig" GITHUB_STEP_SUMMARY='' \
     E2E_DIR="$e2e" E2E_RED="$E2E_RED" E2E_GREEN="$E2E_GREEN" \
+    E2E_TRAEFIK_DG="${E2E_TRAEFIK_DG:-4}" E2E_REDIS_DG="${E2E_REDIS_DG:-4}" E2E_SAME="${E2E_SAME:-}" \
+    E2E_ALPINE_DG="${E2E_ALPINE_DG:-11}" \
+    E2E_GREEN_CONCL="${E2E_GREEN_CONCL:-success}" E2E_MAILU_HEAD="${E2E_MAILU_HEAD:-}" \
     bash "$ROOT/scripts/fleet-triage.sh" 2>&1; echo "$?" > "$e2e/rc")
 }
 has() { case "$2" in *"$3"*) ok "$1" ;; *) no "$1 — not in the output: $3"$'\n'"$2" ;; esac; }
@@ -1051,6 +1163,44 @@ same "a run with an unjudged push finishes" "0" "$(cat "$e2e/rc")"
 same "that repository's main is not touched" "$green_main0" "$(git -C "$e2e/remote/$E2E_GREEN" rev-parse main)"
 same "and its row is still the one waiting" "$green_main0" \
   "$(jq -r --arg r "$E2E_GREEN" '.[] | select(.repo == $r) | .sha' "$e2e/pending.json")"
+
+# A NEW INDEX OVER THE SAME BUILD, IN THE WHOLE RUN. traefik:3.7 resolves to
+# a new index; once it carries the same linux/amd64 build, once a new one.
+e2e_remotes
+e2e_out="$(E2E_TRAEFIK_DG=9 E2E_SAME=1 e2e_run false)"
+same "a run over a re-pushed index finishes" "0" "$(cat "$e2e/rc")"
+has "the re-push is named, and named as no update" "$e2e_out" \
+  "$E2E_RED: TRAEFIK_IMAGE_TAG — traefik:3.7 index re-pushed over the same linux/amd64 build — not an update"
+same "the traefik pin stays where it was" "1" \
+  "$(git -C "$e2e/remote/$E2E_RED" show "main:$E2E_RED.yml" | grep -c "traefik:\${TRAEFIK_IMAGE_VERSION:-3.7@$(dgn 4)}")"
+same "and the changelog says nothing about it" "0" \
+  "$(git -C "$e2e/remote/$E2E_RED" show main:CHANGELOG.md | grep -c 'traefik:3.7')"
+same "the rest of that template's work still lands" "1" \
+  "$(git -C "$e2e/remote/$E2E_RED" show "main:$E2E_RED.yml" | grep -c '0\.12\.5@')"
+e2e_remotes
+e2e_out="$(E2E_TRAEFIK_DG=9 e2e_run false)"
+same "a new amd64 build moves the pin as before" "1" \
+  "$(git -C "$e2e/remote/$E2E_RED" show "main:$E2E_RED.yml" | grep -c "traefik:\${TRAEFIK_IMAGE_VERSION:-3.7@$(dgn 9)}")"
+has "and is reported as the repush it is" "$e2e_out" "$E2E_RED: TRAEFIK_IMAGE_TAG — traefik:3.7 repushed upstream"
+# A template whose whole red is such a re-push: no push, no release, nobody asked.
+e2e_remotes
+green_main0="$(git -C "$e2e/remote/$E2E_GREEN" rev-parse main)"
+e2e_out="$(E2E_REDIS_DG=9 E2E_SAME=1 E2E_GREEN_CONCL=failure E2E_MAILU_HEAD=1 e2e_run false)"
+has "a red that is only a rewritten index is named as such" "$e2e_out" \
+  "$E2E_GREEN: REDIS_IMAGE_TAG — redis:7.4 index re-pushed over the same linux/amd64 build — not an update"
+case "$e2e_out" in *"$E2E_GREEN: freshness is red but nothing was auto-fixable"*) no "a rewritten index went to a person: $e2e_out" ;; *) ok "and does not go to a person" ;; esac
+same "nothing is pushed for it" "$green_main0" "$(git -C "$e2e/remote/$E2E_GREEN" rev-parse main)"
+same "and nothing waits for a release" "0" "$(jq --arg r "$E2E_GREEN" '[.[] | select(.repo == $r)] | length' "$e2e/pending.json")"
+
+# A TEMPLATE'S OWN DOCKERFILE: its alpine base moves with the compose pins.
+e2e_remotes
+e2e_out="$(E2E_ALPINE_DG=12 e2e_run false)"
+same "a rebuilt base in the template's Dockerfile is moved, both stages" "2" \
+  "$(git -C "$e2e/remote/$E2E_RED" show main:Dockerfile | grep -c "^FROM alpine:3.24@$(dgn 12)")"
+same "in the same commit as the compose pins" "1" "$(git -C "$e2e/remote/$E2E_RED" rev-list --count "$(git -C "$e2e/src-red" rev-parse HEAD)..main")"
+same "with a Security line that says the deploy job builds from it" "1" \
+  "$(git -C "$e2e/remote/$E2E_RED" show main:CHANGELOG.md | grep -c 'alpine:3.24` was rebuilt upstream.*The deploy job builds the image from it')"
+has "and the report names it" "$e2e_out" "$E2E_RED: alpine:3.24 repushed upstream"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

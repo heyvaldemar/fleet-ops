@@ -9,7 +9,37 @@ check or a job, a patch fixes one.
 
 ## [Unreleased]
 
+### Fixed
+- **An index pushed again over the same image is not an update.** A
+  multi-platform tag names an index, and an index can be pushed again over
+  the very same images: a platform added, an attestation rewritten. On
+  2026-11-08 `postgres:15` moved from index `1149d804` to `1aac5b49` while
+  its linux/amd64 image stayed `61a5b377afa2`, and zabbix v1.10.17 was
+  released for a rewritten manifest list and no new code (Bitbucket 10.5.2
+  and GLPI 11.0.12 moved in the same run with new amd64 builds, which is an
+  update). Every digest refresh triage makes (compose pins, `FROM` lines,
+  a terraform template's CI images) now compares the linux/amd64 build inside
+  the old and the new index (`imagetools inspect --raw`, a single-platform
+  image being its own build). The same build is reported as "index re-pushed
+  over the same linux/amd64 build — not an update" and nothing is written,
+  pushed or released; a red that is only that is not sent to a person. A
+  digest names fixed content, so what it carries is read once a run. The
+  templates run, and CI proves, linux/amd64; an index whose arm64 image alone
+  changed is not moved. v1.10.17 stands: tags are immutable.
+
 ### Added
+- **A template's own Dockerfile bases move like an image repository's.**
+  rathena-docker builds its server on alpine and its password page on
+  python, and neither base was pinned or read: `FROM alpine:${ALPINE}` with
+  `ALPINE=3.24` took whatever 3.24 named on the day of the build, and
+  alpine 3.24.4 (2026-11-05) was not a lag any check could see. A pinned
+  `FROM tag@sha256` in any Dockerfile of a compose template is now refreshed
+  in the refresh pass, with the same toolchain check, in the same commit,
+  gate and release as the compose pins. Across the fleet, the only base of
+  the form `FROM x:${ARG}` with an ARG naming a minor line and no digest was
+  rathena-docker's; three literal bases have no digest either
+  (`python:3.13-alpine` in rathena-docker, `ubuntu:26.04` in quake3,
+  `dotnet/sdk` and `dotnet/runtime:10.0` in modernuo-docker).
 - **Triage asks the registry for every pin's own patch line.** A template's
   freshness check names one version, upstream's newest, and a check that does
   not know a pin's line can never go red about it. Measured on 2026-11-08,
