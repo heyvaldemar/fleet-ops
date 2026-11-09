@@ -10,6 +10,28 @@ check or a job, a patch fixes one.
 ## [Unreleased]
 
 ### Fixed
+- **Conformance reads README shell blocks, and any value expanded into
+  `-e NAME=`.** The rule against secrets on a command line matched
+  `docker -e NAME=value` only for names with PASS, PWD, SECRET, TOKEN, KEY or
+  CRED in them, and read no Markdown. Two passwords got past it: the
+  jediacademy README gave its rcon password to docker as `-e PW=` filled from
+  a `grep` of `.env` (fixed in its v1.3.0; zomboid's README carried the same
+  command), and rathena's password test logged in with `-e P=` filled from
+  its second argument. It now flags `-e`/`--env NAME=` with a value from a
+  variable, a positional argument or a command, whatever the name, and reads
+  the bash, sh, shell, zsh and console fences of every README.md and of
+  docs/. A declared exemption also covers a command continued with `\` when
+  it sits above the command's first line, where a comment can go. The fleet
+  was swept with it before it went live: 37 lines in 18 repositories. Four
+  put a real secret on a command line: the zomboid and glpi READMEs,
+  modernuo's `tools/set-password.sh` with the password it had just
+  generated, and rathena's test. The rest carried ports, file names, hosts
+  and database names, and now pass them the same way, by name; the sandbox
+  probe's per-run canary is declared. Reading for it turned up nextcloud's
+  restore handing the database password to `psql -v`, which no pattern here
+  names; fixed in both nextcloud templates. Seven new cases in
+  `tests/test-conformance.sh` (86), the README ones checked against a yaml
+  fence and prose that carry the same command and must stay quiet.
 - **An index pushed again over the same image is not an update.** A
   multi-platform tag names an index, and an index can be pushed again over
   the very same images: a platform added, an attestation rewritten. On

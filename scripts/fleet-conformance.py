@@ -1049,6 +1049,14 @@ ARGV_SECRET_PATTERNS = [
     # -e NAME alone takes it from the caller's environment and is the fix
     (re.compile(r"(?:^|\s)(?:-e|--env)[ =][\"']?(" + ARGV_SECRET_NAME + r")=" + Q + r"\$"), None,
      "a secret handed to -e NAME=value, which puts the value in docker's argv"),
+    # ...and any other name, when the value is expanded from a variable, a
+    # positional argument or a command: the name says nothing about what it
+    # carries. Found 2026-11-08: a README handing an RCON password over as
+    # -e PW="$(grep ...)", and a test logging in with -e P="$2". A value that
+    # is not a secret passes by taking the same fix, NAME=... then -e NAME,
+    # or by declaring the line.
+    (re.compile(r"(?:^|\s)(?:-e|--env)[ =][\"']?([A-Za-z_][A-Za-z0-9_]*)=" + Q + r"(?:\$|`)"), None,
+     "a value expanded into -e NAME=value, which puts it in docker's argv whatever the name"),
     # env NAME=value cmd, sudo NAME=value cmd: env and sudo are programs, so the
     # assignment is in their argv; a bare NAME=value prefix in a shell is not
     (re.compile(r"\b(?:env|sudo)\s+(?:-\S+\s+)*(" + ARGV_SECRET_NAME + r")=" + Q + r"\$"), None,
@@ -1068,6 +1076,32 @@ ARGV_SECRET_PATTERNS = [
 ARGV_SECRET_KEEP = re.compile(r"_(?:FILE|PATH|DIR)$")
 ARGV_SECRET_ALLOW = re.compile(r"#\s*conformance:\s*allow-argv-secret\s*[-—]\s*(\S.*)")
 ARGV_SECRET_FILES = re.compile(r"(\.(sh|bash|tpl)$|(^|/)Dockerfile[^/]*$|(^|/)[^/]*entrypoint[^/]*$|^[^/]*compose[^/]*\.ya?ml$)")
+# A command in a README is run by whoever reads it, on their own host: the
+# jediacademy README carried a docker run that put the RCON password in argv
+# until v1.3.0 (2026-11-08), and no file this rule read had it. Only the shell
+# code fences of README.md and docs/ are read; prose and other languages' blocks
+# are not commands.
+ARGV_SECRET_DOCS = re.compile(r"((^|/)README\.md$|^docs/.+\.md$)", re.I)
+MD_FENCE = re.compile(r"^\s*(`{3,}|~{3,})\s*([\w+-]*)")
+MD_SHELL = re.compile(r"^(bash|sh|shell|zsh|console|shell-session)$", re.I)
+
+
+def shell_fences(lines):
+    """A Markdown file's lines with everything outside a shell code fence
+    blanked, so a finding keeps the file's own line number."""
+    out, close, shell = [], None, False
+    for line in lines:
+        if close is None:
+            m = MD_FENCE.match(line)
+            if m:
+                close, shell = re.compile(r"^\s*" + re.escape(m.group(1)[0]) + "{%d,}\\s*$" % len(m.group(1))), bool(MD_SHELL.match(m.group(2)))
+            out.append("")
+        elif close.match(line):
+            close, shell = None, False
+            out.append("")
+        else:
+            out.append(line if shell else "")
+    return out
 # A compose interpolation, ${NAME} or $NAME with one dollar, inside command: or
 # entrypoint: is resolved by compose before the container starts: the value is
 # the process's argument for as long as it runs (sftp's users, a Source
@@ -1121,14 +1155,17 @@ def argv_secret_findings(repo, exempt):
     except urllib.error.HTTPError as e:
         return [f"could not list files to look for secrets on command lines: HTTP {e.code}"]
     for path, size in blobs:
-        if path.startswith(".github/") or not ARGV_SECRET_FILES.search(path) or size > 512 * 1024:
+        doc = bool(ARGV_SECRET_DOCS.search(path))
+        if path.startswith(".github/") or not (doc or ARGV_SECRET_FILES.search(path)) or size > 512 * 1024:
             continue
         text = raw_read(repo, path)
         if text is None:
             continue
         where = "in a test, on the CI runner: " if re.match(r"(.*/)?tests?/", path) else ""
         lines = text.splitlines()
-        if re.search(r"\.ya?ml$", path):
+        if doc:
+            where, lines = "in documentation, run by whoever reads it: ", shell_fences(lines)
+        elif re.search(r"\.ya?ml$", path):
             bad += compose_command_secrets(path, lines, exempt)
         for i, line in enumerate(lines):
             if line.lstrip().startswith("#"):
@@ -1143,7 +1180,13 @@ def argv_secret_findings(repo, exempt):
                     continue
                 if m.groups() and m.group(1) and ARGV_SECRET_KEEP.search(m.group(1)):
                     continue
-                allow = ARGV_SECRET_ALLOW.search(line) or (i and ARGV_SECRET_ALLOW.search(lines[i - 1]))
+                # the door sits on the line, or above the command it belongs
+                # to: a command continued with \ has no room for a comment
+                # between its lines
+                start = i
+                while start and lines[start - 1].rstrip().endswith("\\"):
+                    start -= 1
+                allow = ARGV_SECRET_ALLOW.search(line) or (start and ARGV_SECRET_ALLOW.search(lines[start - 1]))
                 if allow:
                     exempt.append(f"{path}:{i + 1} {what}, declared: {allow.group(1).strip()}")
                 else:

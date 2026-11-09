@@ -615,6 +615,26 @@ PY
 rm -f "$d/x-compose.part"
 expect "a secret compose interpolates into a command is caught" "$WORK/argvrcon" "GAME_RCON_${P} interpolated by compose into the container's command"
 expect "and the Source +rcon_password item with it" "$WORK/argvrcon" "a game server given a secret on its own command line"
+# A name that says nothing: rathena's password test logged in with -e P="$2"
+# (2026-11-08), which the name list could not see.
+d="$(fixture argvshort)"; tag_all "$d"; put "$d" tests/e2e-login.sh "docker run --rm -e A=\"\$1\" -""e P=\"\$2\" python:3.13-alpine true"
+expect "a short name with an expanded value is caught, in a test" "$WORK/argvshort" "in a test, on the CI runner: tests/e2e-login.sh:2 a value expanded into -e NAME=value"
+d="$(fixture argvsubst)"; tag_all "$d"; put "$d" tools/run.sh "docker run --rm --""env=OPAQUE=\$(cat key.txt) app"
+expect "a value from a command substitution through --env= is caught" "$WORK/argvsubst" "tools/run.sh:2 a value expanded into -e NAME=value"
+# A README is run by whoever reads it. The jediacademy README handed its RCON
+# password to docker as -e PW="$(grep ...)" until v1.3.0 (2026-11-08).
+md_append() {       # md_append <repo-dir> <path> <fence-language> <line>
+  mkdir -p "$(dirname "$1/$2")"
+  local fence='``''`'
+  printf '\nOpen a console:\n\n%s%s\n%s\n%s\n' "$fence" "$3" "$4" "$fence" >> "$1/$2"
+}
+d="$(fixture argvreadme)"; tag_all "$d"
+md_append "$d" README.md bash "docker run --rm -it --network container:jka -""e PW=\"\$(grep ^JKA_SERVER_RCON_$P= .env | cut -d= -f2-)\" python:3-alpine"
+expect "a README shell block handing PW to docker from a command substitution is caught" "$WORK/argvreadme" "in documentation, run by whoever reads it: README.md:"
+expect "and named for what it is" "$WORK/argvreadme" "a value expanded into -e NAME=value, which puts it in docker's argv whatever the name"
+d="$(fixture argvdocs)"; tag_all "$d"
+md_append "$d" docs/backup.md sh "mariadb-dump -u app -""p\"\$DB_$P\" appdb > dump.sql"
+expect "a docs/ sh block is read with the same patterns" "$WORK/argvdocs" "in documentation, run by whoever reads it: docs/backup.md:5 a MySQL/MariaDB client given its password as -p"
 # What is NOT a finding: a name without a value, an assignment the shell keeps
 # in the environment, a header built by printf, a *_FILE path, redis-server
 # (it overwrites its own arguments as it starts, measured), and mkdir -p.
@@ -624,6 +644,13 @@ put "$d" tools/fine2.sh "MYSQL_P""WD=\"\$DB_$P\" mariadb-dump -u app appdb"
 put "$d" tools/fine3.sh "printf 'header = \"Author""ization: Bearer %s\"\\n' \"\$TOKEN\" | curl -K - https://example.test"
 put "$d" tools/fine4.sh "docker run -e DB_${P}_FILE=\"\$SECRET_PATH\" app"
 put "$d" tools/fine5.sh "mkdir -p \"\$BACKUP_DIR\""
+# -e NAME alone, the fix, takes the value from the caller's environment; a
+# literal value is not expanded from anything; a value file is named by path.
+put "$d" tests/fine6.sh "P=\"\$2\" docker run --rm -""e P -""e TZ=UTC -""e A_FILE=\"\$KEY_PATH\" python:3.13-alpine true"
+# The same README command outside a shell fence: prose, and a yaml block.
+# shellcheck disable=SC2016  # the $(...) is planted text, never expanded
+printf '\nNever -%s PW="$(grep x .env)" in prose.\n\n```yaml\n-%s PW="$(grep x .env)"\n```\n' e e >> "$d/README.md"
+md_append "$d" README.md bash "PW=\"\$(cat pw)\" docker run --rm -""e PW python:3-alpine"
 compose_file="$(compose_of "$d")"
 python3 - "$compose_file" <<'PY'
 import sys
@@ -633,9 +660,9 @@ part = '  cache:\n    image: redis:7\n    command: ["redis-server", "--requirepa
 open(c, "w").write(s[:i] + part + s[i:])
 PY
 out="$(run_on "$WORK/argvfine")"
-if printf '%s' "$out" | grep -qE 'secret|password|Authorization|interpolated'; then
-  echo "  FAIL: a name, an environment assignment, a printf header, a _FILE path, redis-server or mkdir -p was reported:"
-  printf '%s\n' "$out" | grep -E 'secret|password|Authorization|interpolated' | sed 's/^/        /' | head -6
+if printf '%s' "$out" | grep -qE 'secret|password|Authorization|interpolated|argv'; then
+  echo "  FAIL: a name, an environment assignment, a printf header, a _FILE path, redis-server, mkdir -p, a literal -e value or a README line outside a shell fence was reported:"
+  printf '%s\n' "$out" | grep -E 'secret|password|Authorization|interpolated|argv' | sed 's/^/        /' | head -6
   FAILED=$((FAILED+1))
 else
   echo "  PASS: none of the shapes that keep a secret off the command line is reported"; PASSED=$((PASSED+1))
@@ -650,6 +677,19 @@ if printf '%s' "$out" | grep -q 'Every repository meets the standard' && printf 
 else
   echo "  FAIL: a declared exemption was not handled:"; printf '%s\n' "$out" | sed 's/^/        /' | head -8; FAILED=$((FAILED+1))
 fi
+# ...and above a command continued over several lines, where a comment cannot
+# sit between the lines; one line further up it covers nothing.
+d="$(fixture argvallowcont)"; tag_all "$d"
+put "$d" tests/canary.sh "$allow_line"$'\n'"docker run --rm \\"$'\n'"  -""e CANARY=\"\$token\" \\"$'\n'"  alpine:3 true"
+out="$(run_on "$WORK/argvallowcont")"
+if printf '%s' "$out" | grep -q 'Every repository meets the standard' && printf '%s' "$out" | grep -qF 'tests/canary.sh:4 a value expanded into -e NAME=value'; then
+  echo "  PASS: a declared exemption above a continued command covers its later lines"; PASSED=$((PASSED+1))
+else
+  echo "  FAIL: a declared exemption above a continued command was not honoured:"; printf '%s\n' "$out" | sed 's/^/        /' | head -8; FAILED=$((FAILED+1))
+fi
+d="$(fixture argvallowfar)"; tag_all "$d"
+put "$d" tests/canary.sh "$allow_line"$'\n'"true"$'\n'"docker run --rm \\"$'\n'"  -""e CANARY=\"\$token\" alpine:3 true"
+expect "a declared exemption two commands up covers nothing" "$WORK/argvallowfar" "in a test, on the CI runner: tests/canary.sh:5 a value expanded into -e NAME=value"
 
 echo "passed: $PASSED   failed: $FAILED"
 [ "$FAILED" -eq 0 ]
