@@ -1,83 +1,9 @@
 [
   {
-    "repo": "amazon-ec2-instance-pipeline-terraform",
-    "sha": "f8bc49e69875c2bcd4d3b7d08900fcf04f0b3187",
-    "wf": "Terraform Verification",
-    "kind": "version",
-    "pushed_at": "2026-11-09T15:45:35Z",
-    "review": "\n## Upstream changes 6.71.0 -> 6.72.0\n\n**Verdict:** SAFE TO APPLY \u2014 only new data sources/resources and minor enhancements/bug fixes are listed; no breaking changes, no required variable changes, and no companion-service version requirement is introduced.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none. The compose file pins `version = \"~> 6.71.0\"`, which needs to be bumped to allow 6.72.0 (e.g. `~> 6.72.0`), but this is a version-constraint edit, not a renamed/removed/required variable.\n\n### Data and dependencies\n- none. No database, cache or search-engine version requirement is named in either the 6.72.0 notes or the 6.71.0 baseline notes.\n- The enhancement `resource/aws_lambdacore_network_connector: Add latest_version and latest_version_arn attributes` and the new `aws_lambdaweb_*` resources/data sources are additive only \u2014 nothing in the notes says existing resources change behavior.\n\n### Before applying\n- Edit `01-providers.tf` to update the version constraint from `~> 6.71.0` to `~> 6.72.0` (or a range that includes it), then run `terraform init -upgrade`.\n- Run `terraform plan` after the provider bump to confirm no unexpected diffs, since several resources gained new optional attributes (e.g. `aws_batch_compute_environment.unmanaged_vcpus`, `aws_cloudtrail.recursive_logging`, `aws_elasticache_global_replication_group.tags`/`tags_all`) that could show up as additive plan changes on first run.\n- No backup or manual data migration is indicated by the notes.\n\n### Notes read\n- Release notes for `v6.72.0` (2026-11-04) and the baseline `v6.71.0` (2026-10-28), plus the upstream `CHANGELOG.md` covering 6.67.0 through 6.72.0, read in full for the range in question.\n- WHAT THE IMAGES THEMSELVES DIFFER IN section could not be retrieved (HTTP 401 Unauthorized against the registry); verdict is based on the written notes alone, as instructed.\n"
-  },
-  {
-    "repo": "amazon-ec2-keycloak-docker-swarm-pipeline-terraform",
-    "sha": "6f159aec2a4f1f0402f738fbf3350ad686d54768",
-    "wf": "Terraform Verification",
-    "kind": "version",
-    "pushed_at": "2026-11-09T15:46:25Z",
-    "review": "\n## Upstream changes 6.71.0 -> 6.72.0\n\n**Verdict:** SAFE TO APPLY \u2014 only new data sources/resources and minor enhancements/bug fixes are listed; no breaking changes, no required variable changes, and no companion-service version requirement is introduced.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none. The compose file pins `version = \"~> 6.71.0\"`, which needs to be bumped to allow 6.72.0 (e.g. `~> 6.72.0`), but this is a version-constraint edit, not a renamed/removed/required variable.\n\n### Data and dependencies\n- none. No database, cache or search-engine version requirement is named in either the 6.72.0 notes or the 6.71.0 baseline notes.\n- The enhancement `resource/aws_lambdacore_network_connector: Add latest_version and latest_version_arn attributes` and the new `aws_lambdaweb_*` resources/data sources are additive only \u2014 nothing in the notes says existing resources change behavior.\n\n### Before applying\n- Edit `01-providers.tf` to update the version constraint from `~> 6.71.0` to `~> 6.72.0` (or a range that includes it), then run `terraform init -upgrade`.\n- Run `terraform plan` after the provider bump to confirm no unexpected diffs, since several resources gained new optional attributes (e.g. `aws_batch_compute_environment.unmanaged_vcpus`, `aws_cloudtrail.recursive_logging`, `aws_elasticache_global_replication_group.tags`/`tags_all`) that could show up as additive plan changes on first run.\n- No backup or manual data migration is indicated by the notes.\n\n### Notes read\n- Release notes for `v6.72.0` (2026-11-04) and the baseline `v6.71.0` (2026-10-28), plus the upstream `CHANGELOG.md` covering 6.67.0 through 6.72.0, read in full for the range in question.\n- WHAT THE IMAGES THEMSELVES DIFFER IN section could not be retrieved (HTTP 401 Unauthorized against the registry); verdict is based on the written notes alone, as instructed.\n"
-  },
-  {
-    "repo": "amazon-ec2-nextcloud-docker-swarm-pipeline-terraform",
-    "sha": "9b22a05313c846076d8b3c99f623c3e72a09bee2",
-    "wf": "Terraform Verification",
-    "kind": "version",
-    "pushed_at": "2026-11-09T15:47:16Z",
-    "review": "\n## Upstream changes 6.71.0 -> 6.72.0\n\n**Verdict:** SAFE TO APPLY \u2014 only new data sources/resources and minor enhancements/bug fixes are listed; no breaking changes, no required variable changes, and no companion-service version requirement is introduced.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none. The compose file pins `version = \"~> 6.71.0\"`, which needs to be bumped to allow 6.72.0 (e.g. `~> 6.72.0`), but this is a version-constraint edit, not a renamed/removed/required variable.\n\n### Data and dependencies\n- none. No database, cache or search-engine version requirement is named in either the 6.72.0 notes or the 6.71.0 baseline notes.\n- The enhancement `resource/aws_lambdacore_network_connector: Add latest_version and latest_version_arn attributes` and the new `aws_lambdaweb_*` resources/data sources are additive only \u2014 nothing in the notes says existing resources change behavior.\n\n### Before applying\n- Edit `01-providers.tf` to update the version constraint from `~> 6.71.0` to `~> 6.72.0` (or a range that includes it), then run `terraform init -upgrade`.\n- Run `terraform plan` after the provider bump to confirm no unexpected diffs, since several resources gained new optional attributes (e.g. `aws_batch_compute_environment.unmanaged_vcpus`, `aws_cloudtrail.recursive_logging`, `aws_elasticache_global_replication_group.tags`/`tags_all`) that could show up as additive plan changes on first run.\n- No backup or manual data migration is indicated by the notes.\n\n### Notes read\n- Release notes for `v6.72.0` (2026-11-04) and the baseline `v6.71.0` (2026-10-28), plus the upstream `CHANGELOG.md` covering 6.67.0 through 6.72.0, read in full for the range in question.\n- WHAT THE IMAGES THEMSELVES DIFFER IN section could not be retrieved (HTTP 401 Unauthorized against the registry); verdict is based on the written notes alone, as instructed.\n"
-  },
-  {
-    "repo": "humanitz-server-docker-compose",
-    "sha": "c1d1db3933e257dc8398c6e3bd054febd843df47",
+    "repo": "game-server-wireguard-relay-docker-compose",
+    "sha": "6edd1a74cea0d80d6f478e401df4efb4a4943ac5",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-09T15:49:04Z"
-  },
-  {
-    "repo": "keycloak-traefik-letsencrypt-docker-compose",
-    "sha": "339af7b491b074635da6cedda4f5923729df5dd4",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-09T15:49:40Z"
-  },
-  {
-    "repo": "kf2-server-docker-compose",
-    "sha": "116a8f40758881412647cde4578b09bfaba38ca3",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-09T15:49:48Z"
-  },
-  {
-    "repo": "mailu-traefik-letsencrypt-docker-compose",
-    "sha": "a5e8f85b8e81ab74608570ff742d9a2d49b02bf6",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-09T15:50:29Z"
-  },
-  {
-    "repo": "minecraft-server-docker-compose",
-    "sha": "03b492d95768377abe175dec67227637cba2122d",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-09T15:50:57Z",
-    "review": "\n## Upstream changes 2026.10.1 -> 2026.11.0\n\n**Verdict:** SAFE TO APPLY \u2014 no breaking changes in the notes, no required variable changes, and the one image difference found (bundled JDK point release) is routine.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none. No companion services (databases, caches) are involved for this image, and the notes name none that the compose file would need to pin.\n- Note for future reference, not this range: 2026.10.1's own notes record `pumpkin: Alpine/musl is no longer supported upstream` in this very 2026.11.0 release \u2014 this is a change introduced in the range being moved through, not a pre-existing baseline fact, so it is listed under Breaking changes territory conceptually but has no effect here since this template uses `TYPE: PAPER`, not `pumpkin`.\n\n### Before applying\n- None required by the notes. If `MINECRAFT_SERVER_TYPE` is ever switched to `pumpkin` on this host, confirm the host architecture/image variant isn't relying on Alpine/musl per \"pumpkin: Alpine/musl is no longer supported upstream\" (PR #4384) \u2014 not applicable to the current PAPER configuration.\n\n### Notes read\n- 2026.11.0 (itzg/docker-minecraft-server) \u2014 target release, read in full.\n- 2026.10.1 (itzg/docker-minecraft-server) \u2014 baseline, read for context only, per the rule that it does not drive this verdict.\n"
-  },
-  {
-    "repo": "outline-keycloak-traefik-letsencrypt-docker-compose",
-    "sha": "39aefd83b0d8ca52df297657799e9d68e5b38497",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-09T15:52:49Z"
-  },
-  {
-    "repo": "rathena-docker",
-    "sha": "6bf69d3a06debc28410328e94bee373ed6cc9df1",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-09T15:53:05Z"
-  },
-  {
-    "repo": "tf2-server-docker-compose",
-    "sha": "640496592c7c74fc1f3bcc49793b96a0c233d4c2",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-09T15:53:20Z"
+    "pushed_at": "2026-11-09T16:59:07Z"
   }
 ]
