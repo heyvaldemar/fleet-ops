@@ -45,5 +45,15 @@
     "decided": "2026-10-05",
     "verdict": "NO",
     "why": "a reverse proxy, not a service: every template already ships its ingress as Traefik, and Caddy's only state is a certificate cache Let's Encrypt reissues, so there is nothing for a backup, a restore drill or an upgrade on the same volumes to prove"
+  },
+  "traefik": {
+    "decided": "2026-11-09",
+    "verdict": "THIN",
+    "why": "the fleet's ingress, not a service to host: about sixty templates already run Traefik with its certificates, timeouts and buffering settled, and its only state is a certificate store Let's Encrypt reissues, so a template of its own would repeat every other one with the application removed"
+  },
+  "pi-hole": {
+    "decided": "2026-11-09",
+    "verdict": "THIN",
+    "why": "a DNS appliance for one network, not a web service behind Traefik: it wants port 53 on the LAN and often DHCP, which a one-command template for a public host should not hand out, and most of its state is block lists it downloads again and a query log nobody restores"
   }
 }
