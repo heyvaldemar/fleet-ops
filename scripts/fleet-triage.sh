@@ -317,33 +317,75 @@ resolve_digest() {
 # two digests name the same image when they are the same digest or when they
 # carry the same linux/amd64 build. A digest names fixed content, so what it
 # carries is remembered for the run.
-declare -A AMD64_OF=()
-amd64_of() {         # amd64_of <name:tag> <digest>: AMD64_DIGEST = its linux/amd64 build; non-zero if unreadable
-  local raw got
-  AMD64_DIGEST=""
-  if [ -n "${AMD64_OF[$2]+x}" ]; then AMD64_DIGEST="${AMD64_OF[$2]}"; return 0; fi
-  raw="$(docker buildx imagetools inspect --raw "$1@$2" 2>/dev/null)" || return 1
-  if jq -e '(.manifests? | type) == "array"' <<<"$raw" >/dev/null 2>&1; then
-    got="$(jq -r '[.manifests[] | select(.platform.os == "linux" and .platform.architecture == "amd64" and ((.platform.variant // "") == ""))][0].digest // empty' <<<"$raw" 2>/dev/null)"
-  elif jq -e '.config? != null' <<<"$raw" >/dev/null 2>&1; then
-    got="$2"     # a single image is its own build
+#
+# AN IMAGE IS JUDGED ON EVERY PLATFORM IT SHIPS. The image repositories
+# publish linux/amd64 and linux/arm64, so a base rebuilt for arm64 alone is a
+# new image there: left pinned, the arm64 image goes on being built on the old
+# packages. Their final stages are read on both platforms. A stage built
+# `--platform=$BUILDPLATFORM` (golang, maven) runs on the runner, linux/amd64,
+# whatever it is compiled for, so its amd64 build is the one read. arm64 is
+# published as plain arm64 or as arm64/v8, and both are the same platform; an
+# amd64 with a variant (v2, v3) is a microarchitecture build nobody runs here.
+# A template's own Dockerfile stays on linux/amd64, the platform its CI proves.
+declare -A RAW_OF=()
+build_of() {         # build_of <name:tag> <digest> <os/arch>: BUILD_DIGEST = that platform's build; non-zero if unreadable
+  local raw
+  BUILD_DIGEST=""
+  if [ -n "${RAW_OF[$2]+x}" ]; then
+    raw="${RAW_OF[$2]}"
   else
-    got=""
+    raw="$(docker buildx imagetools inspect --raw "$1@$2" 2>/dev/null)" || return 1
+    RAW_OF[$2]="$raw"
   fi
-  [ -n "$got" ] || return 1
-  AMD64_OF[$2]="$got"; AMD64_DIGEST="$got"
+  if jq -e '(.manifests? | type) == "array"' <<<"$raw" >/dev/null 2>&1; then
+    BUILD_DIGEST="$(jq -r --arg os "${3%%/*}" --arg arch "${3#*/}" \
+      '[.manifests[] | select(.platform.os == $os and .platform.architecture == $arch
+         and ((.platform.variant // "") as $v | $v == "" or ($arch == "arm64" and $v == "v8")))][0].digest // empty' \
+      <<<"$raw" 2>/dev/null)"
+  elif jq -e '.config? != null' <<<"$raw" >/dev/null 2>&1; then
+    BUILD_DIGEST="$2"     # a single image is its own build
+  fi
+  [ -n "$BUILD_DIGEST" ]
+}
+
+same_build_on() {    # same_build_on <os/arch,...> <name:tag> <old> <new> -> 0 when every platform listed carries one build in both
+  local p a plats
+  SAME_BUILDS="" SAME_PLATFORMS=""
+  [ "$3" = "$4" ] && return 0
+  IFS=, read -ra plats <<<"$1"
+  [ "${#plats[@]}" -gt 0 ] || return 1
+  for p in "${plats[@]}"; do
+    build_of "$2" "$3" "$p" || return 1; a="$BUILD_DIGEST"
+    build_of "$2" "$4" "$p" || return 1
+    [ "$a" = "$BUILD_DIGEST" ] || return 1
+    SAME_BUILDS="${SAME_BUILDS:+$SAME_BUILDS, }$p ${a:7:12}"
+    SAME_PLATFORMS="${SAME_PLATFORMS:+$SAME_PLATFORMS and }$p"
+  done
 }
 
 same_build() {       # same_build <name:tag> <old digest> <new digest> -> 0 when both carry one linux/amd64 build
-  local a
-  [ "$2" = "$3" ] && return 0
-  amd64_of "$1" "$2" || return 1; a="$AMD64_DIGEST"
-  amd64_of "$1" "$3" || return 1
-  [ "$a" = "$AMD64_DIGEST" ]
+  same_build_on linux/amd64 "$@"
 }
 
 same_build_note() {  # same_build_note <prefix> <name:tag> <old> <new>: the report's line for an index re-pushed over one build
-  note "$1$2 index re-pushed over the same linux/amd64 build — not an update (index ${3:7:12} -> ${4:7:12}, linux/amd64 ${AMD64_DIGEST:7:12} in both); the pin stays"
+  local what="the same $SAME_PLATFORMS build"
+  case "$SAME_PLATFORMS" in *" and "*) what="the same $SAME_PLATFORMS builds" ;; esac
+  note "$1$2 index re-pushed over $what — not an update (index ${3:7:12} -> ${4:7:12}, $SAME_BUILDS in both); the pin stays"
+}
+
+# pin_platforms <Dockerfile> <name:tag@digest> <final platforms>: the platforms
+# that pin is built for, over every FROM line carrying it — the runner's for a
+# `--platform=$BUILDPLATFORM` stage, the image's own for any other.
+pin_platforms() {
+  local line out=""
+  while IFS= read -r line; do
+    # shellcheck disable=SC2016  # the Dockerfile's own text, matched unexpanded
+    case "$line" in
+      *'--platform=$BUILDPLATFORM'[[:space:]]*|*'--platform=${BUILDPLATFORM}'[[:space:]]*) out="$out,linux/amd64" ;;
+      *) out="$out,$3" ;;
+    esac
+  done < <(awk -v p="$2" '/^FROM[[:space:]]/ && index($0, p)' "$1")
+  tr ',' '\n' <<<"$out" | awk 'NF && !seen[$0]++' | sort | paste -sd, -
 }
 
 # A major bump is prepared, never landed: the compose file and the changelog
@@ -837,6 +879,7 @@ source_ref_refresh() {   # <dir> <repo> <freshness log file>; sets SRC_CHANGED a
 # A version that cannot be read is refused too: a refresh is cheap to retry,
 # a broken build on main is not.
 IMAGE_WORKFLOW="publish.yml"
+IMAGE_PLATFORMS="linux/amd64,linux/arm64"   # what every image repository publishes (publish.yml platforms:)
 IMAGE_KIND="image-digest"
 image_toolchain() {  # image_toolchain <name:tag@digest> -> "<platform> VAR=value" lines, sorted; non-zero if unreadable
   local js
@@ -851,13 +894,14 @@ image_toolchain() {  # image_toolchain <name:tag@digest> -> "<platform> VAR=valu
     <<<"$js" 2>/dev/null | sort || return 1
 }
 
-# from_refresh <dir> <repo> <Dockerfile> <closing sentence>: every
-# `FROM tag@sha256` line of one Dockerfile against what its tag names now.
+# from_refresh <dir> <repo> <Dockerfile> <closing sentence> [final platforms]:
+# every `FROM tag@sha256` line of one Dockerfile against what its tag names
+# now; the platforms are what the image ships (linux/amd64 when not given).
 # Adds to IMG_CHANGED and IMG_NOTED; the caller zeroes them. Image
 # repositories and compose templates that build an image of their own both
 # come here, and only the changelog's last sentence differs between them.
 from_refresh() {
-  local dir="$1" repo="$2" f="$3" closing="$4" pin ref olddg newdg oldtc newtc was now still tmpf where
+  local dir="$1" repo="$2" f="$3" closing="$4" final="${5:-linux/amd64}" pin ref olddg newdg oldtc newtc was now still tmpf where
   where="${f#"$dir"/}"
   [ -f "$f" ] || return 0
   while IFS= read -r pin; do
@@ -875,7 +919,9 @@ from_refresh() {
     esac
     [ "$newdg" = "$olddg" ] && continue
     IMG_NOTED=1
-    if same_build "$ref" "$olddg" "$newdg"; then same_build_note "$repo: " "$ref" "$olddg" "$newdg"; continue; fi
+    if same_build_on "$(pin_platforms "$f" "$pin" "$final")" "$ref" "$olddg" "$newdg"; then
+      same_build_note "$repo: " "$ref" "$olddg" "$newdg"; continue
+    fi
     if ! oldtc="$(image_toolchain "$ref@$olddg")" || ! newtc="$(image_toolchain "$ref@$newdg")"; then
       note "$repo: $ref was repushed ($olddg -> $newdg) and the toolchain inside could not be read from both digests — not applied, needs a human"
       continue
@@ -904,7 +950,7 @@ image_refresh() {    # <dir> <repo> <freshness log file>; sets IMG_CHANGED and I
   local dir="$1" repo="$2" log="$3" line
   IMG_CHANGED=0 IMG_NOTED=0
   [ -f "$1/Dockerfile" ] || return 0
-  from_refresh "$dir" "$repo" "$dir/Dockerfile" "The published tags carry it once the image is rebuilt, tested and signed from this commit."
+  from_refresh "$dir" "$repo" "$dir/Dockerfile" "The published tags carry it once the image is rebuilt, tested and signed from this commit." "$IMAGE_PLATFORMS"
 
   # WHAT THE CHECK SAID BESIDES THE DIGESTS. A tool release (yq, mc,
   # jmx_exporter) is a version and a person's; it is named here so it is not

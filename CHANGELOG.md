@@ -67,6 +67,19 @@ check or a job, a patch fixes one.
   the fleet carries, and the ones the rollout must refuse. Conformance now
   asks it of every repository, so a check copied from an older template is
   a finding.
+- **An image is judged on every platform it ships.** The same-build rule
+  read linux/amd64 alone, and the image repositories publish linux/amd64 and
+  linux/arm64. A base rebuilt for arm64 only, a debian:trixie-slim say, was
+  called the same build and left pinned. The arm64 image would then have
+  gone on being built on the old packages, while the image's own pin check,
+  which reads both platforms, stayed red with nothing to turn it green. An
+  image repository's bases are now read on both. The exception is a stage
+  built `--platform=$BUILDPLATFORM` (golang, maven), which runs on the
+  runner and is read on linux/amd64. arm64/v8 counts as arm64, and each
+  digest is still read once a run. A compose template's own Dockerfile stays
+  on linux/amd64, the platform its CI proves. 21 new cases in
+  `tests/test-triage.sh` (276), among them an arm64-only rebuild under a
+  final stage (moved) and under a build-platform stage (not moved).
 
 ### Added
 - **A template's own Dockerfile bases move like an image repository's.**

@@ -648,7 +648,9 @@ D_OLD="$(dg 1)"; D_NEW="$(dg 2)"     # debian:trixie-slim, no toolchain declared
 G_OLD="$(dg 3)"; G_NEW="$(dg 4)"     # golang:1.27-trixie, Go unchanged on amd64/arm64
 M_OLD="$(dg 5)"; M_NEW="$(dg 6)"     # maven:...-temurin-21, the JDK moved
 B_OLD="$(dg 7)"; B_NEW="$(dg 8)"     # golang:1.27-bookworm, its old digest unreadable
-A_OLD="$(dg 9)"; A_NEW="$(dg a)"     # alpine:3.24, a new index over the same linux/amd64 build
+A_OLD="$(dg 9)"; A_NEW="$(dg a)"     # alpine:3.24, a new index over the same linux/amd64 build, arm64 rebuilt
+dg2() { printf 'sha256:%s' "$(printf "%.0s$1" {1..32})"; }
+A2_OLD="$(dg2 12)"; A2_NEW="$(dg2 34)" # alpine:3.25, a new index over the same amd64 and arm64/v8 builds
 imgbin="$WORK/imgbin"; mkdir -p "$imgbin"
 # Reached through a docker() function in each subshell rather than PATH, so
 # the fake above stays the one the other tests see. It answers the two
@@ -665,12 +667,15 @@ done
 # --raw: the index itself. Debian's two digests carry two amd64 builds, a real
 # rebuild; Alpine's two carry one, a manifest list written again over it.
 plat() { printf '{"digest":"%s","platform":{"os":"%s","architecture":"%s"}}' "\$1" "\$2" "\$3"; }
+v8() { printf '{"digest":"%s","platform":{"os":"linux","architecture":"arm64","variant":"v8"}}' "\$1"; }
 if [ "\$fmt" = raw ]; then
   case "\$ref" in
     debian:trixie-slim@$D_OLD) printf '{"manifests":[%s]}' "\$(plat $(dg b) linux amd64)" ;;
     debian:trixie-slim@$D_NEW) printf '{"manifests":[%s]}' "\$(plat $(dg c) linux amd64)" ;;
     alpine:3.24@$A_OLD) printf '{"manifests":[%s,%s]}' "\$(plat $(dg d) linux amd64)" "\$(plat $(dg e) linux arm64)" ;;
     alpine:3.24@$A_NEW) printf '{"manifests":[%s,%s,%s]}' "\$(plat $(dg d) linux amd64)" "\$(plat $(dg f) linux arm64)" "\$(plat $(dg 1) unknown unknown)" ;;
+    alpine:3.25@$A2_OLD) printf '{"manifests":[%s,%s,%s]}' "\$(plat $(dg d) linux amd64)" "\$(v8 $(dg e))" "\$(plat $(dg 2) unknown unknown)" ;;
+    alpine:3.25@$A2_NEW) printf '{"manifests":[%s,%s,%s]}' "\$(plat $(dg d) linux amd64)" "\$(v8 $(dg e))" "\$(plat $(dg 3) unknown unknown)" ;;
     *) exit 1 ;;
   esac
   exit 0
@@ -685,12 +690,13 @@ case "\$fmt" in
       maven:3.9.16-eclipse-temurin-21) echo '{"digest":"$M_NEW"}' ;;
       golang:1.27-bookworm) echo '{"digest":"$B_NEW"}' ;;
       alpine:3.24) echo '{"digest":"$A_NEW"}' ;;
+      alpine:3.25) echo '{"digest":"$A2_NEW"}' ;;
       limited/*) echo "ERROR: unexpected status from HEAD request: 429 Too Many Requests" >&2; exit 1 ;;
       *) echo "ERROR: docker.io/\$ref: not found" >&2; exit 1 ;;
     esac ;;
   *Image*)
     case "\$ref" in
-      debian:trixie-slim@$D_OLD|debian:trixie-slim@$D_NEW) index "" "" "" ;;
+      debian:trixie-slim@$D_OLD|debian:trixie-slim@$D_NEW|alpine:3.24@$A_OLD|alpine:3.24@$A_NEW) index "" "" "" ;;
       # Go moved on a platform the fleet does not build, and nowhere else.
       golang:1.27-trixie@$G_OLD) index GOLANG_VERSION=1.27.3 GOLANG_VERSION=1.27.3 GOLANG_VERSION=1.27.3 ;;
       golang:1.27-trixie@$G_NEW) index GOLANG_VERSION=1.27.3 GOLANG_VERSION=1.27.3 GOLANG_VERSION=1.27.4 ;;
@@ -863,25 +869,72 @@ case "$out" in *" M "*|*"M Dockerfile"*|*"M CHANGELOG"*) no "a dry run edited th
 case "$out" in *"current changed=0 noted=0"*) ok "a current Dockerfile changes nothing" ;; *) no "current: $out" ;; esac
 case "$out" in *"CURRENT jmx-exporter-docker: freshness is red but nothing in its Dockerfile was auto-fixable"*"needs a human"*) ok "and a red check with nothing to fix still reaches a person" ;; *) no "silent red: $out" ;; esac
 
-echo "== an index re-pushed over the same linux/amd64 build is not an update"
-img5="$WORK/img5"
-imgrepo "$img5" "FROM alpine:3.24@$A_OLD AS final"
-# shellcheck disable=SC2329  # image_repo_pass calls the docker below
-(
-  docker() { "$imgbin/docker" "$@"; }; PENDING="$WORK/img5-pending.json"; DRY_RUN=false; OWNER=owner
-  gh() { return 1; }
-  NOTES=()
-  image_repo_pass "$img5" rathena-docker 1
-  printf 'changed=%s noted=%s\n' "$IMG_CHANGED" "$IMG_NOTED"
-  printf 'NOTE %s\n' "${NOTES[@]}"
-) > "$WORK/img5.out" 2>&1
-out="$(cat "$WORK/img5.out")"
-case "$out" in *"rathena-docker: alpine:3.24 index re-pushed over the same linux/amd64 build — not an update"*"the pin stays"*) ok "a new index over the same amd64 build is said to be no update" ;; *) no "same build: $out" ;; esac
-case "$out" in *"changed=0 noted=1"*) ok "and changes nothing" ;; *) no "flags: $out" ;; esac
-case "$out" in *"needs a human"*) no "a rewritten index went to a person: $out" ;; *) ok "and asks nobody" ;; esac
-same "the Dockerfile keeps its pin" "1" "$(git -C "$img5.git" show main:Dockerfile | grep -c "alpine:3.24@$A_OLD")"
-same "nothing was pushed" "1" "$(git -C "$img5.git" rev-list --count main)"
-same "and nothing is pending" "no" "$([ -s "$WORK/img5-pending.json" ] && echo yes || echo no)"
+imgpass() {           # imgpass <name> <repo> <Dockerfile text>: image_repo_pass on a fresh repo; OUT, and $WORK/<name>{,.git}
+  local d="$WORK/$1"
+  imgrepo "$d" "$3"
+  # shellcheck disable=SC2329  # image_repo_pass calls the docker below
+  (
+    docker() { "$imgbin/docker" "$@"; }; PENDING="$WORK/$1-pending.json"; DRY_RUN=false; OWNER=owner
+    changelog_line() { real_changelog_line "$@"; }
+    gh() { return 1; }
+    NOTES=()
+    image_repo_pass "$d" "$2" 1
+    printf 'changed=%s noted=%s\n' "$IMG_CHANGED" "$IMG_NOTED"
+    printf 'NOTE %s\n' "${NOTES[@]}"
+  ) > "$WORK/$1.out" 2>&1
+  OUT="$(cat "$WORK/$1.out")"
+}
+pushed() { git -C "$WORK/$1.git" rev-list --count main; }
+pending() { if [ -s "$WORK/$1-pending.json" ]; then echo yes; else echo no; fi; }
+
+echo "== an image index re-pushed over the same builds is not an update"
+# An image repository ships linux/amd64 and linux/arm64, so a final stage is
+# read on both. alpine:3.25's new index wrote an attestation again over the
+# same amd64 and arm64/v8 images.
+imgpass img5 os-shell-docker "FROM alpine:3.25@$A2_OLD AS final"
+case "$OUT" in *"os-shell-docker: alpine:3.25 index re-pushed over the same linux/amd64 and linux/arm64 builds — not an update"*"linux/amd64 dddddddddddd, linux/arm64 eeeeeeeeeeee in both); the pin stays"*) ok "a new index over the same amd64 and arm64 builds is said to be no update, naming both" ;; *) no "same builds: $OUT" ;; esac
+case "$OUT" in *"changed=0 noted=1"*) ok "and changes nothing" ;; *) no "flags: $OUT" ;; esac
+case "$OUT" in *"needs a human"*) no "a rewritten index went to a person: $OUT" ;; *) ok "and asks nobody" ;; esac
+same "the Dockerfile keeps its pin" "1" "$(git -C "$WORK/img5.git" show main:Dockerfile | grep -c "alpine:3.25@$A2_OLD")"
+same "nothing was pushed" "1" "$(pushed img5)"
+same "and nothing is pending" "no" "$(pending img5)"
+
+echo "== an image whose arm64 build alone was rebuilt is an update"
+# alpine:3.24's new index carries the same amd64 image and a new arm64 one.
+# Left pinned, the arm64 image would go on being built on the old packages.
+imgpass img6 kubectl-docker "FROM alpine:3.24@$A_OLD AS final"
+same "the pin moved" "1" "$(git -C "$WORK/img6.git" show main:Dockerfile | grep -c "alpine:3.24@$A_NEW AS final")"
+case "$OUT" in *"re-pushed over the same"*) no "an arm64 rebuild was called the same build: $OUT" ;; *) ok "and it is not called the same build" ;; esac
+same "one commit was pushed" "2" "$(pushed img6)"
+same "and it is pending, judged by publish.yml" "yes" "$(pending img6)"
+case "$(git -C "$WORK/img6.git" show main:CHANGELOG.md)" in *"\`alpine:3.24\` was rebuilt upstream"*) ok "the CHANGELOG says it was rebuilt" ;; *) no "no Security line for the arm64 rebuild" ;; esac
+
+echo "== a stage built on the runner is read on the runner's platform"
+# --platform=$BUILDPLATFORM: compiled on linux/amd64 for every target, so an
+# arm64 rebuild of its base changes nothing that is shipped.
+imgpass img7 os-shell-docker "FROM --platform=\$BUILDPLATFORM alpine:3.24@$A_OLD AS tools
+FROM scratch AS final"
+case "$OUT" in *"os-shell-docker: alpine:3.24 index re-pushed over the same linux/amd64 build — not an update"*) ok "an arm64 rebuild under a build-platform stage is no update" ;; *) no "build platform: $OUT" ;; esac
+same "nothing was pushed" "1" "$(pushed img7)"
+# The same base in a build-platform stage and in the final one: both count.
+imgpass img8 os-shell-docker "FROM --platform=\$BUILDPLATFORM alpine:3.24@$A_OLD AS tools
+FROM alpine:3.24@$A_OLD AS final"
+same "a base the final stage also uses moves, on both lines" "2" "$(git -C "$WORK/img8.git" show main:Dockerfile | grep -c "alpine:3.24@$A_NEW")"
+
+echo "== a template's own Dockerfile stays on the platform its CI proves"
+tpl="$WORK/tpl-df"; mkdir -p "$tpl"
+printf 'FROM alpine:3.24@%s AS final\n' "$A_OLD" > "$tpl/Dockerfile"
+printf '# Changelog\n\n## [Unreleased]\n\n## [1.0.0]\n' > "$tpl/CHANGELOG.md"
+out="$(
+  # shellcheck disable=SC2329  # from_refresh calls the docker below
+  docker() { "$imgbin/docker" "$@"; }
+  NOTES=(); DRY_RUN=false; IMG_CHANGED=0; IMG_NOTED=0
+  from_refresh "$tpl" rathena-docker "$tpl/Dockerfile" "The deploy job builds the image from it."
+  printf 'changed=%s\n' "$IMG_CHANGED"; printf 'NOTE %s\n' "${NOTES[@]}"
+)"
+case "$out" in *"rathena-docker: alpine:3.24 index re-pushed over the same linux/amd64 build — not an update"*"the pin stays"*) ok "a new index over the same amd64 build is said to be no update" ;; *) no "template same build: $out" ;; esac
+case "$out" in *"changed=0"*) ok "and changes nothing" ;; *) no "template flags: $out" ;; esac
+same "the template's Dockerfile keeps its pin" "1" "$(grep -c "alpine:3.24@$A_OLD" "$tpl/Dockerfile")"
 
 # amd64_of and same_build over raw indexes, the way imagetools --raw prints them.
 RAW_LOG="$WORK/raw.log"
@@ -895,6 +948,8 @@ rawfake() {          # the answer for one digest: $5 is name:tag@digest
     sha256:amd1) printf '{"schemaVersion":2,"config":{"digest":"sha256:cfg"},"layers":[]}' ;;
     sha256:i4) printf '{"manifests":[{"digest":"sha256:arm4","platform":%s}]}' "$arm" ;;
     sha256:i5) printf '{"manifests":[{"digest":"sha256:v3","platform":{"os":"linux","architecture":"amd64","variant":"v3"}},{"digest":"sha256:amd1","platform":%s}]}' "$amd" ;;
+    sha256:i6) printf '{"manifests":[{"digest":"sha256:amd1","platform":%s},{"digest":"sha256:arm1","platform":%s},{"digest":"sha256:att6","platform":%s}]}' "$amd" "$arm" "$att" ;;
+    sha256:i7) printf '{"manifests":[{"digest":"sha256:amd1","platform":%s},{"digest":"sha256:arm1","platform":{"os":"linux","architecture":"arm64"}}]}' "$amd" ;;
     *) return 1 ;;
   esac
 }
@@ -908,6 +963,26 @@ same "an index with no linux/amd64 cannot be compared, so it is an update" "diff
 same "nor can one the registry will not show" "differ or unread" "$(sb sha256:gone sha256:i1)"
 cached="$( : > "$RAW_LOG"; ( docker() { rawfake "$@"; }; same_build postgres:15 sha256:i1 sha256:i2; same_build postgres:15 sha256:i2 sha256:i1 ); grep -c . "$RAW_LOG")"
 same "a digest is read once a run: it names fixed content" "2" "$cached"
+sb2() { : > "$RAW_LOG"; ( docker() { rawfake "$@"; }; if same_build_on linux/amd64,linux/arm64 postgres:15 "$1" "$2"; then echo "same: $SAME_BUILDS"; else echo "differ or unread"; fi ); }
+same "on two platforms: the same amd64 and arm64/v8 builds are one image" "same: linux/amd64 amd1, linux/arm64 arm1" "$(sb2 sha256:i1 sha256:i6)"
+same "arm64 and arm64/v8 are one platform" "same: linux/amd64 amd1, linux/arm64 arm1" "$(sb2 sha256:i1 sha256:i7)"
+same "an arm64 rebuild is an update on two platforms" "differ or unread" "$(sb2 sha256:i1 sha256:i2)"
+same "  and still none on amd64 alone" "same" "$(sb sha256:i1 sha256:i2)"
+same "an index with no arm64 cannot be compared on two" "differ or unread" "$(sb2 sha256:i3 sha256:i1)"
+cached2="$( : > "$RAW_LOG"; ( docker() { rawfake "$@"; }; same_build_on linux/amd64,linux/arm64 postgres:15 sha256:i1 sha256:i6 ); grep -c . "$RAW_LOG")"
+same "each digest is read once for both platforms" "2" "$cached2"
+pp="$WORK/pp.Dockerfile"
+cat > "$pp" <<'DF'
+FROM --platform=$BUILDPLATFORM golang:1.27-trixie@sha256:g AS build
+FROM --platform=${BUILDPLATFORM} maven:3@sha256:m AS jvm
+FROM debian:trixie-slim@sha256:d AS builder
+FROM --platform=$BUILDPLATFORM debian:trixie-slim@sha256:d AS tools
+FROM debian:trixie-slim@sha256:d AS final
+DF
+same "a build-platform stage is read on the runner's platform" "linux/amd64" "$(pin_platforms "$pp" golang:1.27-trixie@sha256:g linux/amd64,linux/arm64)"
+same "  written with braces too" "linux/amd64" "$(pin_platforms "$pp" maven:3@sha256:m linux/amd64,linux/arm64)"
+same "a base any shipped stage uses is read on every platform shipped" "linux/amd64,linux/arm64" "$(pin_platforms "$pp" debian:trixie-slim@sha256:d linux/amd64,linux/arm64)"
+same "a template's Dockerfile: linux/amd64" "linux/amd64" "$(pin_platforms "$pp" debian:trixie-slim@sha256:d linux/amd64)"
 
 echo "== a terraform template's CI images: the same rule"
 tfd="$WORK/tf-repo"; mkdir -p "$tfd"
