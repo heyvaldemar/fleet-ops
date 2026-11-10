@@ -329,6 +329,50 @@ check("measurements travel as written", k["latest"]["measured"], ["point-in-time
 check("the per-check list does not (the page shows counts)", "checks" in k["latest"], False)
 check("fleet.json carries it", json.loads(m.fleet_json(rows0, ev0, [], live=live))["live_status"]["kubernetes-postgres-recovery"]["kind"]["runs"], 4)
 check("and an empty block when there is none", json.loads(m.fleet_json(rows0, ev0, []))["live_status"], {})
+check("a record with no model leg carries no window of one", "models_window" in k, False)
+
+print()
+print("=== a model leg's window travels as totals, not as the last run ===")
+WINDOW = {"window_days": 30, "runs": 8, "runs_failed": 0,
+          "first": {"id": 11, "at": "2026-11-08T16:46:24Z", "url": "u11", "conclusion": "success"},
+          "last": {"id": 18, "at": "2026-11-10T12:59:42Z", "url": "u18", "conclusion": "success"},
+          "models": [{"model": "small-a", "runs": 8, "triages": 24, "acted_on_the_note": 3,
+                      "asks": {"copied the note into the summary": 24},
+                      "attempts": {"outside": {"calls": 0, "outcomes": {}},
+                                   "read": {"calls": 48, "outcomes": {"reached": 48}}},
+                      "median_seconds": 41.6, "median_vcpu_seconds": 165.5, "median_usd": 0.00205,
+                      "line": "small-a: acted on the note in 3 of 24 triages across 8 runs"},
+                     {"model": "small-b", "runs": 8, "triages": 24, "acted_on_the_note": 24,
+                      "attempts": {"outside": {"calls": 43, "outcomes": {"blocked": 23, "no answer for the name": 20}},
+                                   "run_shell": {"calls": 37, "outcomes": {"refused": 37}},
+                                   "door by URL": {"calls": 0, "outcomes": {}}},
+                      "line": "small-b: acted on the note in 24 of 24 triages across 8 runs"}]}
+def fake_models(path):
+    if path == "repos/heyvaldemar/cypress-cloud-triage-agent/contents/.github/workflows/status.yml":
+        return {}
+    if path == "repos/heyvaldemar/cypress-cloud-triage-agent/contents/status.json?ref=status":
+        return {"content": base64.b64encode(json.dumps(dict(STATUS, models_window=WINDOW)).encode()).decode()}
+    raise sp.CalledProcessError(1, "gh")
+m.gh = fake_models
+got = m.collect_live_status(["cypress-cloud-triage-agent"])
+w = got["cypress-cloud-triage-agent"]["kind"]["models_window"]
+check("the window says how many runs it counted, and that none was red", (w["runs"], w["runs_failed"], w["window_days"]), (8, 0, 30))
+check("and names the first and the last of them", (w["first"], w["last"]),
+      ({"id": 11, "at": "2026-11-08T16:46:24Z", "url": "u11"}, {"id": 18, "at": "2026-11-10T12:59:42Z", "url": "u18"}))
+a, b = w["models"]
+check("each model keeps its totals", [(x["model"], x["acted_on_the_note"], x["triages"], x["runs"]) for x in (a, b)],
+      [("small-a", 3, 24, 8), ("small-b", 24, 24, 8)])
+check("and its sentence as the repository wrote it", a["line"], "small-a: acted on the note in 3 of 24 triages across 8 runs")
+check("attempts that never happened are left out", sorted(a["attempts"]), ["read"])
+check("attempts that happened keep how each ended", b["attempts"],
+      {"outside": {"calls": 43, "outcomes": {"blocked": 23, "no answer for the name": 20}},
+       "run_shell": {"calls": 37, "outcomes": {"refused": 37}}})
+check("the per-ask breakdown stays on the branch", "asks" in a, False)
+check("a figure the branch did not write is not invented", (b["median_seconds"], b["median_usd"]), (None, None))
+check("fleet.json carries the window", json.loads(m.fleet_json(rows0, ev0, [], live=got))["live_status"]["cypress-cloud-triage-agent"]["kind"]["models_window"]["runs"], 8)
+for label, bad in (("an empty window", {"window_days": 30, "runs": 0, "models": []}), ("a window that is not a record", "none yet"),
+                   ("models that are not a list", {"runs": 2, "models": "three"})):
+    check("%s is no window at all" % label, m.models_window_of({"models_window": bad}), None)
 m.gh = keep
 
 print()

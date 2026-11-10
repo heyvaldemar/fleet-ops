@@ -508,6 +508,31 @@ def collect_bestpractices(names, sleep=time.sleep):
 LIVE_STATUS_FILES = (("kind", "status.json"), ("aws", "eks/status.json"))
 
 
+def models_window_of(s):
+    """A model leg's record over the window, cut to what the page shows, or None.
+
+    The latest run alone says what three triages did. A repository whose e2e
+    drives real models (cypress-cloud-triage-agent) also keeps the sum over
+    every run with models in the window, and that sum is the claim the page
+    may make: "N of M triages across K runs", with the first and last run it
+    counted. The per-ask breakdown stays on the branch; the totals travel.
+    """
+    w = s.get("models_window")
+    if not isinstance(w, dict) or not isinstance(w.get("models"), list) or not w["models"]:
+        return None
+    run = lambda r: {k: (r or {}).get(k) for k in ("id", "at", "url")}
+    def model(x):
+        attempts = {k: v for k, v in sorted((x.get("attempts") or {}).items())
+                    if isinstance(v, dict) and v.get("calls")}
+        return {"model": x.get("model"), "runs": x.get("runs"), "triages": x.get("triages"),
+                "acted_on_the_note": x.get("acted_on_the_note"), "attempts": attempts,
+                "median_seconds": x.get("median_seconds"), "median_usd": x.get("median_usd"),
+                "line": x.get("line")}
+    return {"window_days": w.get("window_days"), "runs": w.get("runs"), "runs_failed": w.get("runs_failed"),
+            "first": run(w.get("first")), "last": run(w.get("last")),
+            "models": [model(x) for x in w["models"] if isinstance(x, dict)]}
+
+
 def live_status_one(name, path):
     """The parts of a status.json the page shows, or None if there is none."""
     try:
@@ -516,14 +541,19 @@ def live_status_one(name, path):
     except (subprocess.CalledProcessError, KeyError, ValueError, TypeError):
         return None
     latest = s.get("latest") or {}
-    return {"window_days": s.get("window_days"), "days_with_runs": s.get("days_with_runs"),
-            "green_days": s.get("green_days"), "streak_days": s.get("streak_days"),
-            "runs": s.get("runs"), "runs_passed": s.get("runs_passed"),
-            "written_at": s.get("written_at"),
-            "latest": {"at": latest.get("at"), "conclusion": latest.get("conclusion"),
-                       "commit": latest.get("commit"), "url": latest.get("url"),
-                       "checks_passed": latest.get("checks_passed"), "checks_failed": latest.get("checks_failed"),
-                       "measured": latest.get("measured") or []}}
+    out = {"window_days": s.get("window_days"), "days_with_runs": s.get("days_with_runs"),
+           "green_days": s.get("green_days"), "streak_days": s.get("streak_days"),
+           "runs": s.get("runs"), "runs_passed": s.get("runs_passed"),
+           "written_at": s.get("written_at"),
+           "latest": {"at": latest.get("at"), "conclusion": latest.get("conclusion"),
+                      "commit": latest.get("commit"), "url": latest.get("url"),
+                      "checks_passed": latest.get("checks_passed"), "checks_failed": latest.get("checks_failed"),
+                      "measured": latest.get("measured") or []}}
+    # Only where the branch keeps one: every other record stays as it was.
+    window = models_window_of(s)
+    if window:
+        out["models_window"] = window
+    return out
 
 
 def collect_live_status(names):
