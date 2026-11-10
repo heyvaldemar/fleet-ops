@@ -407,7 +407,24 @@ def workflow_claims(repo):
                 if "trivy" in step.lower() and re.search(r"(?m)^\s+continue-on-error:\s*true\b", step):
                     bad.append(f"{name}: a Trivy step in job {m.group(1)} carries continue-on-error, so a "
                                f"scan that cannot finish reads as success")
+        # A NEW INDEX OVER THE SAME BUILD IS NOT DRIFT. A pin check that fails
+        # on any difference between the pinned digest and the one the tag's
+        # index names now goes red when a publisher pushes the index again
+        # over the very same images. On 2026-11-09 fifteen templates did, for
+        # alpine:3.22, nextcloud, joomla and wordpress, and the triage, which
+        # compares the linux/amd64 build, rightly moved no pin to turn them
+        # green. The comparison asks about the build too:
+        # scripts/rollout-freshness-same-build.py is what puts it in.
+        lines = body.split("\n")
+        for k, line in enumerate(lines):
+            if k and DRIFT_ERROR.search(line) and BARE_DIGEST_COMPARE.match(lines[k - 1]):
+                bad.append(f"{name}: line {k + 1} reports digest drift for any new index, including one "
+                           f"pushed again over the same linux/amd64 build")
     return bad
+
+
+DRIFT_ERROR = re.compile(r"::error::.*digest drift")
+BARE_DIGEST_COMPARE = re.compile(r'^\s*(?:el)?if \[ "\$\{?\w+\}?" != "\$\{?\w+\}?" \]; then\s*$')
 
 
 # Templates whose restore scripts CI does not run yet. THIS LIST ONLY SHRINKS:

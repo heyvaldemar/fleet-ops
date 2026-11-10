@@ -418,6 +418,23 @@ YML
 git -C "$nt2" init -q && git -C "$nt2" -c user.name=t -c user.email=t@t add -A && git -C "$nt2" -c user.name=t -c user.email=t@t commit -qm init && git -C "$nt2" tag v1.0.0
 expect "a Trivy step with the flag is caught" "$WORK/nontemplate2" "a Trivy step in job build carries continue-on-error"
 
+# A pin check that calls any new index drift, including one pushed again over
+# the same linux/amd64 build: the reference's comparison put back as it was.
+d="$(fixture samebuild)"; tag_all "$d"
+if python3 - "$d/.github/workflows/freshness.yml" <<'PY'
+import io, sys
+p = sys.argv[1]; s = io.open(p).read()
+t = s.replace(' && new_build "$ref" "$pinned_digest" "$current_digest"', "")
+if t == s:
+    sys.exit("the reference's pin check does not ask about the build, so there is nothing to take out")
+io.open(p, "w").write(t)
+PY
+then
+  expect "a pin check that calls a re-pushed index drift is caught" "$WORK/samebuild" "reports digest drift for any new index, including one pushed again over the same linux/amd64 build"
+else
+  echo "  FAIL: the same-build plant could not be made"; FAILED=$((FAILED+1))
+fi
+
 
 # EVERY SERVICE SAYS WHAT HAPPENS WHEN IT STOPS. Without a policy it stays down
 # after a reboot while the rest of the stack returns: Nextcloud's cron sidecar

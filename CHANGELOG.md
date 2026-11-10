@@ -48,6 +48,25 @@ check or a job, a patch fixes one.
   digest names fixed content, so what it carries is read once a run. The
   templates run, and CI proves, linux/amd64; an index whose arm64 image alone
   changed is not moved. v1.10.17 stands: tags are immutable.
+- **A template's own pin check reads a re-pushed index the same way.** The
+  triage stopped calling an index pushed again over the same linux/amd64
+  build an update, but the check every template runs daily still compared
+  the pin with the digest of the tag's index and failed on any difference,
+  so it went red for an image nobody rebuilt and the triage, rightly, moved
+  nothing to turn it green. On 2026-11-09 that was fifteen templates:
+  alpine:3.22, whose new index rebuilt only linux/riscv64, in eleven of
+  them, and nextcloud 35.0.2, joomla 6.2.0 and wordpress 7.1.4.
+  `scripts/rollout-freshness-same-build.py` puts the same comparison into
+  every `digest drift` check in the fleet: the same build passes with a
+  notice naming both digests, a new build fails with the error text it
+  always had, and a build that cannot be read still fails.
+  `tests/test-freshness-same-build.sh` runs the standard step on four
+  indexes recorded from the registry, each checked against its own digest:
+  both directions, nothing moved (no index read at all), an unreadable
+  index, an index with no plain linux/amd64 build, every shape of the check
+  the fleet carries, and the ones the rollout must refuse. Conformance now
+  asks it of every repository, so a check copied from an older template is
+  a finding.
 
 ### Added
 - **A template's own Dockerfile bases move like an image repository's.**
