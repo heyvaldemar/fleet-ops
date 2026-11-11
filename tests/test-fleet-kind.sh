@@ -51,6 +51,8 @@ import sys; sys.path.insert(0, sys.argv[1]); import fleet_kind as k
 cases = {
     ("platform", "kind", "Makefile", "README.md"): "kubernetes",
     ("kind", "manifests", "Makefile", "gvisor.lock"): "focused",
+    ("manifests", "vendor", "templates", "helm", "Makefile"): "focused",
+    ("manifests", "vendor", "Makefile"): None,
     ("cluster", "deploy", "loadgen", "images.lock"): "measured",
     ("Chart.yaml", "values.yaml"): "helm",
     ("nextcloud-docker-compose.yml", ".env.example"): "compose",

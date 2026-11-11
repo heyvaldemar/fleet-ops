@@ -708,5 +708,58 @@ d="$(fixture argvallowfar)"; tag_all "$d"
 put "$d" tests/canary.sh "$allow_line"$'\n'"true"$'\n'"docker run --rm \\"$'\n'"  -""e CANARY=\"\$token\" alpine:3 true"
 expect "a declared exemption two commands up covers nothing" "$WORK/argvallowfar" "in a test, on the CI runner: tests/canary.sh:5 a value expanded into -e NAME=value"
 
+# A repository whose refusals go through a provisioner plants variants of one
+# template, not manifests (kubernetes-coder-agent-workspaces, 2026-11-11). The
+# plants rule is the same in that form, and each part of it is broken here.
+echo "=== planted variants of a template ==="
+# Written to a file first: bash 3.2 cannot parse a here-document with quotes
+# in it inside a command substitution.
+cat > "$WORK/variants-rule.py" <<'PY'
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location("conformance", sys.argv[1])
+c = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(c)
+class R:
+    def __init__(self, files, dirs):
+        self.files, self.dirs = files, dirs
+    def read(self, p):
+        return self.files.get(p)
+    def names_in(self, p):
+        return self.dirs.get(p, [])
+RUN = 'variants="$(awk -F"\\t" \'!/^#/ && NF {print $1}\' "$HERE/variants.tsv")"\n'
+GOOD = ("# variant\texpect\trefused by\n"
+        "none\tadmitted\tcontrol\n"
+        "no-gvisor\tan agent pod runs on gVisor\tthe policy\n"
+        "other-home\tmeasured\tnothing\n")
+def repo(table=GOOD, run=RUN, tampered=("main.tf",)):
+    files = {"tests/e2e/run.sh": run}
+    if table is not None:
+        files["tests/e2e/variants.tsv"] = table
+    return R(files, {"tests/e2e/tampered": list(tampered)})
+def check(name, got, want):
+    print(("  PASS: " if got == want else "  FAIL: ") + name + ("" if got == want else " (got %r)" % (got,)))
+def says(findings, words):
+    return any(words in f for f in findings or [])
+check("a table of template variants with a control and a refusal meets the plants rule", c.variants_rule(repo()), [])
+check("no table is not this rule's business", c.variants_rule(repo(table=None)), None)
+check("a table with no tampered template beside it is not this rule's business", c.variants_rule(repo(tampered=())), None)
+check("variants without a control are refused",
+      says(c.variants_rule(repo(GOOD.replace("none\tadmitted\tcontrol\n", ""))), "without a control"), True)
+check("a table where nothing must be refused is refused",
+      says(c.variants_rule(repo("none\tadmitted\tcontrol\nother-home\tmeasured\tnothing\n")), "no refusal is ever tried"), True)
+check("a variant that does not say what it expects is named",
+      says(c.variants_rule(repo(GOOD + "bare\n")), "'bare'"), True)
+check("a table the e2e never reads is refused",
+      says(c.variants_rule(repo(run="# variants.tsv is named in a comment only\ntrue\n")), "never reads"), True)
+PY
+out="$(python3 "$WORK/variants-rule.py" "$CHECKER")"
+printf '%s\n' "$out"
+ran="$(printf '%s\n' "$out" | awk '/^  (PASS|FAIL): /{n++} END{print n+0}')"
+PASSED=$((PASSED + $(printf '%s\n' "$out" | awk '/^  PASS: /{n++} END{print n+0}')))
+FAILED=$((FAILED + $(printf '%s\n' "$out" | awk '/^  FAIL: /{n++} END{print n+0}')))
+if [ "$ran" != 7 ]; then
+  echo "  FAIL: the variants checks did not all run ($ran of 7)"; FAILED=$((FAILED+1))
+fi
+
 echo "passed: $PASSED   failed: $FAILED"
 [ "$FAILED" -eq 0 ]

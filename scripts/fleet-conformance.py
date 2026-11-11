@@ -761,6 +761,42 @@ def plants_rule(names, read, where="tests/e2e/plants"):
     return bad
 
 
+# --- Planted variants of a template, where a refusal goes through a provisioner --
+#
+# kubernetes-coder-agent-workspaces cannot plant manifests. What it proves
+# refused is a Coder template edited to step outside, and a template reaches
+# the cluster only through Coder's provisioner, so a manifest applied with
+# kubectl would prove a different thing. Its plants are the variants of one
+# tampered template (tests/e2e/tampered/), and tests/e2e/variants.tsv is the
+# table of what each must get from the cluster: the text of the refusal,
+# "admitted" for the control, or "measured" for a finding reported rather than
+# gated. The rule is the same one in that form: every variant says what it
+# expects, one of them must be refused and one admitted, and the e2e reads the
+# table. Each part is broken in tests/test-conformance.sh.
+
+VARIANTS = "tests/e2e/variants.tsv"
+
+
+def variants_rule(repo):
+    """The findings of the plants rule over a table of template variants, or
+    None when the repository keeps no such table beside a tampered template."""
+    table = repo.read(VARIANTS)
+    if table is None or not repo.names_in("tests/e2e/tampered"):
+        return None
+    rows = [l.split("\t") for l in table.splitlines() if l.strip() and not l.lstrip().startswith("#")]
+    bad = [f"{VARIANTS}: variant {r[0].strip()!r} does not say what it expects"
+           for r in rows if len(r) < 2 or not r[1].strip()]
+    expects = [r[1].strip() for r in rows if len(r) >= 2 and r[1].strip()]
+    if "admitted" not in expects:
+        bad.append("no template variant expects to be admitted: refusals without a control prove nothing")
+    if not any(e not in ("admitted", "measured") for e in expects):
+        bad.append(f"{VARIANTS} names no variant that must be refused: no refusal is ever tried")
+    run = "\n".join(l for l in (repo.read("tests/e2e/run.sh") or "").splitlines() if not l.lstrip().startswith("#"))
+    if "variants.tsv" not in run:
+        bad.append(f"tests/e2e/run.sh never reads {VARIANTS}: the table is not what the e2e checks")
+    return bad
+
+
 def names_at(name, path, ref):
     """The entries of one directory of a fleet repository at a tag."""
     if LOCAL:
@@ -906,6 +942,8 @@ def focused_rules(repo, names):
     bad += cloud_run_findings(workflows)
 
     planted = plants_rule(repo.names_in("tests/e2e/plants"), lambda n: repo.read(f"tests/e2e/plants/{n}"))
+    if planted is None:
+        planted = variants_rule(repo)
     if planted is None:
         bad += flagship_plants(repo)
     else:

@@ -103,6 +103,11 @@ def kind_from_files(names):
         return "kubernetes"
     if {"kind", "manifests"} <= names:
         return "focused"
+    # A focused repository that takes its kind cluster from another one's
+    # release, vendored, and proves templates against it: the cluster's files
+    # sit under vendor/, not kind/ (kubernetes-coder-agent-workspaces).
+    if {"manifests", "vendor", "templates"} <= names:
+        return "focused"
     if {"loadgen", "deploy"} <= names:
         return "measured"
     if any(n.endswith((".yml", ".yaml")) and "compose" in n for n in names):
