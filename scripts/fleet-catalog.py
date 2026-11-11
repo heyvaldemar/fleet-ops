@@ -693,6 +693,12 @@ def collect_upstream(path=UPSTREAM_FILE):
 OPS_WINDOW_DAYS = 30
 OWNER_NODE_ID = "MDQ6VXNlcjEwNDk4NzQ0"  # heyvaldemar
 OPS_CHUNK = 25
+# One query GitHub drops takes 25 repositories with it, and 25 unread is a day
+# with no catalog: on 2026-11-10 run 42838947881 read everything else whole
+# and published nothing. A dropped query is asked again, twice, with a pause,
+# before its repositories are called unread.
+OPS_TRIES = 3
+OPS_WAIT = 20
 
 
 def graphql(q):
@@ -700,7 +706,7 @@ def graphql(q):
     return json.loads(out)["data"]
 
 
-def ops_history(names, since, query=graphql):
+def ops_history(names, since, query=graphql, sleep=time.sleep):
     """{name: (commits, commits by the owner, releases published)} since `since`, and the names not read."""
     found, unread = {}, []
     for i in range(0, len(names), OPS_CHUNK):
@@ -710,9 +716,15 @@ def ops_history(names, since, query=graphql):
             'all:history(since:"%s"){totalCount} owner:history(since:"%s",author:{id:"%s"}){totalCount}}}}'
             ' releases(first:100,orderBy:{field:CREATED_AT,direction:DESC}){nodes{publishedAt isDraft isPrerelease}}}'
             % (j, OWNER, n, since, since, OWNER_NODE_ID) for j, n in enumerate(chunk)) + "}"
-        try:
-            data = query(q) or {}
-        except (subprocess.CalledProcessError, KeyError, ValueError, TypeError):
+        data = None
+        for attempt in range(OPS_TRIES):
+            try:
+                data = query(q) or {}
+                break
+            except (subprocess.CalledProcessError, KeyError, ValueError, TypeError):
+                if attempt < OPS_TRIES - 1:
+                    sleep(OPS_WAIT * (attempt + 1))
+        if data is None:
             unread += chunk
             continue
         for j, n in enumerate(chunk):
@@ -781,12 +793,12 @@ def dependency_updates(day, now, search=search_issues):
             "oldest_open_days": max([(now - _ts(i["created_at"])).days for i in waiting] or [0])}
 
 
-def collect_operations(names, now=None, query=graphql, runs=ci_runs, deps=dependency_updates):
+def collect_operations(names, now=None, query=graphql, runs=ci_runs, deps=dependency_updates, sleep=time.sleep):
     now = now or datetime.datetime.now(datetime.timezone.utc)
     start = now - datetime.timedelta(days=OPS_WINDOW_DAYS)
     since, day = start.strftime("%Y-%m-%dT%H:%M:%SZ"), start.strftime("%Y-%m-%d")
     names = sorted(names)
-    hist, unread = ops_history(names, since, query)
+    hist, unread = ops_history(names, since, query, sleep)
     ok = fail = 0
     for n in names:
         r = runs(n, day)

@@ -481,8 +481,24 @@ names = ["r%02d" % i for i in range(30)]
 o = m.collect_operations(names, now=NOW, query=fake_q, runs=lambda n, day: (1, 0), deps=lambda day, now: None)
 check("the fleet is asked 25 repositories a query", len(seen_q), 2)
 check("30 repositories, all read", (o["repositories"], o["commits"], o["unread"]), (30, 300, []))
-o = m.collect_operations(["broken-1", "fine"], now=NOW, query=fake_q, runs=lambda n, day: None if n == "fine" else (1, 0), deps=lambda day, now: None)
+seen_q[:] = []
+naps = []
+o = m.collect_operations(["broken-1", "fine"], now=NOW, query=fake_q, runs=lambda n, day: None if n == "fine" else (1, 0), deps=lambda day, now: None, sleep=naps.append)
 check("a query GitHub refuses leaves its repositories unread, not quiet", o["unread"], ["broken-1", "fine"])
+check("but only after it was asked three times, with a longer pause each time", (len(seen_q), naps), (3, [20, 40]))
+# 2026-11-10, run 42838947881: one dropped query of 25 repositories, nothing published that day's first run
+dropped = []
+def drops_once(q):
+    dropped.append(q)
+    if len(dropped) == 1:
+        raise sp.CalledProcessError(1, "gh")
+    return fake_q(q)
+naps = []
+od = m.collect_operations(["r%02d" % i for i in range(25)], now=NOW, query=drops_once, runs=lambda n, day: (1, 0), deps=lambda day, now: None, sleep=naps.append)
+check("a query GitHub drops once is asked again and read whole", (od["unread"], od["commits"], len(dropped), naps), ([], 250, 2, [20]))
+naps = []
+oq = m.collect_operations(["a", "b"], now=NOW, query=fake_q, runs=lambda n, day: (1, 0), deps=lambda day, now: None, sleep=naps.append)
+check("a query that answers the first time waits for nothing", naps, [])
 check("and what was not read is not counted", (o["commits"], o["ci_runs_succeeded"]), (0, 1))
 o2 = m.collect_operations(["a", "b"], now=NOW, query=fake_q, runs=lambda n, day: None if n == "b" else (1, 0), deps=lambda day, now: None)
 check("a repository whose CI runs cannot be read is unread too, though its commits were", o2["unread"], ["b"])

@@ -34,6 +34,7 @@ kubernetes-postgres-recovery focused
 kubernetes-air-gapped-ai-agent focused
 cypress-cloud-triage-agent focused
 kubernetes-oscal-evidence focused
+kubernetes-coder-agent-workspaces focused
 kubernetes-llm-inference-gateway measured
 helm-charts helm
 heyvaldemar-com none

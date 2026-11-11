@@ -195,10 +195,23 @@ QUOTA_EMPTY = ("the account's GitHub API quota, which all its tokens share, stay
 JSON_OUT = None
 
 
+class QuotaEmpty(SystemExit):
+    """The quota is gone, and the result file already says so.
+
+    Its own class because two helpers below spare the sweep one list that
+    could not be read, and they catch SystemExit to do it. On 2026-11-10 the
+    fleet sweep (run 42845483621) reached this exit inside one of them: the
+    file said the check had watched nothing, the exit was taken for one unread
+    list, and the sweep went on until its own forty-minute bound cut it off,
+    twenty minutes into the next hour's quota. This exit ends the check,
+    wherever it is raised.
+    """
+
+
 def quota_empty():
     if JSON_OUT:
         open(JSON_OUT, "w", encoding="utf-8").write(json.dumps({"findings": [], "unreadable": QUOTA_EMPTY}))
-    sys.exit("cannot read: " + QUOTA_EMPTY)
+    raise QuotaEmpty("cannot read: " + QUOTA_EMPTY)
 
 
 def gh(path):
@@ -544,6 +557,9 @@ def runs_of(repo, ident, event, branch=None, n=10):
     filtered = gh("repos/%s/actions/workflows/%s/runs?%s&per_page=%d" % (repo, ident, q, n))["workflow_runs"]
     try:
         plain = gh("repos/%s/actions/workflows/%s/runs?per_page=30" % (repo, ident))["workflow_runs"]
+    # An empty quota is not one unread list (see QuotaEmpty).
+    except QuotaEmpty:
+        raise
     # gh() exits on a failed call, and SystemExit is not an Exception: a plain
     # list that could not be read must cost this answer, not the whole sweep.
     except (Exception, SystemExit):
@@ -582,6 +598,8 @@ def unfiltered_schedule(repo, ident):
         # a second, and a daily schedule's latest run is inside it; a weekly
         # one crowded out by pushes falls through to the filtered questions.
         runs = gh("repos/%s/actions/workflows/%s/runs?per_page=20" % (repo, ident))["workflow_runs"]
+    except QuotaEmpty:
+        raise
     except (Exception, SystemExit):
         return None
     sched = [when(r) for r in runs if r.get("event") == "schedule"]

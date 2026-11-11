@@ -139,9 +139,33 @@ age_blind() {
   sed -E 's/[0-9]+(\.[0-9]+)?[[:space:]]+(second|minute|hour|day|week|month)(s?)/<age> \2\3/g'
 }
 
+# ONE WAITING BRANCH IS ONE DECISION, HOWEVER THE RUN WORDS IT.
+#
+# fleet-triage.sh says a prepared branch two ways. The run that pushes it
+# writes "<repo>: 0.12.5 -> 0.13.3 prepared on branch `bump/0.13.3` (...) —
+# open it: <url> — needs a human". A run that only finds it there writes
+# "<repo>: `bump/0.13.3` is still ahead of main with no pull request open —
+# open it or delete it: <url> — needs a human". Same branch, same decision,
+# two hashes, and the thread flips between them for as long as the branch
+# waits. On 2026-11-10 that mailed "what needs a decision has changed" twice,
+# at 02:29 and 15:27 UTC, about a list holding the same three items.
+#
+# So the first sentence is read as the second before it is hashed. As the
+# second and not as a third key, because the second is what an open thread
+# already stores: a new key would be new to every thread, and the fix for a
+# false alarm would send one more. Repository and branch stay in the line, so
+# another branch is still another finding, and the body keeps the sentence the
+# run wrote. tests/test-file-report.sh holds fleet-triage.sh to both wordings.
+same_branch() {
+  # The backticks are the report's own, around the branch name. Nothing here
+  # is meant to expand.
+  # shellcheck disable=SC2016
+  sed -E 's#^(- )?([^:[:space:]]+): .* prepared on branch `([^`]+)`.*(https://github\.com/[^[:space:]]+/compare/main\.\.\.[^[:space:]]+) — needs a human$#\1\2: `\3` is still ahead of main with no pull request open — open it or delete it: \4 — needs a human#'
+}
+
 fp="$(sort -u "$fingerprint" | while IFS= read -r line; do
         [ -n "$line" ] || continue
-        printf '%s' "$line" | age_blind | shasum -a 256 | cut -c1-8
+        printf '%s' "$line" | age_blind | same_branch | shasum -a 256 | cut -c1-8
       done | sort -u | tr '\n' ' ')"
 fp="${fp% }"
 

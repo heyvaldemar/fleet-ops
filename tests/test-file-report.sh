@@ -283,6 +283,125 @@ printf '## x\n\n<!-- fleet-report-fingerprint: %s -->\n' "$YOUNG_FP" > "$FAKE_DI
     --body "$report" --fingerprint "$both" --changed-comment "changed" >/dev/null
 expect "a genuinely new finding beside a drifting one still mails" "issue comment" 1
 
+echo "== one waiting branch is one decision, however the run words it"
+# fleet-triage.sh words a prepared branch two ways: one sentence in the run
+# that pushes it, another in a run that only finds it there. Hashed verbatim
+# they are two findings, and the thread flips between them for as long as the
+# branch waits. On 2026-11-10 that mailed "what needs a decision has changed"
+# twice, at 02:29 and 15:27 UTC, about a list holding the same three items.
+# Both lines are the thread's own (fleet-ops#50), not a paraphrase.
+pushed="$FAKE_DIR/pushed.txt"; found="$FAKE_DIR/found.txt"
+cat > "$pushed" <<'LINE'
+- ollama-traefik-letsencrypt-docker-compose: 0.12.5 -> 0.13.3 prepared on branch `bump/0.13.3` (ghcr.io/open-webui/open-webui:0.12.5 -> ghcr.io/open-webui/open-webui:0.13.3) — open it: https://github.com/heyvaldemar/ollama-traefik-letsencrypt-docker-compose/compare/main...bump/0.13.3?expand=1 — needs a human
+LINE
+cat > "$found" <<'LINE'
+- ollama-traefik-letsencrypt-docker-compose: `bump/0.13.3` is still ahead of main with no pull request open — open it or delete it: https://github.com/heyvaldemar/ollama-traefik-letsencrypt-docker-compose/compare/main...bump/0.13.3?expand=1 — needs a human
+LINE
+if [ "$(fp_of "$pushed")" = "$(fp_of "$found")" ]; then
+  ok "the run that pushed a branch and the run that found it name one finding"
+else
+  no "one waiting branch was read as two findings"
+fi
+# Read as the second sentence, not as a third key: the hash has to be the one
+# a thread already stores from any run that only found the branch, or the
+# change that ends the false alarm sends one of its own. set_of hashes the
+# line as written, with no help from the script.
+if [ "$(fp_of "$pushed")" = "$(set_of "$found")" ]; then
+  ok "and it is the hash an open thread already stores for that branch"
+else
+  no "the pushed wording hashes to a key no open thread has seen"
+fi
+# The sentence for a major version has the same shape and the same decision.
+major="$FAKE_DIR/major.txt"; major_found="$FAKE_DIR/major-found.txt"
+cat > "$major" <<'LINE'
+- gitlab-traefik-letsencrypt-docker-compose: MAJOR gitlab/gitlab-ee 19.4.0 -> 20.0.0 prepared on branch `bump/20.0.0` — open it: https://github.com/heyvaldemar/gitlab-traefik-letsencrypt-docker-compose/compare/main...bump/20.0.0?expand=1 — needs a human
+LINE
+cat > "$major_found" <<'LINE'
+- gitlab-traefik-letsencrypt-docker-compose: `bump/20.0.0` is still ahead of main with no pull request open — open it or delete it: https://github.com/heyvaldemar/gitlab-traefik-letsencrypt-docker-compose/compare/main...bump/20.0.0?expand=1 — needs a human
+LINE
+if [ "$(fp_of "$major")" = "$(set_of "$major_found")" ]; then
+  ok "a major version waiting on its branch is the same one finding"
+else
+  no "the major-version wording was read as a finding of its own"
+fi
+
+# End to end, both ways round: a thread that stores one wording, a run that
+# writes the other. The stored hash is computed here, the way the script
+# before this change stored it.
+reset
+printf '42\n' > "$FAKE_DIR/open"
+printf '## x\n\n<!-- fleet-report-fingerprint: %s -->\n' "$(set_of "$found")" > "$FAKE_DIR/body.42"
+"$ROOT/scripts/file-report.sh" --repo o/r --label triage-report --title t \
+    --body "$report" --fingerprint "$pushed" --changed-comment "changed" >/dev/null
+expect "the thread under test is the one that was there" "issue create" 0
+expect "a run that pushes the branch again mails nobody" "issue comment" 0
+BRANCH_FP="$(fp_of "$pushed")"
+reset
+printf '42\n' > "$FAKE_DIR/open"
+printf '## x\n\n<!-- fleet-report-fingerprint: %s -->\n' "$BRANCH_FP" > "$FAKE_DIR/body.42"
+"$ROOT/scripts/file-report.sh" --repo o/r --label triage-report --title t \
+    --body "$report" --fingerprint "$found" --changed-comment "changed" >/dev/null
+expect "and the next run, which only finds it, mails nobody either" "issue comment" 0
+
+# THE CHECK HAS TO BE ABLE TO FAIL. Reading two sentences as one must not read
+# two branches as one, or a second version waiting for a person would arrive
+# as old news.
+newer="$FAKE_DIR/newer.txt"; elsewhere="$FAKE_DIR/elsewhere.txt"; stuck="$FAKE_DIR/stuck.txt"
+cat > "$newer" <<'LINE'
+- ollama-traefik-letsencrypt-docker-compose: 0.12.5 -> 0.13.4 prepared on branch `bump/0.13.4` (ghcr.io/open-webui/open-webui:0.12.5 -> ghcr.io/open-webui/open-webui:0.13.4) — open it: https://github.com/heyvaldemar/ollama-traefik-letsencrypt-docker-compose/compare/main...bump/0.13.4?expand=1 — needs a human
+LINE
+cat > "$elsewhere" <<'LINE'
+- open-webui-traefik-letsencrypt-docker-compose: 0.12.5 -> 0.13.3 prepared on branch `bump/0.13.3` (ghcr.io/open-webui/open-webui:0.12.5 -> ghcr.io/open-webui/open-webui:0.13.3) — open it: https://github.com/heyvaldemar/open-webui-traefik-letsencrypt-docker-compose/compare/main...bump/0.13.3?expand=1 — needs a human
+LINE
+cat > "$stuck" <<'LINE'
+- ollama-traefik-letsencrypt-docker-compose: `bump/0.13.3` prepares 0.13.3 against a main already on 0.13.4 and could not be deleted — needs a human
+LINE
+if [ "$(fp_of "$newer")" = "$(fp_of "$pushed")" ]; then
+  no "two branches of one repository were collapsed into one finding"
+else
+  ok "a newer branch in the same repository is still a different finding"
+fi
+if [ "$(fp_of "$elsewhere")" = "$(fp_of "$pushed")" ]; then
+  no "the same branch name in two repositories was collapsed into one finding"
+else
+  ok "the same branch name in another repository is still a different finding"
+fi
+if [ "$(fp_of "$stuck")" = "$(fp_of "$found")" ]; then
+  no "a branch that could not be deleted was read as a branch that waits"
+else
+  ok "a branch that could not be deleted is a different decision, and stays one"
+fi
+reset
+two="$FAKE_DIR/two.txt"
+cat "$found" "$newer" > "$two"
+printf '42\n' > "$FAKE_DIR/open"
+printf '## x\n\n<!-- fleet-report-fingerprint: %s -->\n' "$BRANCH_FP" > "$FAKE_DIR/body.42"
+"$ROOT/scripts/file-report.sh" --repo o/r --label triage-report --title t \
+    --body "$report" --fingerprint "$two" --changed-comment "changed" >/dev/null
+expect "a second branch beside the waiting one still mails, once" "issue comment" 1
+
+# The rewrite reproduces a sentence fleet-triage.sh prints. Reword either
+# sentence there and not here, and the two part again with nothing else in
+# this file to notice. Single quotes on purpose: these are the script's own
+# source lines, variables and all.
+triage="$ROOT/scripts/fleet-triage.sh"
+# shellcheck disable=SC2016
+n_pushed="$(grep -cF -- 'prepared on branch \`$br\`' "$triage" || true)"
+# shellcheck disable=SC2016
+n_tail="$(grep -cF -- '— open it: https://github.com/$OWNER/$repo/compare/main...$br?expand=1 — needs a human"' "$triage" || true)"
+# shellcheck disable=SC2016
+n_found="$(grep -cF -- '\`$br\` is still ahead of main with no pull request open — open it or delete it: https://github.com/$OWNER/$repo/compare/main...$br?expand=1 — needs a human"' "$triage" || true)"
+if [ "$n_pushed" = 2 ] && [ "$n_tail" = 2 ]; then
+  ok "fleet-triage.sh still writes the pushed wording the rewrite reads, in both places"
+else
+  no "fleet-triage.sh words a pushed branch $n_pushed time(s), $n_tail with the link the rewrite reads; file-report.sh expects 2 and 2"
+fi
+if [ "$n_found" = 1 ]; then
+  ok "and still writes the found wording the rewrite produces"
+else
+  no "fleet-triage.sh no longer writes the found sentence file-report.sh reproduces ($n_found match(es))"
+fi
+
 echo "== a create that fails is not a thread that opened"
 # On 2026-09-22 this printed "opened a new fleet-to-hosts thread" twice against
 # repositories the credential could not write to. Both reports were lost and

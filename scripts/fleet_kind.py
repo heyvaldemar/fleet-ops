@@ -46,6 +46,10 @@ NAMED = {
     # One question on kind again: what evidence of the flagship's admission
     # controls an auditor can check without trusting the author.
     "kubernetes-oscal-evidence": "focused",
+    # The sandbox's question once more, asked of the workspaces people and
+    # agents share: Coder on kind, every workspace inside the sandbox's
+    # boundary, and what a template edited to step outside is refused for.
+    "kubernetes-coder-agent-workspaces": "focused",
     # Kubernetes on kind again, but the answer is a number: one way of
     # running a workload measured against another under the same load.
     "kubernetes-llm-inference-gateway": "measured",

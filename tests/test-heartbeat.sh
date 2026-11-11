@@ -604,6 +604,34 @@ check("a quota still empty after fifteen minutes ends it, saying it was the quot
 check("and the JSON says so, naming no repository",
       ("quota" in _written.get("unreadable", ""), "secret-name" in json.dumps(_written), _written.get("findings")), (True, False, []))
 hbf.JSON_OUT = None
+# 2026-11-10, run 42845483621: the sweep met the empty quota inside a helper
+# that spares it one unread list. The exit was swallowed there, the sweep ran
+# on to its forty-minute bound, and the file it left said it had watched
+# nothing. The quota's exit ends the check from inside both helpers; a list
+# that fails for any other reason still costs only that answer.
+def answers_then(n_ok, err):
+    seen = []
+    def co(cmd, stderr=None):
+        seen.append(cmd)
+        if len(seen) <= n_ok:
+            return b'{"workflow_runs": []}'
+        raise _sp.CalledProcessError(1, cmd, output=b"", stderr=err)
+    return co
+_limit = b"gh: API rate limit exceeded for user ID 1. (HTTP 403)"
+def how_it_went(call):
+    try:
+        return ("returned", call())
+    except SystemExit as e:
+        return ("ended", "quota" in str(e))
+hbf.subprocess.check_output = answers_then(0, _limit)
+check("an empty quota ends the sweep from inside the newest-scheduled-run question",
+      how_it_went(lambda: hbf.unfiltered_schedule("o/r", "w.yml")), ("ended", True))
+hbf.subprocess.check_output = answers_then(1, _limit)
+check("and from inside the plain list of runs",
+      how_it_went(lambda: hbf.runs_of("o/r", "w.yml", "schedule")), ("ended", True))
+hbf.subprocess.check_output = answers_then(1, b"gh: Not Found (HTTP 404)")
+check("a plain list that fails for another reason still costs only that answer",
+      how_it_went(lambda: hbf.runs_of("o/r", "w.yml", "schedule")), ("returned", []))
 class _P:
     def __init__(self, rc, err=b"", out=b""):
         self.returncode, self.stderr, self.stdout = rc, err, out
