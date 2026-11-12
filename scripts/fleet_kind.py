@@ -50,6 +50,10 @@ NAMED = {
     # agents share: Coder on kind, every workspace inside the sandbox's
     # boundary, and what a template edited to step outside is refused for.
     "kubernetes-coder-agent-workspaces": "focused",
+    # The question every focused repository asks, put to all of them at once:
+    # one set of planted instructions through each boundary's signed release,
+    # on kind, with what got out read from the boundary's own side.
+    "agent-security-benchmark": "focused",
     # Kubernetes on kind again, but the answer is a number: one way of
     # running a workload measured against another under the same load.
     "kubernetes-llm-inference-gateway": "measured",
