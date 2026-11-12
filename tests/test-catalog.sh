@@ -373,6 +373,53 @@ check("fleet.json carries the window", json.loads(m.fleet_json(rows0, ev0, [], l
 for label, bad in (("an empty window", {"window_days": 30, "runs": 0, "models": []}), ("a window that is not a record", "none yet"),
                    ("models that are not a list", {"runs": 2, "models": "three"})):
     check("%s is no window at all" % label, m.models_window_of({"models_window": bad}), None)
+
+print()
+print("=== a leg against the vendor's real service travels with its scheduled runs ===")
+LIVE = {"repository": "heyvaldemar/cypress-cloud-triage-agent", "workflow": "live.yml", "job": "the door, live",
+        "written_at": "2026-11-11T14:54:12Z", "window_days": 30, "days_with_runs": 1, "green_days": 1, "streak_days": 1,
+        "runs": 2, "runs_passed": 2, "scheduled_runs": 0, "scheduled_passed": 0, "scheduled_streak": 0,
+        "latest": {"id": 2, "at": "2026-11-11T14:50:00Z", "event": "workflow_dispatch", "conclusion": "success",
+                   "url": "u2", "commit": "46ad399", "checks_passed": 104, "checks_failed": 0,
+                   "checks": [{"state": "PASS", "name": "x"}], "measured": ["26 of 26 attempts ended as expected"]},
+        "recent": [{"id": 2}, {"id": 1}]}
+def fake_leg(record):
+    def answer(path):
+        if path == "repos/heyvaldemar/cypress-cloud-triage-agent/contents/.github/workflows/status.yml":
+            return {}
+        if path == "repos/heyvaldemar/cypress-cloud-triage-agent/contents/status.json?ref=status":
+            return {"content": base64.b64encode(json.dumps(STATUS).encode()).decode()}
+        if path == "repos/heyvaldemar/cypress-cloud-triage-agent/contents/status-live.json?ref=status" and record is not None:
+            return {"content": base64.b64encode(json.dumps(record).encode()).decode()}
+        raise sp.CalledProcessError(1, "gh")
+    return answer
+def legs(record):
+    m.gh = fake_leg(record)
+    return m.collect_live_status(["cypress-cloud-triage-agent"])["cypress-cloud-triage-agent"]
+got = legs(LIVE)
+check("the live record is a leg of its own beside kind", sorted(got), ["kind", "live"])
+l = got["live"]
+check("its counts are the branch's", (l["runs"], l["runs_passed"], l["latest"]["checks_passed"], l["latest"]["checks_failed"]), (2, 2, 104, 0))
+check("it says how the scheduled runs went, which is what a cadence word rests on",
+      (l["scheduled_runs"], l["scheduled_passed"], l["scheduled_streak"]), (0, 0, 0))
+check("and what started the latest run", l["latest"]["event"], "workflow_dispatch")
+check("the lists of recent runs and of checks stay on the branch", ("recent" in l, "job" in l, "checks" in l["latest"]), (False, False, False))
+check("a record that keeps no scheduled counts carries none, and no event it did not write",
+      ([k for k in got["kind"] if k.startswith("scheduled")], "event" in got["kind"]["latest"]), ([], False))
+check("fleet.json carries the leg",
+      json.loads(m.fleet_json(rows0, ev0, [], live={"cypress-cloud-triage-agent": got}))["live_status"]["cypress-cloud-triage-agent"]["live"]["scheduled_streak"], 0)
+check("two scheduled greens in a row arrive as the branch counted them",
+      legs(dict(LIVE, scheduled_runs=2, scheduled_passed=2, scheduled_streak=2))["live"]["scheduled_streak"], 2)
+check("a repository with no live record has no live leg", sorted(legs(None)), ["kind"])
+check("a record that has counted no run yet is no leg",
+      sorted(legs(dict(LIVE, runs=0, runs_passed=0, days_with_runs=0, green_days=0, streak_days=0, latest=None, recent=[]))), ["kind"])
+red = legs(dict(LIVE, runs=3, runs_passed=2, latest=dict(LIVE["latest"], conclusion="failure", checks_passed=0, checks_failed=0, checks=[], measured=[])))["live"]
+check("a run that failed before any check is a red run with no checks, not a missing one",
+      (red["latest"]["conclusion"], red["latest"]["checks_passed"], red["latest"]["checks_failed"], red["runs"], red["runs_passed"]), ("failure", 0, 0, 3, 2))
+odd = legs(dict(LIVE, scheduled_streak="two", scheduled_runs=True, latest=dict(LIVE["latest"], event=7)))["live"]
+check("a count that is not a number, or an event that is not a word, is not passed on",
+      ("scheduled_streak" in odd, "scheduled_runs" in odd, odd["scheduled_passed"], "event" in odd["latest"]), (False, False, 0, False))
+check("a record that is not a record is no leg", sorted(legs(["not", "a", "record"])), ["kind"])
 m.gh = keep
 
 print()

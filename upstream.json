@@ -128,6 +128,11 @@
    "found_in": "kubernetes-ai-agent-sandbox"
   },
   {
+   "url": "https://github.com/google/gvisor/pull/16798#issuecomment-6801968334",
+   "role": "re-test of the revised fix on the reproducer",
+   "found_in": "kubernetes-ai-agent-sandbox"
+  },
+  {
    "url": "https://github.com/docker/sbx-releases/issues/818",
    "role": "issue with a reproduction",
    "found_in": "kubernetes-ai-agent-sandbox"
@@ -160,7 +165,8 @@
   {
    "url": "https://github.com/kyverno/website/issues/2246",
    "role": "issue",
-   "found_in": "kubernetes-oscal-evidence"
+   "found_in": "kubernetes-oscal-evidence",
+   "related": "https://github.com/kyverno/website/pull/2273"
   }
  ]
 }

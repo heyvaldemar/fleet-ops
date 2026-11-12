@@ -505,7 +505,14 @@ def collect_bestpractices(names, sleep=time.sleep):
 # and the weekly run on AWS, rewrite a one-commit branch `status` with what
 # the last 30 days showed (their scripts/status.py). The page reads it from
 # here, so it says what the runs said, not what someone typed.
-LIVE_STATUS_FILES = (("kind", "status.json"), ("aws", "eks/status.json"))
+#
+# A third record, where a repository keeps one: status-live.json, the leg that
+# runs against the vendor's real service (cypress-cloud-triage-agent's door
+# forwarding to Cypress Cloud's MCP server, since 2026-11-11). It has the same
+# counts, and it says how its scheduled runs went, because that leg is also
+# started by hand and the page may say "daily" only on scheduled runs.
+LIVE_STATUS_FILES = (("kind", "status.json"), ("aws", "eks/status.json"), ("live", "status-live.json"))
+SCHEDULED_COUNTS = ("scheduled_runs", "scheduled_passed", "scheduled_streak")
 
 
 def models_window_of(s):
@@ -540,6 +547,9 @@ def live_status_one(name, path):
         s = json.loads(base64.b64decode(d["content"]))
     except (subprocess.CalledProcessError, KeyError, ValueError, TypeError):
         return None
+    if not isinstance(s, dict) or (not s.get("latest") and not s.get("runs")):
+        # A record that has counted no run yet is no leg: the page would say "0 of 0".
+        return None
     latest = s.get("latest") or {}
     out = {"window_days": s.get("window_days"), "days_with_runs": s.get("days_with_runs"),
            "green_days": s.get("green_days"), "streak_days": s.get("streak_days"),
@@ -549,6 +559,16 @@ def live_status_one(name, path):
                       "commit": latest.get("commit"), "url": latest.get("url"),
                       "checks_passed": latest.get("checks_passed"), "checks_failed": latest.get("checks_failed"),
                       "measured": latest.get("measured") or []}}
+    # How the scheduled runs went, as the repository counted them, and what
+    # started the latest run. scheduled_streak is the scheduled greens in a
+    # row, counted back from the last scheduled run: a cadence word rests on
+    # it, not on a run somebody started by hand. Only where the record keeps
+    # them, and only as numbers.
+    for key in SCHEDULED_COUNTS:
+        if isinstance(s.get(key), int) and not isinstance(s.get(key), bool):
+            out[key] = s[key]
+    if isinstance(latest.get("event"), str):
+        out["latest"]["event"] = latest["event"]
     # Only where the branch keeps one: every other record stays as it was.
     window = models_window_of(s)
     if window:
