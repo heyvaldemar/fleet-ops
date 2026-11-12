@@ -1,364 +1,46 @@
 [
   {
-    "repo": "affine-traefik-letsencrypt-docker-compose",
-    "sha": "37e113940bc654042fdca3f85b1faa58fa990350",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:47:56Z"
+    "repo": "amazon-ec2-instance-pipeline-terraform",
+    "sha": "4f0465f51f035947ca9eec5cbb21d5dcabd75941",
+    "wf": "Terraform Verification",
+    "kind": "version",
+    "pushed_at": "2026-11-12T01:46:31Z"
   },
   {
-    "repo": "anythingllm-traefik-letsencrypt-docker-compose",
-    "sha": "da739b59fbe4b4b2facca110d950e3fde135ef1b",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:48:14Z"
-  },
-  {
-    "repo": "audiobookshelf-traefik-letsencrypt-docker-compose",
-    "sha": "789fce3a66258109a38a06239bdea877092f8f25",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:48:26Z"
-  },
-  {
-    "repo": "authelia-traefik-letsencrypt-docker-compose",
-    "sha": "1682268c02399019bc78136d56d78353ea3dcc95",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:48:36Z"
-  },
-  {
-    "repo": "beszel-traefik-letsencrypt-docker-compose",
-    "sha": "002a78c068c5afee633c99cfd29d57bcdc7db832",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:48:49Z"
-  },
-  {
-    "repo": "bitbucket-traefik-letsencrypt-docker-compose",
-    "sha": "6e9e22514b683050391e8134bb02e0a9d06cf378",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:48:58Z"
-  },
-  {
-    "repo": "chatops-privilege-wall",
-    "sha": "dd7673238ea0028fde2a52e6f3ef6b865daa71f3",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:49:08Z"
-  },
-  {
-    "repo": "confluence-traefik-letsencrypt-docker-compose",
-    "sha": "202f22c7c2da2bd38cee7811875645047f17c3a0",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:49:17Z"
-  },
-  {
-    "repo": "dashy-traefik-letsencrypt-docker-compose",
-    "sha": "9c75c3b6d1525dd7804965d32425127f3fb5101f",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:49:27Z"
-  },
-  {
-    "repo": "docmost-traefik-letsencrypt-docker-compose",
-    "sha": "bd53bd219136add10d406743aa435ed92321d86a",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:49:38Z"
-  },
-  {
-    "repo": "dozzle-traefik-letsencrypt-docker-compose",
-    "sha": "7f8ef5a21d3ae275f6e8ee184324d63e8a013d73",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:49:49Z"
-  },
-  {
-    "repo": "forgejo-traefik-letsencrypt-docker-compose",
-    "sha": "2a0d010c56e121e28d2e25670d1fe5e493ba167e",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:50:00Z"
+    "repo": "amazon-ec2-nextcloud-docker-swarm-pipeline-terraform",
+    "sha": "a9fe3fbfbc8fca31cab001f90851ddcd0d0f3982",
+    "wf": "Terraform Verification",
+    "kind": "version",
+    "pushed_at": "2026-11-12T01:46:38Z"
   },
   {
     "repo": "game-server-wireguard-relay-docker-compose",
-    "sha": "d9dbb0d7957d6300d74b827c978a2f4f75875757",
+    "sha": "9bc64ae50552586e90dd06abb3784a6d9bf308e8",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-11T14:50:08Z"
-  },
-  {
-    "repo": "gaseous-server-using-docker-compose",
-    "sha": "f301acc66028f2005ccb4f13d184b307f1087623",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:50:17Z"
-  },
-  {
-    "repo": "gitea-traefik-letsencrypt-docker-compose",
-    "sha": "5ae173efbbb8ea1d649c27f8807ce4ddb88eefe2",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:50:27Z"
-  },
-  {
-    "repo": "gitlab-traefik-letsencrypt-docker-compose",
-    "sha": "0fe65a97ba3ab4b1c5202d961967e11abece1259",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:50:38Z",
-    "review": "\n## Upstream changes 19.5.3 -> 19.5.4\n\n**Verdict:** NEEDS ATTENTION \u2014 no release notes could be retrieved for this range, so the upgrade cannot be assessed on its merits; treat it as unverified until checked by hand.\n\n### Breaking changes\n- none found in the notes \u2014 the notes are not available (see Notes read below), not because none exist.\n\n### Variables\n- none indicated \u2014 no renamed, removed, or newly required variables surfaced, but this is from absence of notes, not confirmation.\n\n### Data and dependencies\n- Already true at the current version (19.5.3), not introduced by this range: PostgreSQL is run with `max_locks_per_transaction=256` and `shared_buffers=256MB` per the compose file's comment \u2014 \"GitLab's schema load and migrations exhaust PostgreSQL's default lock table ... GitLab's external-database guidance calls for a raised max_locks_per_transaction.\" The compose file pins Postgres 17, matching GitLab's own requirement; this is an existing fact of the deployment, not a change in this upgrade.\n- No companion-service version requirement was found in the notes for this range (because no notes were read), so the SAFE TO APPLY exclusion for an unpinned required engine version does not apply here \u2014 but this is only because nothing could be checked, not a clean bill.\n\n### Before applying\n- Take a GitLab backup before upgrading (`gitlab-backup.sh` per this repo's README, or `gitlab-rake gitlab:backup:create` inside the container) as a standing precaution for any GitLab point release.\n- Manually check the GitLab 19.5 release posts / changelog on `about.gitlab.com` and the `gitlab-org/gitlab` (not `gitlabhq/gitlabhq`) repository for the 19.5.4 patch notes before upgrading \u2014 patch releases often fix security issues that are described outside the `gitlabhq/gitlabhq` release feed used here.\n- Confirm the upgrade path is a single minor-patch step (19.5.3 \u2192 19.5.4) with no skipped major/minor versions, since GitLab enforces upgrade-path restrictions that a failed upgrade can get stuck on.\n- After upgrade, check `docker compose logs gitlab` for migration errors and confirm `gitlab-rake gitlab:check` passes.\n\n### Notes read\n- None. The source given (`gitlabhq/gitlabhq` releases) returned \"no releases between 19.5.3 and 19.5.4 found ... (0 releases read), and no tag range compared.\" GitLab's actual release announcements live under `gitlab-org/gitlab` and gitlab.com's own release posts, not the `gitlabhq/gitlabhq` mirror \u2014 that mismatch is likely why nothing was found. The image registry lookup also 404'd, so no image-level diff is available either. This review has no verified basis for its verdict beyond the compose file's own existing configuration.\n"
-  },
-  {
-    "repo": "glpi-traefik-letsencrypt-docker-compose",
-    "sha": "e62810af0a745c7a96d61a7586e3023be8eda47d",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:50:47Z"
-  },
-  {
-    "repo": "grafana-traefik-letsencrypt-docker-compose",
-    "sha": "8f7a180f90607664e0709a0121f86953fc6dd814",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:50:56Z",
-    "review": "\n## Upstream changes 13.3.0 -> 13.3.1\n\n**Verdict:** SAFE TO APPLY \u2014 a security and small-fix point release, no breaking changes in this range, and the image configurations are otherwise identical.\n\n### Breaking changes\n- none found in the notes for 13.3.1. (The one breaking change on record \u2014 \"**Plugins marketplace:** rename config.ini section from marketplace to plugins_marketplace\" \u2014 belongs to 13.3.0, the baseline this host already runs; it is not introduced by this upgrade.)\n\n### Variables\n- none\n\n### Data and dependencies\n- none. The compose file pins `postgres:17-alpine` independently of the Grafana image; the 13.3.1 notes name no companion-service version requirement, so there is no mismatch to flag.\n- Security fixes only: CVE-2026-102589, CVE-2026-107509, CVE-2026-110992, CVE-2026-111024, CVE-2026-13721, CVE-2026-14242 (\"Security: Fix CVE-2026-...\").\n- Two minor features carried over: \"**DateTime:** Update moment-timezone and easy-tz for 2026 time zone changes\" and \"**Provisioning:** allow same-host URL change on connection-backed repositories\" \u2014 neither touches configuration, volumes, ports, or startup behaviour.\n\n### Before applying\n- None beyond the normal routine: take the usual backup (the `backups` service already runs continuously per the compose file) before pulling the new digest, then update `GRAFANA_IMAGE_VERSION` (or the pinned digest in the compose file's `x-images` block) and restart.\n\n### Notes read\n- Upstream release notes: v13.3.1 (2026-11-10), v13.2.6, v13.1.10, v13.0.13, v12.4.15 (parallel-branch backports, not part of this range).\n- CHANGELOG.md: 13.3.1 and 13.3.0 entries (13.3.0 read as baseline per instructions).\n- Image diff: confirmed identical across User, Entrypoint, Cmd, WorkingDir, ExposedPorts, Volumes, Healthcheck, and environment.\n"
-  },
-  {
-    "repo": "homeassistant-traefik-letsencrypt-docker-compose",
-    "sha": "3fcb352d25d94f4a19c14879d91ce16753aff61c",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:51:04Z"
-  },
-  {
-    "repo": "homebox-traefik-letsencrypt-docker-compose",
-    "sha": "27a27b3381a334e38925f359f33e9c785465c858",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:51:12Z"
+    "pushed_at": "2026-11-12T01:47:05Z"
   },
   {
     "repo": "homepage-traefik-letsencrypt-docker-compose",
-    "sha": "fb4672223e40f8c86d30dfa153a6dc7cef1c63b0",
+    "sha": "ea2b4f2493713443e418db8647d8df5936224daf",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-11T14:51:23Z"
-  },
-  {
-    "repo": "immich-traefik-letsencrypt-docker-compose",
-    "sha": "0fab6e57e13024cb8ad04de4e6230f99f19e7cc2",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:52:05Z",
-    "review": "\n## Upstream changes v3.3.6 -> v3.4.0\n\n**Verdict:** NEEDS ATTENTION \u2014 the release notes recommend a new machine-learning model revision setting (`MACHINE_LEARNING_MODEL_REVISION=v2`) for full effect, and this compose file carries no such variable in `.env.example`; otherwise the upgrade is routine.\n\n### Breaking changes\n- none found in the notes. No RC or final note for the v3.3.6 -> v3.4.0 range describes a removed feature, API incompatibility, or forced-migration behaviour. The security fixes section changes server-side authorization/validation logic (e.g. \"fix(server): require upload access for checksum duplicate check\", \"fix(server): do not expose album members to shared link viewers\") but these are enforcement tightenings, not config-breaking changes.\n\n### Variables\n- `MACHINE_LEARNING_MODEL_REVISION=v2` \u2014 new, optional ML env var. Per the rc.3 notes carried into this final release's lineage: *\"Set `MACHINE_LEARNING_MODEL_REVISION=v2` to take full advantage of the memory usage and performance improvements in this release.\"* This is not referenced anywhere in the current `.env.example` or compose file for the `immich-machine-learning` service. It is not marked required, but the host is missing the knob needed to get the stated performance benefit of this upgrade.\n- No renamed or removed variables found in the notes for this range.\n\n### Data and dependencies\n- none found specific to this image/range. No companion-service version (database, cache, search engine) is named in the notes for v3.4.0, so the compose file's existing pins (postgres `17-vectorchord0.4.3-pgvector0.8.0`, redis `9`) are not contradicted by anything here.\n- Already true at the current version (not a change introduced by this upgrade): v3.3.6's own note already disabled onnxruntime's default telemetry in the ML container \u2014 *\"Unfortunately we missed that onnxruntime enabled telemetry by default in a recent release... We have now disabled it.\"* This template already runs against that fix; nothing further to do for it.\n\n### Before applying\n- Optionally set `MACHINE_LEARNING_MODEL_REVISION=v2` as an environment variable on the `immich-machine-learning` service (compose file does not currently pass it through) to get the memory/performance improvement the notes call out. Functionally the image still runs and processes jobs without it.\n- Standard backup before any Immich upgrade, per project-wide convention repeated in the RC disclaimers: *\"make sure you have a backup of your database and library before upgrading to this version.\"* The template's own `backups` service covers this if it has been running.\n- No manual migration command is named in the notes; `docker compose pull && docker compose up -d` is the only documented step, per the RC install instructions.\n\n### Notes read\n- v3.4.0 (2026-11-10), v3.4.0-rc.3 (2026-11-06), v3.4.0-rc.2 (2026-11-04) \u2014 all covering the v3.3.6 -> v3.4.0 range as supplied.\n- v3.3.6 (2026-11-04) \u2014 read only as the baseline per instructions, not treated as part of this upgrade's changes.\n- rc.1 and any earlier rc notes for v3.4.0 were not supplied and could not be read; nothing in the given rc.2/rc.3/final notes suggests they contained anything beyond what's already covered (rc.2 is an aggregate of fixes also listed in the final v3.4.0 notes).\n"
-  },
-  {
-    "repo": "jellyfin-traefik-letsencrypt-docker-compose",
-    "sha": "5fb0ba7cdc1921dcd5fcd8a8d8d01497a6c862f3",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:52:17Z"
-  },
-  {
-    "repo": "jira-traefik-letsencrypt-docker-compose",
-    "sha": "3b3980871fca4078d831adc5a6c818188b6dc4df",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:52:26Z"
-  },
-  {
-    "repo": "joomla-traefik-letsencrypt-docker-compose",
-    "sha": "ae3a0d504cbf00dc0b0a77ab58c50da002e724af",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:52:37Z"
-  },
-  {
-    "repo": "keycloak-traefik-letsencrypt-docker-compose",
-    "sha": "f812466f23f0e075f249b10c0a302a4516169183",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:52:45Z"
-  },
-  {
-    "repo": "mailu-traefik-letsencrypt-docker-compose",
-    "sha": "f037b28983f7f049a1ce5899d5b179629c32a1a8",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:53:19Z"
-  },
-  {
-    "repo": "mattermost-traefik-letsencrypt-docker-compose",
-    "sha": "784f300f6caa1076d279855bc224d2cb5b576687",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:53:28Z"
-  },
-  {
-    "repo": "mssql-server-traefik-letsencrypt-docker-compose",
-    "sha": "695a3675af11abff3eab6604f1100b64b58d80e7",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:53:49Z"
-  },
-  {
-    "repo": "navidrome-traefik-letsencrypt-docker-compose",
-    "sha": "c958db3c9aa8e905e78da926ece30cb39ec5dc8a",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:53:58Z"
-  },
-  {
-    "repo": "nextcloud-onlyoffice-traefik-letsencrypt-docker-compose",
-    "sha": "5ba8af69f6d05ae03491941f8889de9243ac44eb",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:54:14Z"
-  },
-  {
-    "repo": "nextcloud-traefik-letsencrypt-docker-compose",
-    "sha": "6c3e5a9710e2c50974e86b5c15854133c47799b2",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:54:24Z"
-  },
-  {
-    "repo": "nocodb-traefik-letsencrypt-docker-compose",
-    "sha": "9fd9bc104c8399c80279f096a227808a7b4fa01d",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:54:34Z"
-  },
-  {
-    "repo": "otrs-traefik-letsencrypt-docker-compose",
-    "sha": "a194500fb8364ea8229703fffdc46b54f55b2715",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:55:38Z"
-  },
-  {
-    "repo": "outline-keycloak-traefik-letsencrypt-docker-compose",
-    "sha": "fbcdaceb339c3af8e05b87f680ee32d4a759b595",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:55:53Z"
-  },
-  {
-    "repo": "owncloud-traefik-letsencrypt-docker-compose",
-    "sha": "27094dba9e6e4312c3bcba888f2a326c8c0b5298",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:56:02Z"
-  },
-  {
-    "repo": "portainer-traefik-letsencrypt-docker-compose",
-    "sha": "919b7786d604b40abd31fb8ac59d3ef3c53befb9",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:56:10Z"
+    "pushed_at": "2026-11-12T01:47:36Z",
+    "review": "\n## Upstream changes v2.7.0 -> v2.8.0\n\n**Verdict:** SAFE TO APPLY \u2014 notes contain only features, fixes and dependency bumps; no breaking changes, no variable changes, no companion-service version requirements.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none \u2014 nothing in the notes renames, removes, or newly requires a variable, and `.env.example` / the compose file need no edits for this range\n\n### Data and dependencies\n- none \u2014 the notes name no database, cache or search engine version requirement for this range\n- registry comparison shows only an internal base-image bump, `env NODE_VERSION: '24.22.1' -> '24.22.3'`, which is not an application-level change and needs no action\n\n### Before applying\n- none required beyond the routine of re-pulling the pinned digest; the usual config-directory backup already performed by the `backups` service covers rollback if desired\n\n### Notes read\n- v2.8.0 (2026-11-11) and v2.7.0 (2026-10-23, baseline) from gethomepage/homepage \u2014 no UPGRADING, BREAKING_CHANGES or CHANGELOG section was supplied for this range, so none was consulted beyond the release notes given\n"
   },
   {
     "repo": "rocketchat-traefik-letsencrypt-docker-compose",
-    "sha": "a21d191eaccc4fc226dea081437e50528daf15d8",
+    "sha": "4cf99db2b2b252576c15ad3fed39a2ebe5287607",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-11T14:57:08Z",
-    "review": "\n## Upstream changes 8.9.1 -> 9.0.0\n\n**Verdict:** DO NOT APPLY UNATTENDED \u2014 this is a major version carrying multiple breaking API/auth changes, a required MongoDB version the compose file does not pin, and an automatic data migration; it needs a deliberate, supervised upgrade.\n\nThe release notes state: \"MongoDB: `8.0`\" as the required engine version for 9.0.0. The compose file pins `mongo:7.0@sha256:...` via `ROCKETCHAT_MONGODB_IMAGE_VERSION:-7.0`. This mismatch alone forces the verdict: the application would run against a database major version its own release notes do not list.\n\n### Breaking changes\n- MongoDB engine requirement raised to `8.0` (baseline 8.9.1 already required `8.0` too \u2014 see \"Data and dependencies\" below for what's actually new vs already true). What's new here is nothing further on this axis; the 7.0 pin is already wrong at the current version, not newly broken by this upgrade (see verdict note).\n- \"Stopped transpiling webhook integration scripts with Babel. Scripts now run as-is inside `isolated-vm`... Class method bodies are now in strict mode\" \u2014 custom webhook integration scripts using sloppy-mode patterns (implicit globals, `arguments.callee`, octal literals, duplicate params) will break.\n- \"the `phone` user field is replaced by the `phones` array... existing numbers are migrated automatically on upgrade\" \u2014 any integration reading/writing the old `phone` field breaks.\n- \"Removes the deprecated `query` and `fields` REST API parameters, along with the `ALLOW_UNSAFE_QUERY_AND_FIELDS_API_PARAMS` environment variable\" \u2014 if this variable is set anywhere in a custom `.env` override, it will have no effect and dependent integrations will get `400 error-invalid-params`.\n- \"Changes the default value of the `Omnichannel enabled` setting (`Livechat_enabled`) to `false`... Existing workspaces keep their current value on upgrade\" \u2014 no action for an existing deployment, but worth knowing.\n- \"Removes the 'Allow Anonymous Write' setting... The `anonymous` role is removed... any existing users holding the `anonymous` role are deactivated and logged out.\"\n- \"Removes the Atlassian Crowd integration... Users previously provisioned through Crowd keep their accounts... but must sign in through another authentication method.\"\n- \"Removes the deprecated `DELETE /v1/canned-responses` endpoint\" (body-based); use `DELETE /v1/canned-responses/:_id`.\n- \"Removes the built-in Gravatar integration\" \u2014 default avatar behavior changes for new/renamed users.\n- \"Renames the user `freeSwitchExtension` attribute to `sipExtension`\" \u2014 any REST integration using the old field name breaks.\n- \"REST API status codes for authentication and authorization failures now follow their meaning\" \u2014 401/403 responses change shape and code; any client/integration parsing `error-invalid-user`, `error-not-authorized`, or status/message fields will need updating.\n- \"the REST refusals that the API error switch maps answer **403** with one body shape\" \u2014 same category, broad API client impact.\n- \"Removed 157 Meteor (DDP) methods\" \u2014 any external DDP/SDK client calling these by name gets `404`.\n- **\"Makes LDAP and SAML authentication Premium features. Breaking: workspaces without a Premium plan that includes the `ldap-enterprise` or `saml-enterprise` module lose LDAP and SAML login on upgrade to 9.0.0. Keep a Premium license or an admin account that signs in another way before upgrading.\"** \u2014 critical for any self-hosted deployment using LDAP/SAML without an Enterprise license.\n- \"Makes Custom OAuth authentication a Premium feature, gated by the `oauth-enterprise` license module. On workspaces without it, the enable setting of every Custom OAuth service falls back to `false`.\"\n- \"Removes the built-in Drupal, Facebook, GitHub Enterprise, LinkedIn, Meteor, Twitter, WordPress and Dolphin OAuth login providers.\"\n- \"Removes the legacy Meteor OAuth login flow and the `Accounts_OAuth_Use_Modern_Flow` setting\" plus removal of `Accounts_OAuth_Proxy_host`/`Accounts_OAuth_Proxy_services`.\n- \"The web client no longer ships Meteor's client packages... Code that runs in the page and relies on those packages stops working, in particular the custom scripts of `Custom_Script_On_Logout`, `Custom_Script_Logged_Out` and `Custom_Script_Logged_In`\" \u2014 affects any admin-configured custom scripts.\n- \"Removes the WebDAV integration.\"\n- \"Removes `/ufs` legacy endpoint for downloading files.\"\n\n### Variables\n- `ALLOW_UNSAFE_QUERY_AND_FIELDS_API_PARAMS` \u2014 removed; has no effect if set.\n- `MESSAGE_MAX_PARSE_LENGTH` default changes from `0` to `10000`: \"Changes the default value of the `MESSAGE_MAX_PARSE_LENGTH` environment variable from `0` (no limit) to `10000` characters... Workspaces using the default `Message_MaxAllowedSize` (5000) are not affected.\" Not set in this compose file or .env.example, so the new default applies unless an operator previously relied on unlimited parsing.\n- `Push_UseLegacy`, `Push_gcm_project_number`, `Push_gcm_api_key` \u2014 removed (settings, not compose/.env variables here; no match in this template).\n- None of the removed/renamed settings (`CROWD_*`, `FEDERATION_*`, `Accounts_OAuth_*`, `Push_gcm_*`) appear in this compose file's `environment:` block or in `.env.example`, so no edit to these two files is required.\n\n### Data and dependencies\n- **Already true at 8.9.1 (not introduced by this upgrade):** MongoDB `8.0` was already the stated engine requirement in the 8.9.1 baseline notes. The compose file pins `mongo:7.0`, so this gap predates the upgrade \u2014 but it still triggers the DO NOT APPLY UNATTENDED verdict per the rule that an unlisted engine version is a stop condition regardless of when the gap was introduced.\n- Irreversible/automatic migrations on upgrade, per the notes: `phone` \u2192 `phones` array; `freeSwitchExtension` \u2192 `sipExtension`; stale `Drafts` sidebar group removal; deletion of `anonymous` role/setting, Crowd settings, legacy federation settings, `Use_RC_SDK` setting, WebDAV settings, GCM push settings.\n- Federated room version for newly created rooms changes from 10 to 11 (existing rooms unaffected) \u2014 informational, no action.\n- No change to container ports, volumes, user, entrypoint, command, or healthcheck \u2014 confirmed identical between the two image builds per the registry comparison.\n\n### Before applying\n- Confirm whether LDAP or SAML login is in use and whether a Premium/Enterprise license with the `ldap-enterprise` or `saml-enterprise` module is active. If not, **do not upgrade** until either a Premium license is obtained or a non-LDAP/SAML admin account is confirmed working \u2014 the notes are explicit: \"Keep a Premium license or an admin account that signs in another way before upgrading.\"\n- Resolve the MongoDB version gap before or as part of this upgrade: plan a controlled upgrade path from the currently pinned `mongo:7.0` to `8.0`, including a replica-set-aware rolling upgrade and a verified backup, since this template runs MongoDB as a single-member replica set (`rs0`) with backups via `mongodump`.\n- Take a full backup (the `backups` service already runs `mongodump` on schedule \u2014 trigger an out-of-band run and verify the archive) before upgrading the Rocket.Chat image, since several changes delete settings/roles/data from the database on upgrade and are not reversible by downgrading the image alone.\n- Audit any custom webhook integration scripts for sloppy-mode JavaScript patterns (implicit globals, `arguments.callee`, octal literals, duplicate parameters) \u2014 these will throw under the new strict-mode execution.\n- Audit any external DDP/SDK clients and REST API integrations for use of the 157 removed DDP methods, the removed `query`/`fields` REST parameters, the old `phone`/`freeSwitchExtension` fields, and the old `DELETE /v1/canned-responses` body-based call.\n- Review any admin-configured `Custom_Script_On_Logout` / `Custom_Script_Logged_Out` / `Custom_Script_Logged_In` settings for reliance on Meteor client globals (`Meteor.userId()`, `Tracker`, etc.) \u2014 these must be rewritten to read `localStorage`/`sessionStorage` and call the REST API.\n- After upgrade, re-check authentication for any users previously provisioned through Crowd or a removed OAuth provider (Drupal, Facebook, GitHub Enterprise, LinkedIn, Meteor, Twitter, WordPress, Dolphin) \u2014 they must switch to a remaining method.\n- Bump `ROCKETCHAT_MONGODB_IMAGE_VERSION`/pin in the compose file's `x-images` block once the MongoDB upgrade path is executed; this is a template maintenance action, not a `.env` edit.\n\n### Notes read\n- 9.0.0 (2026-11-10) \u2014 full release notes as supplied.\n- 8.9.1 (2026-11-06) \u2014 read only as the stated baseline, to separate already-true requirements from changes introduced by this range.\n"
-  },
-  {
-    "repo": "romm-traefik-letsencrypt-docker-compose",
-    "sha": "9d170df0c85e05fde14a5438cb91d60071bbdc1e",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:57:16Z"
-  },
-  {
-    "repo": "seafile-traefik-letsencrypt-docker-compose",
-    "sha": "c054a885eb38743eda51cc8e75090ca13a306304",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:57:26Z"
-  },
-  {
-    "repo": "sftp-traefik-letsencrypt-docker-compose",
-    "sha": "df828045831a10f98cacfda979baf6a916a12b63",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:57:34Z"
-  },
-  {
-    "repo": "sonarqube-traefik-letsencrypt-docker-compose",
-    "sha": "337431a194154c8b98624f88293a91b5774904c5",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:57:43Z"
-  },
-  {
-    "repo": "uptime-kuma-traefik-letsencrypt-docker-compose",
-    "sha": "f5822624afcea87d2af48e70ec5c2a56f316f02e",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:57:54Z"
-  },
-  {
-    "repo": "vaultwarden-traefik-letsencrypt-docker-compose",
-    "sha": "b428763658c83e1646f59dced7a502b00e57e74a",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:58:02Z"
-  },
-  {
-    "repo": "webrcade-traefik-letsencrypt-docker-compose",
-    "sha": "59e55789a7753af2a3c8797f74bbdbabcd89d6f7",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:58:10Z"
-  },
-  {
-    "repo": "wikijs-traefik-letsencrypt-docker-compose",
-    "sha": "00c0f9082cfc85436c75a51d270cb1ae2ca207ec",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:58:19Z"
+    "pushed_at": "2026-11-12T01:49:53Z",
+    "review": "\n## Upstream changes 8.9.1 -> 9.0.0\n\n**Verdict:** DO NOT APPLY UNATTENDED \u2014 this is a major version carrying multiple breaking API/auth changes, a required MongoDB version the compose file does not pin, and an automatic data migration; it needs a deliberate, supervised upgrade.\n\nThe release notes state: \"MongoDB: `8.0`\" as the required engine version for 9.0.0. The compose file pins `mongo:7.0@sha256:...` via `ROCKETCHAT_MONGODB_IMAGE_VERSION:-7.0`. This mismatch alone forces the verdict: the application would run against a database major version its own release notes do not list.\n\n### Breaking changes\n- MongoDB engine requirement raised to `8.0` (baseline 8.9.1 already required `8.0` too \u2014 see \"Data and dependencies\" below for what's actually new vs already true). What's new here is nothing further on this axis; the 7.0 pin is already wrong at the current version, not newly broken by this upgrade (see verdict note).\n- \"Stopped transpiling webhook integration scripts with Babel. Scripts now run as-is inside `isolated-vm`... Class method bodies are now in strict mode\" \u2014 custom webhook integration scripts using sloppy-mode patterns (implicit globals, `arguments.callee`, octal literals, duplicate params) will break.\n- \"the `phone` user field is replaced by the `phones` array... existing numbers are migrated automatically on upgrade\" \u2014 any integration reading/writing the old `phone` field breaks.\n- \"Removes the deprecated `query` and `fields` REST API parameters, along with the `ALLOW_UNSAFE_QUERY_AND_FIELDS_API_PARAMS` environment variable\" \u2014 if this variable is set anywhere in a custom `.env` override, it will have no effect and dependent integrations will get `400 error-invalid-params`.\n- \"Changes the default value of the `Omnichannel enabled` setting (`Livechat_enabled`) to `false`... Existing workspaces keep their current value on upgrade\" \u2014 no action for an existing deployment, but worth knowing.\n- \"Removes the 'Allow Anonymous Write' setting... The `anonymous` role is removed... any existing users holding the `anonymous` role are deactivated and logged out.\"\n- \"Removes the Atlassian Crowd integration... Users previously provisioned through Crowd keep their accounts... but must sign in through another authentication method.\"\n- \"Removes the deprecated `DELETE /v1/canned-responses` endpoint\" (body-based); use `DELETE /v1/canned-responses/:_id`.\n- \"Removes the built-in Gravatar integration\" \u2014 default avatar behavior changes for new/renamed users.\n- \"Renames the user `freeSwitchExtension` attribute to `sipExtension`\" \u2014 any REST integration using the old field name breaks.\n- \"REST API status codes for authentication and authorization failures now follow their meaning\" \u2014 401/403 responses change shape and code; any client/integration parsing `error-invalid-user`, `error-not-authorized`, or status/message fields will need updating.\n- \"the REST refusals that the API error switch maps answer **403** with one body shape\" \u2014 same category, broad API client impact.\n- \"Removed 157 Meteor (DDP) methods\" \u2014 any external DDP/SDK client calling these by name gets `404`.\n- **\"Makes LDAP and SAML authentication Premium features. Breaking: workspaces without a Premium plan that includes the `ldap-enterprise` or `saml-enterprise` module lose LDAP and SAML login on upgrade to 9.0.0. Keep a Premium license or an admin account that signs in another way before upgrading.\"** \u2014 critical for any self-hosted deployment using LDAP/SAML without an Enterprise license.\n- \"Makes Custom OAuth authentication a Premium feature, gated by the `oauth-enterprise` license module. On workspaces without it, the enable setting of every Custom OAuth service falls back to `false`.\"\n- \"Removes the built-in Drupal, Facebook, GitHub Enterprise, LinkedIn, Meteor, Twitter, WordPress and Dolphin OAuth login providers.\"\n- \"Removes the legacy Meteor OAuth login flow and the `Accounts_OAuth_Use_Modern_Flow` setting\" plus removal of `Accounts_OAuth_Proxy_host`/`Accounts_OAuth_Proxy_services`.\n- \"The web client no longer ships Meteor's client packages... Code that runs in the page and relies on those packages stops working, in particular the custom scripts of `Custom_Script_On_Logout`, `Custom_Script_Logged_Out` and `Custom_Script_Logged_In`\" \u2014 affects any admin-configured custom scripts.\n- \"Removes the WebDAV integration.\"\n- \"Removes `/ufs` legacy endpoint for downloading files.\"\n\n### Variables\n- `ALLOW_UNSAFE_QUERY_AND_FIELDS_API_PARAMS` \u2014 removed; has no effect if set.\n- `MESSAGE_MAX_PARSE_LENGTH` default changes from `0` to `10000`: \"Changes the default value of the `MESSAGE_MAX_PARSE_LENGTH` environment variable from `0` (no limit) to `10000` characters... Workspaces using the default `Message_MaxAllowedSize` (5000) are not affected.\" Not set in this compose file or .env.example, so the new default applies unless an operator previously relied on unlimited parsing.\n- `Push_UseLegacy`, `Push_gcm_project_number`, `Push_gcm_api_key` \u2014 removed (settings, not compose/.env variables here; no match in this template).\n- None of the removed/renamed settings (`CROWD_*`, `FEDERATION_*`, `Accounts_OAuth_*`, `Push_gcm_*`) appear in this compose file's `environment:` block or in `.env.example`, so no edit to these two files is required.\n\n### Data and dependencies\n- **Already true at 8.9.1 (not introduced by this upgrade):** MongoDB `8.0` was already the stated engine requirement in the 8.9.1 baseline notes. The compose file pins `mongo:7.0`, so this gap predates the upgrade \u2014 but it still triggers the DO NOT APPLY UNATTENDED verdict per the rule that an unlisted engine version is a stop condition regardless of when the gap was introduced.\n- Irreversible/automatic migrations on upgrade, per the notes: `phone` \u2192 `phones` array; `freeSwitchExtension` \u2192 `sipExtension`; stale `Drafts` sidebar group removal; deletion of `anonymous` role/setting, Crowd settings, legacy federation settings, `Use_RC_SDK` setting, WebDAV settings, GCM push settings.\n- Federated room version for newly created rooms changes from 10 to 11 (existing rooms unaffected) \u2014 informational, no action.\n- No change to container ports, volumes, user, entrypoint, command, or healthcheck \u2014 confirmed identical between the two image builds per the registry comparison.\n\n### Before applying\n- Confirm whether LDAP or SAML login is in use and whether a Premium/Enterprise license with the `ldap-enterprise` or `saml-enterprise` module is active. If not, **do not upgrade** until either a Premium license is obtained or a non-LDAP/SAML admin account is confirmed working \u2014 the notes are explicit: \"Keep a Premium license or an admin account that signs in another way before upgrading.\"\n- Resolve the MongoDB version gap before or as part of this upgrade: plan a controlled upgrade path from the currently pinned `mongo:7.0` to `8.0`, including a replica-set-aware rolling upgrade and a verified backup, since this template runs MongoDB as a single-member replica set (`rs0`) with backups via `mongodump`.\n- Take a full backup (the `backups` service already runs `mongodump` on schedule \u2014 trigger an out-of-band run and verify the archive) before upgrading the Rocket.Chat image, since several changes delete settings/roles/data from the database on upgrade and are not reversible by downgrading the image alone.\n- Audit any custom webhook integration scripts for sloppy-mode JavaScript patterns (implicit globals, `arguments.callee`, octal literals, duplicate parameters) \u2014 these will throw under the new strict-mode execution.\n- Audit any external DDP/SDK clients and REST API integrations for use of the 157 removed DDP methods, the removed `query`/`fields` REST parameters, the old `phone`/`freeSwitchExtension` fields, and the old `DELETE /v1/canned-responses` body-based call.\n- Review any admin-configured `Custom_Script_On_Logout` / `Custom_Script_Logged_Out` / `Custom_Script_Logged_In` settings for reliance on Meteor client globals (`Meteor.userId()`, `Tracker`, etc.) \u2014 these must be rewritten to read `localStorage`/`sessionStorage` and call the REST API.\n- After upgrade, re-check authentication for any users previously provisioned through Crowd or a removed OAuth provider (Drupal, Facebook, GitHub Enterprise, LinkedIn, Meteor, Twitter, WordPress, Dolphin) \u2014 they must switch to a remaining method.\n- Bump `ROCKETCHAT_MONGODB_IMAGE_VERSION`/pin in the compose file's `x-images` block once the MongoDB upgrade path is executed; this is a template maintenance action, not a `.env` edit.\n\n### Notes read\n- 9.0.0 (2026-11-10) \u2014 full release notes as supplied.\n- 8.9.1 (2026-11-06) \u2014 read only as the stated baseline, to separate already-true requirements from changes introduced by this range.\n\n## Upstream changes 8.9.1 -> 9.0.0\n\n**Verdict:** DO NOT APPLY UNATTENDED \u2014 the notes require MongoDB `8.0` (\"MongoDB: `8.0`\" under Engine versions), but the compose file pins `mongo:7.0` for both the `mongodb` and `backups` services, and this upgrade is what raises the requirement (the 8.9.1 baseline lists the same MongoDB 8.0 requirement already, see below \u2014 so this is a pre-existing mismatch, not one newly introduced by 9.0.0). Independently of the MongoDB question, several authentication and scripting changes in this release can lock out admins or break integrations if untreated.\n\nNote on the MongoDB point: the 8.9.1 baseline notes also list \"MongoDB: `8.0`\", so the template was already out of compliance with upstream's stated engine requirement before this upgrade \u2014 this range does not raise it further. Per the instructions, a requirement already true at the current version is not what decides the verdict for *this* range. However, the rule on companion-service version mismatches is absolute (\"whatever else the release contains\"), so it still forces the verdict away from SAFE TO APPLY here, since the 9.0.0 notes again state MongoDB 8.0 and the compose file still runs 7.0.\n\n### Breaking changes\n- Custom OAuth, LDAP, and SAML now require a Premium license: *\"LDAP, SAML, and Custom OAuth now require a premium plan, and Drupal, Facebook, LinkedIn, Meteor, X (formerly Twitter), WordPress, and Dolphin logins are removed.\"* Community (free) workspaces using any of these lose that login method on upgrade. Quote: *\"Keep a Premium license or an admin account that signs in another way before upgrading.\"*\n- Several built-in OAuth login providers are removed outright: *\"Removes the built-in Drupal, Facebook, GitHub Enterprise, LinkedIn, Meteor, Twitter, WordPress and Dolphin OAuth login providers.\"*\n- Atlassian Crowd integration removed entirely, with settings and sync jobs deleted from the database on upgrade.\n- Anonymous write/login removed: *\"Removes the 'Allow Anonymous Write' setting ... any existing users holding the `anonymous` role are deactivated and logged out.\"*\n- Webhook/integration scripts no longer run through Babel and execute in strict mode (`isolated-vm`), described as **Breaking**: implicit globals, `this` in nested functions, `arguments.callee`, octal literals and duplicate parameter names all now behave differently or throw. Existing custom scripts may fail.\n- `phone` user field replaced by `phones` array (migrated automatically), and `freeSwitchExtension` renamed to `sipExtension` \u2014 REST clients using the old field names must update.\n- 157 Meteor/DDP methods removed (**Breaking**): any external DDP/SDK client calling them by name gets `404`.\n- REST API status codes change meaning (**Breaking**, twice, #43138 and #43214): unauthenticated requests now answer 401 instead of 400; permission failures now answer 403 instead of 400, with a changed body shape (`errorType: 'error-forbidden'`); webhook (`/hooks`) endpoints return differentiated status codes instead of always 400. Any integration or monitoring that keys off specific status/error codes needs review.\n- `query`/`fields` REST parameters and `ALLOW_UNSAFE_QUERY_AND_FIELDS_API_PARAMS` removed; endpoints now reject them with `400 error-invalid-params`.\n- `/ufs` legacy file-download endpoint removed.\n- WebDAV integration, Gravatar integration, and legacy/Matrix-bridge federation settings all removed, with associated settings deleted from the database on upgrade.\n- Legacy GCM push settings (`Push_UseLegacy`, `Push_gcm_project_number`, `Push_gcm_api_key`) removed.\n- Default of `Omnichannel enabled` (`Livechat_enabled`) changes to `false` for **new** workspaces only \u2014 the notes state existing workspaces keep their current value, so this does not affect an already-deployed instance.\n- `POST /v1/push.token` response body flattened (`tokenValue`/`tokenType` instead of nested `token`).\n\n### Variables\n- `MESSAGE_MAX_PARSE_LENGTH` default changes from `0` (unlimited) to `10000`: *\"Changes the default value of the `MESSAGE_MAX_PARSE_LENGTH` environment variable from `0` (no limit) to `10000` characters.\"* Not set in the compose file or `.env.example`, so the host silently gets the new 10,000-character parse limit. Workspaces with the default `Message_MaxAllowedSize` (5000) are unaffected per the notes; set `MESSAGE_MAX_PARSE_LENGTH` explicitly if longer messages must still be parsed.\n- `ALLOW_UNSAFE_QUERY_AND_FIELDS_API_PARAMS` removed \u2014 not present in this template's compose/.env, so nothing to change here, but note for anyone who added it manually.\n- No other compose-pinned or `.env.example`-documented variables are renamed or newly required by these notes.\n\n### Data and dependencies\n- MongoDB `8.0` is required by this release (\"MongoDB: `8.0`\" in Engine versions) \u2014 **already true at 8.9.1** per the baseline notes, so not introduced by this range, but still unmet: compose pins `mongo:7.0` for both `mongodb` and `backups` services. This is the condition that forces the verdict.\n- Node.js engine range `>=22.22.3 <23 || >=24.15.0 <25` \u2014 unchanged from 8.9.1, nothing new here.\n- Apps-Engine bumped from `1.67.0` to `1.68.0` \u2014 informational, not compose-visible.\n- Unused MongoDB indexes dropped automatically on upgrade (listed in #41974) \u2014 irreversible but routine, no action needed beyond the general backup below.\n- `phone` \u2192 `phones` and `freeSwitchExtension` \u2192 `sipExtension` migrations run automatically on upgrade per the notes.\n- Stale `Drafts` sidebar group migration runs automatically (#42496).\n\n### Before applying\n- Take a MongoDB backup before upgrading (the `backups` service in this compose file already runs `mongodump` on a schedule \u2014 trigger or confirm a fresh one immediately before the upgrade).\n- Resolve the MongoDB version mismatch: pin `ROCKETCHAT_MONGODB_IMAGE_VERSION=8.0` (and plan the 7.0\u21928.0 MongoDB upgrade path, including replica-set considerations) before or as part of this Rocket.Chat upgrade \u2014 do not run 9.0.0 against the currently pinned 7.0 image.\n- Confirm at least one administrator can log in with local username/password before upgrading, per: *\"Before you update: make sure at least one administrator can log in with a local username and password.\"*\n- If this workspace uses LDAP, SAML, or Custom OAuth and does not hold a Premium license, either acquire the license or migrate affected users to a supported login method first.\n- If this workspace uses any of Drupal, Facebook, LinkedIn, Meteor, X/Twitter, WordPress, or Dolphin login, migrate those users to a supported method before upgrading \u2014 the providers are removed outright, license or not.\n- Audit any custom webhook/integration scripts for Babel-era sloppy-mode patterns (implicit globals, bare `this`, `arguments.callee`, octal literals, duplicate params) before upgrading.\n- Audit any external DDP/SDK client or integration for use of the 157 removed Meteor methods, and for reliance on specific REST status/error codes affected by the 401/403 reshuffle.\n- Review any script relying on `query`/`fields` REST parameters or the `/ufs` endpoint.\n- Set `MESSAGE_MAX_PARSE_LENGTH` explicitly in the environment if messages longer than 10,000 characters must keep being parsed as markdown.\n\n### Notes read\n- RocketChat/Rocket.Chat release notes for `9.0.0` (full) and `8.9.1` (baseline, read for the \"already true\" check on engine versions).\n"
   },
   {
     "repo": "wordpress-traefik-letsencrypt-docker-compose",
-    "sha": "902ae8c9e55c39d8d386f370e9a7a00e5ca4aa3c",
+    "sha": "57682bd2cec6a0a73d856fcd4f69c1cf753018f4",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-11T14:58:29Z"
-  },
-  {
-    "repo": "xwiki-traefik-letsencrypt-docker-compose",
-    "sha": "fdc312801836b94a8f78f3bb10cab75667796b8b",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:58:38Z"
-  },
-  {
-    "repo": "zabbix-traefik-letsencrypt-docker-compose",
-    "sha": "9503a5313d06fcafc38a6a4801c196a24f9823ed",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:58:50Z"
-  },
-  {
-    "repo": "zammad-traefik-letsencrypt-docker-compose",
-    "sha": "73810d58dd8b00651f51917019dbbcbd2ba3c064",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-11T14:59:24Z",
-    "review": "\n## Upstream changes 8.19.23 -> 8.19.25\n\n**Verdict:** SAFE TO APPLY \u2014 only a patch-level Elasticsearch bump, no breaking changes or companion-version requirements found in the notes, and the image configurations do not differ.\n\n### Breaking changes\n- none found in the notes. The release-notes index only lists titles, dates and links for v8.19.24 and v8.19.25 (and unrelated 9.x releases); no changelog body, breaking-change list or upgrade warning was supplied in the input for either version.\n\n### Variables\n- none. No variable naming, renaming or removal is mentioned anywhere in the material provided, and `.env.example` / compose already reference `ZAMMAD_ELASTICSEARCH_IMAGE_VERSION=8.19.23` as a plain version bump target.\n\n### Data and dependencies\n- none identifiable from the notes \u2014 no database/engine version requirement, migration, or removed default is stated for 8.19.24 or 8.19.25. The upstream `CHANGELOG.md` provided is just a pointer to the reference manual and carries no content (\"Please see the [release notes]... in the reference manual.\").\n- WHAT THE IMAGES THEMSELVES DIFFER IN confirms `User`, `Entrypoint`, `Cmd`, `WorkingDir`, `ExposedPorts`, `Volumes`, `Healthcheck`, and environment are unchanged between the two image builds \u2014 this rules out a silent infrastructure-level change riding along with the version bump.\n- Nothing in this range names a companion-service version (e.g. a required Postgres/Lucene baseline) that the compose file fails to pin \u2014 the compose file pins `elasticsearch:8.19.23@sha256:...` directly and the move is to 8.19.25 of the same line.\n\n### Before applying\n- Take the routine precaution of a volume/database backup before any production image bump, as with any upgrade \u2014 no specific migration command is indicated by the notes.\n- Since the actual content of the 8.19.24 and 8.19.25 release notes was not retrievable here (only title/date/link), check the linked pages by hand before trusting this as a definitive \"nothing changed\" if elasticsearch behaviour matters for this deployment:\n  - https://www.elastic.co/guide/en/elasticsearch/reference/8.19/release-notes-8.19.24.html\n  - https://www.elastic.co/guide/en/elasticsearch/reference/8.19/release-notes-8.19.25.html\n\n### Notes read\n- Release index entries for v8.19.23 (baseline), v8.19.24, v8.19.25 were read (title/date/link only \u2014 no body content was included in the supplied text).\n- v9.5.6, v9.4.9, v9.5.5, v9.4.8 entries were present in the feed but are a different major line and out of scope for this 8.19.x range.\n- `CHANGELOG.md` was read but contains no actual changelog content, only a pointer to the reference manual.\n\n## Upstream changes 7.2.2 -> 7.2.3\n\n**Verdict:** SAFE TO APPLY \u2014 the commit log is all bugfixes, maintenance and internal hardening against features already present in 7.2.x; no new breaking change, no variable change, and the companion services named in the applicable BREAKING_CHANGES entries (Elasticsearch 8.15+) are already correctly pinned in the compose file at 8.19.25.\n\n### Breaking changes\n- none found in the notes for this range. The commit log between 7.2.2 and 7.2.3 is exclusively bugfixes (e.g. \"Fixes #6431 - Resend verification email for an inactive user claims success, but the link cannot be used.\", \"Fixes #6479 - OIDC login fails with ... when address attribute is missing.\") and internal \"Maintenance\" hardening items. No release notes page exists for these tags (\"no release notes were found for these tags under zammad/zammad, so the commits are the record\").\n- The BREAKING_CHANGES.md content supplied is dated to 7.2 and \"Upcoming releases\" (i.e. the baseline the template already runs, or changes not yet shipped) \u2014 see Data and dependencies below for what is a pre-existing requirement versus a true change in this range.\n\n### Variables\n- none. No env var in the compose file or `.env.example` is touched by anything in the 7.2.2\u21927.2.3 commit range.\n\n### Data and dependencies\n- Already true at the current version (not introduced by this upgrade): **\"Elasticsearch 7 is no longer supported, 8.15 is the new minimum\"** \u2014 this requirement was introduced in 7.2 and the template already pins `elasticsearch: 8.19.25`, satisfying it. No action needed for this upgrade.\n- Already true at the current version: the SSO/Remote-User header hardening and reverse-proxy scheme hardening described under \"## 7.2\" apply to the Docker images' self-rebuilt nginx config and already took effect at 7.2.0; nothing in 7.2.3 changes this further.\n- none found that is newly introduced or raised by the 7.2.2\u21927.2.3 range itself.\n\n### Before applying\n- Take the normal backup before any Zammad update (the `backup` service / `zammad-backup` is already configured in the compose file \u2014 confirm a recent backup exists).\n- No manual migration command or config edit is called for by this range.\n- As routine post-upgrade hygiene, watch the Rails log after restart for the `Templates referring to settings` warning line (from a 7.2-era change, not this range) if any custom triggers/macros/signatures use `#{config.*}` placeholders \u2014 this is pre-existing to 7.2, not new in 7.2.3, listed here only so it isn't missed.\n\n### Notes read\n- Compare-API commit list between `7.2.2` and `7.2.3` on `zammad/zammad` (97 commits; no dedicated GitHub release notes exist for either tag).\n- `BREAKING_CHANGES.md` top section (\"Upcoming releases\" and \"## 7.2\"), read as the project's own upgrade documentation; confirmed its entries are dated to the 7.2 line (the baseline, per the release the template runs now) and not newly introduced between 7.2.2 and 7.2.3.\n- Registry image diff for `ghcr.io/zammad/zammad:7.2.2` vs `7.2.3`: only `RUBY_VERSION`/`RUBY_DOWNLOAD_URL`/`RUBY_DOWNLOAD_SHA256` changed (Ruby 3.4.9 \u2192 3.4.12), consistent with the commit log's \"Maintenance: Update to Ruby 3.4.12.\" No change to user, entrypoint, command, ports, volumes, healthcheck or declared environment between the two images.\n"
-  },
-  {
-    "repo": "ollama-traefik-letsencrypt-docker-compose",
-    "sha": "c3f28968fe03d8fee0797f5876b91bbc30ef5955",
-    "wf": "Deployment Verification",
-    "kind": "version",
-    "pushed_at": "2026-11-11T23:53:08Z"
+    "pushed_at": "2026-11-12T01:50:12Z"
   }
 ]
