@@ -102,14 +102,9 @@ jobs:
           git -C /tmp/flagship-plants-reference fetch -q --depth 1 origin --tags
           git clone -q --depth 1 "https://github.com/$OWNER/kubernetes-air-gapped-ai-agent" /tmp/flagship-reference
           git -C /tmp/flagship-reference fetch -q --depth 1 origin --tags
-          # The evidence rules are broken on a copy of cloud-evidence-pack,
-          # private until the hub publishes it: the same fallback as below.
-          if ! GIT_TERMINAL_PROMPT=0 git clone -q --depth 1 "https://github.com/$OWNER/cloud-evidence-pack" /tmp/evidence-reference 2>/dev/null; then
-            if [ -z "$READ_TOKEN" ] || ! GH_TOKEN="$READ_TOKEN" gh repo clone "$OWNER/cloud-evidence-pack" /tmp/evidence-reference -- -q --depth 1; then
-              echo "cloud-evidence-pack is private and the read token cannot see it" > /tmp/evidence-reference.unavailable
-              echo "::warning::the evidence conformance rules were not exercised: $(cat /tmp/evidence-reference.unavailable)"
-            fi
-          fi
+          # Public since 2026-11-13: a failed clone fails the step, so the
+          # evidence rules are never skipped quietly.
+          git clone -q --depth 1 "https://github.com/$OWNER/cloud-evidence-pack" /tmp/evidence-reference
           if ! GIT_TERMINAL_PROMPT=0 git clone -q --depth 1 "https://github.com/$OWNER/aws-eks-reference-platform" /tmp/k8s-reference 2>/dev/null; then
             if [ -z "$READ_TOKEN" ] || ! GH_TOKEN="$READ_TOKEN" gh repo clone "$OWNER/aws-eks-reference-platform" /tmp/k8s-reference -- -q --depth 1; then
               echo "aws-eks-reference-platform is private and the read token cannot see it" > /tmp/k8s-reference.unavailable
@@ -140,12 +135,7 @@ jobs:
               */test-conformance.sh) "$t" /tmp/reference || fail=1 ;;
               */test-conformance-sandbox.sh) "$t" /tmp/sandbox-reference || fail=1 ;;
               */test-conformance-measured.sh) "$t" /tmp/measured-reference || fail=1 ;;
-              */test-conformance-evidence.sh)
-                if [ -e /tmp/evidence-reference.unavailable ]; then
-                  echo "SKIPPED: $(cat /tmp/evidence-reference.unavailable)"
-                else
-                  "$t" /tmp/evidence-reference || fail=1
-                fi ;;
+              */test-conformance-evidence.sh) "$t" /tmp/evidence-reference || fail=1 ;;
               */test-conformance-flagship-plants.sh) "$t" /tmp/flagship-plants-reference /tmp/flagship-reference || fail=1 ;;
               */test-conformance-kubernetes.sh)
                 if [ -e /tmp/k8s-reference.unavailable ]; then

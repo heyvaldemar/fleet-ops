@@ -134,6 +134,31 @@ expect "a release whose provenance is never verified is caught" "$WORK/noslsa" "
 d="$(fixture nobyte)"; edit "$(release_check "$d")" "s#printf 'x' >>#cat /dev/null >>#g"; recommit "$d"
 expect "a verification never shown a changed byte is caught" "$WORK/nobyte" "shows the verification a changed byte"
 
+d="$(fixture commented)"; rc="$(release_check "$d")"; edit "$rc" "s#printf 'x' >>#cat /dev/null >>#g"; printf "\n# printf 'x' >> a comment is not a check\n" >> "$rc"; recommit "$d"
+expect "a changed-byte check left only in a comment is caught" "$WORK/commented" "shows the verification a changed byte"
+
+d="$(fixture otherrepo)"; rc="$(release_check "$d")"
+# The $REPO in these patterns is the literal text being replaced.
+# shellcheck disable=SC2016
+edit "$rc" -e 's#https://github.com/\$REPO/#https://github.com/someone/cloud-evidence-pack/#g' -e 's#https://github.com/\$GITHUB_REPOSITORY/#https://github.com/someone/cloud-evidence-pack/#g'
+recommit "$d"
+expect "a release verified for another repository's workflow is caught" "$WORK/otherrepo" "for the exact identity of pack.yml on a tag"
+
+d="$(fixture noissuer)"; rc="$(release_check "$d")"; edit "$rc" 's#--certificate-oidc-issuer[ =]*https://token.actions.githubusercontent.com#--certificate-oidc-issuer https://issuer.example#g'; recommit "$d"
+expect "a release check that accepts any issuer is caught" "$WORK/noissuer" "does not pin the signer's issuer to GitHub Actions"
+
+d="$(fixture pins)"; edit "$d/ci-images.pins" 's#@sha256:[0-9a-f]*##'; recommit "$d"
+expect "a CI image pinned by tag is caught" "$WORK/pins" "ci-images.pins: ACTIONLINT_IMAGE is not pinned by digest"
+
+d="$(fixture container)"; printf '    container: alpine:3.20\n' >> "$d/.github/workflows/pack.yml"; recommit "$d"
+expect "a workflow container pinned by tag is caught" "$WORK/container" "pack.yml: image alpine:3.20 is not pinned by digest"
+
+d="$(fixture shortpin)"; edit "$d/ci-images.pins" 's#\(ACTIONLINT_IMAGE=[^@]*@sha256:[0-9a-f]\{12\}\)[0-9a-f]*#\1#'; recommit "$d"
+expect "a CI image pinned by a cut digest is caught" "$WORK/shortpin" "ci-images.pins: ACTIONLINT_IMAGE is not pinned by digest"
+
+d="$(fixture exportpin)"; printf 'export EXTRA_IMAGE="alpine:3.20"  # added\n' >> "$d/ci-images.pins"; recommit "$d"
+expect "a pin written the way a shell sources it is still read" "$WORK/exportpin" "ci-images.pins: EXTRA_IMAGE is not pinned by digest"
+
 echo
 echo "passed: $PASSED   failed: $FAILED"
 [ "$FAILED" -eq 0 ]

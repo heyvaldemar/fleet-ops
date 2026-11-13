@@ -1052,7 +1052,9 @@ def evidence_rules(repo, names):
     validate = repo.read("scripts/validate.sh")
     bad += static_check_findings(repo, validate)
 
-    workflows = {w: repo.read(f".github/workflows/{w}") or "" for w in repo.workflows()}
+    # Comment lines are dropped before every test below: release-assets.yml
+    # carries a commented cosign verify-blob example, which is not a check.
+    workflows = {w: uncommented(repo.read(f".github/workflows/{w}") or "") for w in repo.workflows()}
     every = "\n".join(workflows.values())
     if "scripts/validate.sh" not in every:
         bad.append("no workflow runs scripts/validate.sh")
@@ -1074,15 +1076,16 @@ def evidence_rules(repo, names):
     # The builder refuses whatever is not a scheduled run that passed, and is
     # shown each such run. The plants name the refusals; the static checks run
     # them.
-    plant = repo.read("scripts/plant.py") or ""
+    plant = uncommented(repo.read("scripts/plant.py") or "")
     missing = [p for p in EVIDENCE_REFUSALS if f'"{p}"' not in plant]
-    if not plant:
+    if not plant.strip():
         bad.append("no scripts/plant.py: the builder is never shown a run it must refuse")
     elif missing:
         bad.append(f"scripts/plant.py plants no {', '.join(missing)} run: the builder is never shown it")
-    checks = re.findall(r"^check_([a-z0-9_]+)\(\)\s*\{(.*?)^\}", validate or "", re.M | re.S)
+    run_lines = uncommented(validate or "")
+    checks = re.findall(r"^check_([a-z0-9_]+)\(\)\s*\{(.*?)^\}", run_lines, re.M | re.S)
     bodies = {name: body for name, body in checks}
-    one_line = dict(re.findall(r"^check_([a-z0-9_]+)\(\)\s*\{([^\n]*)\}\s*$", validate or "", re.M))
+    one_line = dict(re.findall(r"^check_([a-z0-9_]+)\(\)\s*\{([^\n]*)\}\s*$", run_lines, re.M))
     bodies.update(one_line)
     if "tests/e2e/plants.sh" not in bodies.get("plants", ""):
         bad.append("scripts/validate.sh has no check_plants that runs tests/e2e/plants.sh")
@@ -1092,7 +1095,7 @@ def evidence_rules(repo, names):
     plants_sh = repo.read("tests/e2e/plants.sh")
     if plants_sh is None:
         bad.append("no tests/e2e/plants.sh: no recorded run is ever planted")
-    elif "plant.py all" not in plants_sh:
+    elif "plant.py all" not in uncommented(plants_sh):
         bad.append("tests/e2e/plants.sh does not take its plants from scripts/plant.py all: a new plant would never run")
     rows = [l for l in (repo.read("tests/plants.tsv") or "").splitlines() if l.strip() and not l.startswith("#")]
     if not rows:
@@ -1126,18 +1129,44 @@ def evidence_rules(repo, names):
     # pack.yml itself or a script it runs. The provenance and the changed byte
     # must be in that same file, since another script can verify something
     # else with slsa-verifier (the flagship's archive, in scripts/flagship.sh).
+    # The identity names this repository: literally, or through the variable
+    # GitHub sets to it ($GITHUB_REPOSITORY, or $REPO taken from it), and the
+    # issuer is GitHub's. A workflow of another repository would match a looser
+    # pattern and pass a pack anyone could make.
     named = sorted(set(re.findall(r"scripts/[A-Za-z0-9_.-]+\.sh", pack)))
-    candidates = [pack] + [repo.read(n) or "" for n in named]
-    exact = re.compile(r'--certificate-identity[ =]"?[^"\s]*/\.github/workflows/pack\.yml@refs/tags/')
+    candidates = [pack] + [uncommented(repo.read(n) or "") for n in named]
+    exact = re.compile(r'--certificate-identity[ =]"?https://github\.com/'
+                       r'(?:\$\{?(?:GITHUB_REPOSITORY|REPO)\}?|' + re.escape(OWNER) + "/" + re.escape(repo.name) + r')'
+                       r'/\.github/workflows/pack\.yml@refs/tags/')
+    issuer = re.compile(r'--certificate-oidc-issuer[ =]"?https://token\.actions\.githubusercontent\.com\b')
     release = [t for t in candidates if exact.search(t)]
     if not release:
         bad.append("no release check verifies the packs for the exact identity of pack.yml on a tag")
     else:
+        # All of it in the one file that names the identity: another script
+        # verifies something else with slsa-verifier (the flagship's archive).
+        if not any(issuer.search(t) for t in release):
+            bad.append("the release check does not pin the signer's issuer to GitHub Actions")
         if not any("slsa-verifier verify-artifact" in t for t in release):
             bad.append("no release check verifies the packs' provenance with slsa-verifier")
         if not any(re.search(r"printf 'x' ?>>", t) for t in release):
             bad.append("no release check shows the verification a changed byte")
 
+    # Images, where this kind has them: the CI pins and any container a
+    # workflow runs in (image_findings reads apps/ and manifests/, which an
+    # evidence repository does not have).
+    pins = repo.read("ci-images.pins")
+    if pins is None:
+        bad.append("no ci-images.pins: the images CI runs are not pinned in one place")
+    # Read the way a shell would source it (export, quotes, a trailing
+    # comment), and a digest is a whole one.
+    for m in re.finditer(r"^\s*(?:export\s+)?([A-Za-z0-9_]+)=['\"]?(\S+?)['\"]?\s*(?:#.*)?$", uncommented(pins or ""), re.M):
+        if not re.search(r"@sha256:[0-9a-f]{64}$", m.group(2)):
+            bad.append(f"ci-images.pins: {m.group(1)} is not pinned by digest")
+    for w, text in sorted(workflows.items()):
+        for m in re.finditer(r"^\s*(?:container|image):\s*['\"]?([^\s'\"{]+)", text, re.M):
+            if "@sha256:" not in m.group(1) and not m.group(1).startswith("$"):
+                bad.append(f"{w}: image {m.group(1)} is not pinned by digest")
     bad += image_findings(repo, repo.tree())
     bad += readme_findings(repo, runbooks=False)
     return bad
