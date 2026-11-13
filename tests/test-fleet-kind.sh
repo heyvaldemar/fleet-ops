@@ -37,6 +37,7 @@ kubernetes-oscal-evidence focused
 kubernetes-coder-agent-workspaces focused
 agent-security-benchmark focused
 kubernetes-llm-inference-gateway measured
+cloud-evidence-pack evidence
 helm-charts helm
 heyvaldemar-com none
 deadman-switch none
@@ -55,6 +56,9 @@ cases = {
     ("manifests", "vendor", "templates", "helm", "Makefile"): "focused",
     ("manifests", "vendor", "Makefile"): None,
     ("cluster", "deploy", "loadgen", "images.lock"): "measured",
+    ("mapping", "oscal", "tests", "flagship.lock", "scripts"): "evidence",
+    ("mapping", "oscal", "tests", "flagship.lock", "kind", "manifests"): "focused",
+    ("mapping", "oscal", "tests", "kind", "scripts"): None,
     ("Chart.yaml", "values.yaml"): "helm",
     ("nextcloud-docker-compose.yml", ".env.example"): "compose",
     ("01-providers.tf", "README.md"): "terraform",

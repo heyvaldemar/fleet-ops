@@ -11,6 +11,7 @@ days on 2026-09-18 because its name matched none of them.
     kind_of("aws-eks-reference-platform")                    -> "kubernetes"
     kind_of("kubernetes-ai-agent-sandbox")                   -> "focused"
     kind_of("kubernetes-llm-inference-gateway")              -> "measured"
+    kind_of("cloud-evidence-pack")                           -> "evidence"
     kind_of("deadman-switch")                                -> None (not a fleet repository)
 
 The decision is by name, because every caller has a list of names and only
@@ -57,6 +58,10 @@ NAMED = {
     # Kubernetes on kind again, but the answer is a number: one way of
     # running a workload measured against another under the same load.
     "kubernetes-llm-inference-gateway": "measured",
+    # No cluster and no cloud account of its own: it reads the flagship's
+    # scheduled cloud runs from their signed records and turns each into
+    # OSCAL evidence, so its proof is the runs it refuses, not a kind run.
+    "cloud-evidence-pack": "evidence",
     "helm-charts": "helm",
 }
 
@@ -81,6 +86,7 @@ WORKFLOW = {
     "kubernetes": ("kind e2e", "kind-e2e.yml"),
     "focused": ("e2e", "e2e.yml"),
     "measured": ("E2E", "e2e.yml"),
+    "evidence": ("Pack", "pack.yml"),
     "helm": ("Verification", "verification.yml"),
 }
 
@@ -114,6 +120,12 @@ def kind_from_files(names):
         return "focused"
     if {"loadgen", "deploy"} <= names:
         return "measured"
+    # Evidence read from another repository's runs: a mapping, the OSCAL it
+    # builds and the lock of the system it reads, with no cluster of its own
+    # (kubernetes-oscal-evidence has mapping/ and oscal/ too, and kind/ with
+    # manifests/, so it is focused above).
+    if {"mapping", "oscal", "tests", "flagship.lock"} <= names and "kind" not in names:
+        return "evidence"
     if any(n.endswith((".yml", ".yaml")) and "compose" in n for n in names):
         return "compose"
     if any(n.endswith(".tf") for n in names):

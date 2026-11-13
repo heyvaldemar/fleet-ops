@@ -129,7 +129,7 @@ GROUPS = [
     ("Terraform pipelines on AWS", "Terraform pipelines on AWS",
      lambda n: n.endswith("-terraform"), ["terraform-verification.yml"]),
     ("Kubernetes platforms", "Kubernetes platforms",
-     lambda n: fleet_kind.kind_of(n) in ("kubernetes", "helm", "focused", "measured"), ["kind-e2e.yml", "verification.yml", "e2e.yml", "verify.yml", "evidence.yml"]),
+     lambda n: fleet_kind.kind_of(n) in ("kubernetes", "helm", "focused", "measured", "evidence"), ["kind-e2e.yml", "verification.yml", "e2e.yml", "verify.yml", "evidence.yml", "pack.yml"]),
     ("Operations tools and scripts", "operations tools and scripts",
      lambda n: True, ["tests.yml", "verification.yml"]),
 ]

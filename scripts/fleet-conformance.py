@@ -897,16 +897,9 @@ def flagship_plants(repo):
 # must be admitted, and nothing claims more than CI proves. Each rule is
 # broken on a copy of the agent sandbox in tests/test-conformance-sandbox.sh.
 
-def focused_rules(repo, names):
+def static_check_findings(repo, validate):
+    """Every static check has one entry point and is shown a violation."""
     bad = []
-    files_kind = fleet_kind.kind_from_files(names)
-    if files_kind != "focused":
-        bad.append(f"named as a focused Kubernetes repository, but its files say {files_kind or 'nothing recognisable'}")
-    for f in ("LICENSE", "SECURITY.md"):
-        if f not in names:
-            bad.append(f"missing {f}")
-
-    validate = repo.read("scripts/validate.sh")
     checks = re.findall(r"^check_([a-z0-9_]+)\(\)", validate or "", re.M)
     if validate is None:
         bad.append("no scripts/validate.sh: the static checks have no single entry point")
@@ -927,6 +920,19 @@ def focused_rules(repo, names):
         for c in checks:
             if c.replace("_", "-") not in planted and c not in planted:
                 bad.append(f"no planted violation for the {c} check")
+    return bad
+
+
+def focused_rules(repo, names):
+    bad = []
+    files_kind = fleet_kind.kind_from_files(names)
+    if files_kind != "focused":
+        bad.append(f"named as a focused Kubernetes repository, but its files say {files_kind or 'nothing recognisable'}")
+    for f in ("LICENSE", "SECURITY.md"):
+        if f not in names:
+            bad.append(f"missing {f}")
+
+    bad += static_check_findings(repo, repo.read("scripts/validate.sh"))
 
     workflows = {w: repo.read(f".github/workflows/{w}") or "" for w in repo.workflows()}
     every = "\n".join(workflows.values())
@@ -1012,6 +1018,127 @@ def measured_rules(repo, names):
                     bad.append(f"{path}: image {m.group(1)} is not pinned by digest")
 
     bad += cloud_run_findings(workflows)
+    bad += readme_findings(repo, runbooks=False)
+    return bad
+
+
+# --- Evidence repositories -----------------------------------------------------
+#
+# No cluster and no cloud account of its own: the repository reads another
+# one's scheduled cloud runs from their signed records and turns each into
+# OSCAL evidence (cloud-evidence-pack reads the flagship's). So the daily kind
+# run of a focused repository has nothing to stand on here. What stands in for
+# it: the packs come from named runs and never from a cluster or a cloud login
+# of the repository's own; the builder is shown every run it must refuse; every
+# rule of the gate is switched off in turn and the tests must notice; and a
+# release is verified for one exact signing identity, then shown a changed byte.
+# What carries over from focused unchanged: the static checks and their planted
+# violations, pinned images, and a README that claims no more than CI shows.
+# Each rule is broken on a copy of cloud-evidence-pack in
+# tests/test-conformance-evidence.sh.
+
+EVIDENCE_REFUSALS = ("by-hand", "branch", "red-run", "forged-results", "forged-findings")
+
+
+def evidence_rules(repo, names):
+    bad = []
+    files_kind = fleet_kind.kind_from_files(names)
+    if files_kind != "evidence":
+        bad.append(f"named as an evidence repository, but its files say {files_kind or 'nothing recognisable'}")
+    for f in ("LICENSE", "SECURITY.md"):
+        if f not in names:
+            bad.append(f"missing {f}")
+
+    validate = repo.read("scripts/validate.sh")
+    bad += static_check_findings(repo, validate)
+
+    workflows = {w: repo.read(f".github/workflows/{w}") or "" for w in repo.workflows()}
+    every = "\n".join(workflows.values())
+    if "scripts/validate.sh" not in every:
+        bad.append("no workflow runs scripts/validate.sh")
+    if "tests/static/plant_violations.py" not in every:
+        bad.append("no workflow shows the static checks their planted violations")
+    builds = [t for t in workflows.values() if "scripts/packs.sh" in t or "tests/e2e/run.sh" in t]
+    if not builds:
+        bad.append("no workflow builds the packs (scripts/packs.sh or tests/e2e/run.sh)")
+    elif not any(re.search(r"^\s+schedule:", t, re.M) for t in builds):
+        bad.append("the workflow that builds the packs has no schedule: a new run is never turned into evidence")
+    for w, text in sorted(workflows.items()):
+        if "kind create cluster" in text:
+            bad.append(f"{w}: creates a kind cluster; evidence comes only from the runs it reads")
+        if CLOUD_LOGIN.search(text):
+            bad.append(f"{w}: logs in to a cloud; evidence comes only from the runs it reads")
+    if not re.search(r"actions/runs/\d+", repo.read("README.md") or ""):
+        bad.append("the README links no run: nothing it reports can be traced to the run it came from")
+
+    # The builder refuses whatever is not a scheduled run that passed, and is
+    # shown each such run. The plants name the refusals; the static checks run
+    # them.
+    plant = repo.read("scripts/plant.py") or ""
+    missing = [p for p in EVIDENCE_REFUSALS if f'"{p}"' not in plant]
+    if not plant:
+        bad.append("no scripts/plant.py: the builder is never shown a run it must refuse")
+    elif missing:
+        bad.append(f"scripts/plant.py plants no {', '.join(missing)} run: the builder is never shown it")
+    checks = re.findall(r"^check_([a-z0-9_]+)\(\)\s*\{(.*?)^\}", validate or "", re.M | re.S)
+    bodies = {name: body for name, body in checks}
+    one_line = dict(re.findall(r"^check_([a-z0-9_]+)\(\)\s*\{([^\n]*)\}\s*$", validate or "", re.M))
+    bodies.update(one_line)
+    if "tests/e2e/plants.sh" not in bodies.get("plants", ""):
+        bad.append("scripts/validate.sh has no check_plants that runs tests/e2e/plants.sh")
+    if "scripts/mutate.py" not in bodies.get("mutations", ""):
+        bad.append("scripts/validate.sh has no check_mutations that runs scripts/mutate.py")
+
+    plants_sh = repo.read("tests/e2e/plants.sh")
+    if plants_sh is None:
+        bad.append("no tests/e2e/plants.sh: no recorded run is ever planted")
+    elif "plant.py all" not in plants_sh:
+        bad.append("tests/e2e/plants.sh does not take its plants from scripts/plant.py all: a new plant would never run")
+    rows = [l for l in (repo.read("tests/plants.tsv") or "").splitlines() if l.strip() and not l.startswith("#")]
+    if not rows:
+        bad.append("no lines in tests/plants.tsv: no rule of the gate is ever switched off")
+
+    mapping = repo.read("mapping/controls.yaml") or ""
+    block = re.search(r"^clouds:\n((?:[ \t]+.*\n|\s*\n|#.*\n)+)", mapping, re.M)
+    clouds = re.findall(r"^  ([a-z0-9-]+):", block.group(1), re.M) if block else []
+    if not clouds:
+        bad.append("mapping/controls.yaml names no clouds: there is nothing to read runs from")
+    if not re.search(r"tests/e2e/plants\b", mapping):
+        bad.append("mapping/controls.yaml never names the flagship's tests/e2e/plants: no planted pod is checked against the release")
+    recorded = repo.names_in("tests/fixtures/runs") or []
+    for cloud in clouds:
+        runs = [d for d in recorded if re.fullmatch(rf"{re.escape(cloud)}-\d+", d)]
+        if not runs:
+            bad.append(f"no recorded {cloud} run in tests/fixtures/runs: the {cloud} leg is never planted")
+            continue
+        whole = [d for d in runs
+                 if {"run.json", "artifact.json"} <= set(repo.names_in(f"tests/fixtures/runs/{d}") or [])
+                 and any(n.endswith(".zip") for n in repo.names_in(f"tests/fixtures/runs/{d}") or [])]
+        if not whole:
+            bad.append(f"tests/fixtures/runs: no {cloud} run with its run.json, artifact.json and archive")
+
+    # A release is verified as a stranger would: one exact identity, the
+    # provenance, and a changed byte that both must refuse.
+    pack = workflows.get("pack.yml", "")
+    if "cosign sign-blob" not in pack:
+        bad.append("pack.yml signs nothing: a pack cannot be told from one anyone made")
+    # The release check is the file that names pack.yml's identity on a tag:
+    # pack.yml itself or a script it runs. The provenance and the changed byte
+    # must be in that same file, since another script can verify something
+    # else with slsa-verifier (the flagship's archive, in scripts/flagship.sh).
+    named = sorted(set(re.findall(r"scripts/[A-Za-z0-9_.-]+\.sh", pack)))
+    candidates = [pack] + [repo.read(n) or "" for n in named]
+    exact = re.compile(r'--certificate-identity[ =]"?[^"\s]*/\.github/workflows/pack\.yml@refs/tags/')
+    release = [t for t in candidates if exact.search(t)]
+    if not release:
+        bad.append("no release check verifies the packs for the exact identity of pack.yml on a tag")
+    else:
+        if not any("slsa-verifier verify-artifact" in t for t in release):
+            bad.append("no release check verifies the packs' provenance with slsa-verifier")
+        if not any(re.search(r"printf 'x' ?>>", t) for t in release):
+            bad.append("no release check shows the verification a changed byte")
+
+    bad += image_findings(repo, repo.tree())
     bad += readme_findings(repo, runbooks=False)
     return bad
 
@@ -1288,6 +1415,10 @@ def check_repo(repo, exempt=None):
         return measured_rules(repo, names) + workflow_claims(repo) + changelog_claims(repo, exempt)
     if fleet_kind.kind_from_files(names) == "measured":
         return ["its files are a measured Kubernetes repository, but its name puts it outside those rules (scripts/fleet_kind.py)"]
+    if kind == "evidence":
+        return evidence_rules(repo, names) + workflow_claims(repo) + changelog_claims(repo, exempt)
+    if fleet_kind.kind_from_files(names) == "evidence":
+        return ["its files are an evidence repository, but its name puts it outside those rules (scripts/fleet_kind.py)"]
 
     compose_name = next((n for n in names if n.endswith(".yml") and "compose" in n), None)
     if not compose_name:
