@@ -497,6 +497,50 @@ check("and keeps the day it was merged, with the revert's own day beside it",
 m.gh = keep
 
 print()
+print("=== a related fix names its release only when GitHub shows it shipped there ===")
+keep = m.gh
+MF = "f" * 40
+def fake_rel(path):
+    if path == "repos/o/r/issues/7":
+        return {"title": "A bug", "state": "closed", "state_reason": "completed", "comments": 2,
+                "created_at": "2026-10-12T00:00:00Z", "updated_at": "2026-10-15T00:00:00Z"}
+    if path in ("repos/o/r/pulls/8", "repos/o/r/issues/8/timeline?per_page=100"):
+        if path.endswith("timeline?per_page=100"):
+            return []
+        return {"number": 8, "title": "The fix", "state": "closed", "merged_at": "2026-10-17T00:00:00Z", "merge_commit_sha": MF,
+                "base": {"ref": "main"}, "created_at": "2026-10-13T00:00:00Z", "updated_at": "2026-10-17T00:00:00Z"}
+    if path == "repos/o/r/compare/%s...v1.20.0?per_page=1" % MF:
+        return {"status": "ahead"}
+    if path == "repos/o/r/compare/%s...v1.19.2?per_page=1" % MF:
+        return {"status": "diverged"}
+    if path == "repos/o/r/compare/%s...v1.21.0-rc.1?per_page=1" % MF:
+        return {"status": "ahead"}
+    if path == "repos/o/r/releases/tags/v1.20.0":
+        return {"html_url": "https://github.com/o/r/releases/tag/v1.20.0", "published_at": "2026-11-12T09:32:42Z",
+                "draft": False, "prerelease": False}
+    if path == "repos/o/r/releases/tags/v1.21.0-rc.1":
+        return {"html_url": "https://github.com/o/r/releases/tag/v1.21.0-rc.1", "published_at": "2026-12-01T00:00:00Z",
+                "draft": False, "prerelease": True}
+    raise sp.CalledProcessError(1, "gh")
+m.gh = fake_rel
+def rel_of(tag):
+    item = {"url": "https://github.com/o/r/issues/7", "related": "https://github.com/o/r/pull/8"}
+    if tag is not None:
+        item["released_in"] = tag
+    return m.upstream_one(item)["related"].get("released")
+check("a fix in the history of a published release names it, with GitHub's day",
+      rel_of("v1.20.0"), {"version": "1.20.0", "url": "https://github.com/o/r/releases/tag/v1.20.0", "date": "2026-11-12"})
+check("a tag that does not hold the fix names nothing", rel_of("v1.19.2"), None)
+check("a pre-release is not a release", rel_of("v1.21.0-rc.1"), None)
+check("a tag GitHub does not know names nothing", rel_of("v9.9.9"), None)
+check("no tag in upstream.json, no release", rel_of(None), None)
+m.gh = fake_rv
+check("a fix that was reverted names no release, whatever tag holds its commit",
+      m.upstream_one({"url": "https://github.com/o/r/issues/7", "related": "https://github.com/o/r/pull/9",
+                      "released_in": "v1.20.0"})["related"].get("released"), None)
+m.gh = keep
+
+print()
 print("=== the operations block counts what reached main, and says what it could not read ===")
 import datetime as dt
 NOW = dt.datetime(2026, 10, 15, 12, 0, tzinfo=dt.timezone.utc)

@@ -637,6 +637,30 @@ def reverted_by(owner, repo, pr):
     return out and {"url": out["url"], "date": out["date"]}
 
 
+def released_in(owner, repo, pr, tag):
+    """The published release a merged fix shipped in, as GitHub has it, or None.
+
+    upstream.json names the tag (`released_in`), and the claim is checked here,
+    not taken: the pull request's merge commit must be in the tag's history and
+    the tag must be a published release, neither draft nor pre-release. A tag
+    that does not hold the fix says nothing, so a typo in upstream.json cannot
+    put a release on the site that the project never shipped.
+    """
+    merge = pr.get("merge_commit_sha")
+    if not merge or not tag:
+        return None
+    try:
+        held = gh("repos/%s/%s/compare/%s...%s?per_page=1" % (owner, repo, merge, tag))
+        if held["status"] not in ("ahead", "identical"):
+            return None
+        rel = gh("repos/%s/%s/releases/tags/%s" % (owner, repo, tag))
+        if rel.get("draft") or rel.get("prerelease") or not rel.get("published_at"):
+            return None
+    except (subprocess.CalledProcessError, KeyError, ValueError, TypeError):
+        return None
+    return {"version": tag[1:] if tag[:1] == "v" else tag, "url": rel["html_url"], "date": rel["published_at"][:10]}
+
+
 def pr_state(owner, repo, pr):
     if not pr.get("merged_at"):
         return pr["state"], None
@@ -689,6 +713,11 @@ def upstream_one(item, discussion=graphql_discussion):
                                   "merged": (pr.get("merged_at") or "")[:10] or None}
                 if rv:
                     out["related"]["reverted"] = rv
+                elif item.get("released_in"):
+                    # A fix that was taken back out shipped nothing, whatever tag holds its commit.
+                    shipped = released_in(r.group(1), r.group(2), pr, item["released_in"])
+                    if shipped:
+                        out["related"]["released"] = shipped
     except (subprocess.CalledProcessError, KeyError, ValueError, TypeError):
         out["state"] = "unreadable"
     return out

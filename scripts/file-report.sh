@@ -57,6 +57,26 @@ trap 'rm -f "$WHY"' EXIT
 [ -n "$REPO" ] || { echo "file-report.sh: no repository" >&2; exit 2; }
 [ -n "$label" ] || { echo "file-report.sh: --label is required" >&2; exit 2; }
 
+# "EDITING A BODY NOTIFIES NOBODY" IS TRUE UNTIL THE BODY NAMES SOMEONE.
+#
+# A handle an edit puts into a body is a mention, and GitHub notifies that
+# person on the edit. The triage report quotes upstream release notes, and on
+# 2026-11-12 a maintainer whose project this fleet only tracks asked in
+# heyvaldemar/fleet-ops#50 to stop being notified: "Thanks to @<them>" in a
+# quoted changelog had reached them on every rewrite since 2026-11-06. Nothing
+# a report says is meant to call anyone, so every body and comment written
+# below goes through scripts/quiet-mentions.py first. It is checked here, before
+# anything is written, because a filter that fails mid-pipe leaves an empty file
+# and an empty body is worse than the mention.
+QUIET="$(cd "$(dirname "$0")" && pwd)/quiet-mentions.py"
+quiet() { python3 -I "$QUIET"; }
+# The backticks are the filter's output, compared as text. Nothing expands.
+# shellcheck disable=SC2016
+if [ "$(printf 'x @a' | quiet)" != 'x `@a`' ]; then
+  echo "file-report.sh: $QUIET does not run here, and no report goes out without it" >&2
+  exit 2
+fi
+
 $GH label create "$label" --repo "$REPO" --color "$colour" \
   ${description:+--description "$description"} >/dev/null 2>&1 || true
 
@@ -78,7 +98,7 @@ if [ "$nothing" -eq 1 ]; then
     # explaining it does not need a mail of its own. Editing a body notifies
     # nobody, so the reason is prepended there and the close goes out alone.
     body="$($GH issue view "$n" --repo "$REPO" --json body --jq .body 2>/dev/null)"
-    printf '> %s\n\n%s\n' "$empty_comment" "$body" > "$WHY"
+    printf '> %s\n\n%s\n' "$empty_comment" "$body" | quiet > "$WHY"
     $GH issue edit "$n" --repo "$REPO" --body-file "$WHY" >/dev/null 2>&1 || true
     $GH issue close "$n" --repo "$REPO" >/dev/null && echo "closed #$n"
   done
@@ -171,7 +191,7 @@ fp="${fp% }"
 
 full="$(mktemp)"
 trap 'rm -f "$full" "$WHY"' EXIT
-{ cat "$body"; printf '\n<!-- %s: %s -->\n' "$MARKER" "$fp"; } > "$full"
+{ cat "$body"; printf '\n<!-- %s: %s -->\n' "$MARKER" "$fp"; } | quiet > "$full"
 
 keep=""
 for n in $open_issues; do
@@ -185,7 +205,7 @@ for n in $open_issues; do
     # The reason in the body, the close on its own, for the reason written
     # against the other close above: two notifications to say one thing.
     dup="$($GH issue view "$n" --repo "$REPO" --json body --jq .body 2>/dev/null)"
-    printf '> Superseded by #%s.\n\n%s\n' "$keep" "$dup" > "$WHY"
+    printf '> Superseded by #%s.\n\n%s\n' "$keep" "$dup" | quiet > "$WHY"
     $GH issue edit "$n" --repo "$REPO" --body-file "$WHY" >/dev/null 2>&1 || true
     $GH issue close "$n" --repo "$REPO" >/dev/null \
       && echo "closed duplicate #$n"
@@ -240,6 +260,6 @@ if [ -z "$appeared" ]; then
   # The body is current and nobody was told, which is the whole point.
   echo "#$keep only lost findings; updated in place, nobody mailed"
 else
-  $GH issue comment "$keep" --repo "$REPO" --body "$changed_comment" >/dev/null
+  $GH issue comment "$keep" --repo "$REPO" --body "$(printf '%s' "$changed_comment" | quiet)" >/dev/null
   echo "#$keep gained $(printf '%s' "$appeared" | wc -w | tr -d ' ') finding(s); commented once"
 fi

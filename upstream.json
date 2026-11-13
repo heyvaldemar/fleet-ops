@@ -32,7 +32,8 @@
    "url": "https://github.com/kyverno/kyverno/issues/18023",
    "role": "issue with a reproduction",
    "found_in": "kubernetes-supply-chain-admission",
-   "related": "https://github.com/kyverno/kyverno/pull/18049"
+   "related": "https://github.com/kyverno/kyverno/pull/18049",
+   "released_in": "v1.20.0"
   },
   {
    "url": "https://github.com/kubernetes-sigs/metrics-server/issues/1868#issuecomment-6195863017",

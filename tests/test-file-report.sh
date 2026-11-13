@@ -402,6 +402,40 @@ else
   no "fleet-triage.sh no longer writes the found sentence file-report.sh reproduces ($n_found match(es))"
 fi
 
+echo "== a handle quoted in a report notifies nobody"
+# A quoted changelog thanked a maintainer by handle, and every rewrite of
+# heyvaldemar/fleet-ops#50 notified them. What goes to GitHub must carry the
+# handle as code, on a new thread and on a rewrite alike; the fingerprint is
+# taken before that, so it does not move because of it.
+reset
+saved="$(cat "$report")"
+# shellcheck disable=SC2016
+printf '## A report\n- authelia: needs a human\n- dozzle: needs a human\n> "Thanks to @some-maintainer for the fixes", and `@dependabot rebase` as code\n' > "$report"
+run >/dev/null
+# shellcheck disable=SC2016
+if grep -q 'Thanks to `@some-maintainer` for' "$FAKE_DIR/last-body" && ! grep -q 'to @some-maintainer' "$FAKE_DIR/last-body"; then
+  ok "a new thread carries the handle as code"
+else
+  no "a new thread carried a live handle: $(grep -o '.\{0,12\}@some-maintainer.\{0,4\}' "$FAKE_DIR/last-body")"
+fi
+# shellcheck disable=SC2016
+if grep -q '`@dependabot rebase`' "$FAKE_DIR/last-body" && ! grep -q '``@dependabot' "$FAKE_DIR/last-body"; then
+  ok "text already in code is left as it was"
+else
+  no "code was quoted twice"
+fi
+printf '41\n' > "$FAKE_DIR/open"
+printf '## old\n<!-- fleet-report-fingerprint: 00000000 -->\n' > "$FAKE_DIR/body.41"
+: > "$FAKE_DIR/last-body"
+run >/dev/null
+# shellcheck disable=SC2016
+if grep -q 'Thanks to `@some-maintainer` for' "$FAKE_DIR/last-body"; then
+  ok "a rewrite carries it as code too"
+else
+  no "a rewrite carried a live handle"
+fi
+printf '%s\n' "$saved" > "$report"
+
 echo "== a create that fails is not a thread that opened"
 # On 2026-09-22 this printed "opened a new fleet-to-hosts thread" twice against
 # repositories the credential could not write to. Both reports were lost and

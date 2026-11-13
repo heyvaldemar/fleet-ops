@@ -88,7 +88,9 @@ jobs:
             echo "---"
             echo
             echo "Nothing here has been created. Pick one and say so, and the scaffold comes next: compose with digest pins, \`.env.example\`, CI with the upgrade drill, and a README with its \"what this file knows\" section left empty — because that section is written by running the thing, not by reading about it."
-          } > body.md
+          # Handles in what it quotes become code, so the issue calls nobody:
+          # scripts/quiet-mentions.py says why.
+          } | python3 -I scripts/quiet-mentions.py > body.md
           gh issue create --repo "$REPO" --label scout \
             --title "Fleet scout $(date -u '+%Y-%m-%d'): $(jq -r '.shortlist | join(", ")' scout.json)" \
             --body-file body.md
