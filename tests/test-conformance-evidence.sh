@@ -159,6 +159,26 @@ expect "a CI image pinned by a cut digest is caught" "$WORK/shortpin" "ci-images
 d="$(fixture exportpin)"; printf 'export EXTRA_IMAGE="alpine:3.20"  # added\n' >> "$d/ci-images.pins"; recommit "$d"
 expect "a pin written the way a shell sources it is still read" "$WORK/exportpin" "ci-images.pins: EXTRA_IMAGE is not pinned by digest"
 
+d="$(fixture lookalike)"; rc="$(release_check "$d")"; edit "$rc" 's#https://token.actions.githubusercontent.com#https://token.actions.githubusercontent.com.example.net#g'; recommit "$d"
+expect "an issuer that only starts like GitHub's is caught" "$WORK/lookalike" "does not pin the signer's issuer to GitHub Actions"
+
+d="$(fixture unboundrepo)"; rc="$(release_check "$d")"
+# The $ signs in these patterns are the literal text being matched.
+# shellcheck disable=SC2016
+if grep -q 'REPO="\${GITHUB_REPOSITORY' "$rc" || grep -qE '^REPO=' "$rc"; then
+  edit "$rc" -e 's#^REPO=.*#REPO="$1"#' -e 's#REPO="\${GITHUB_REPOSITORY[^"]*"#REPO="$1"#'
+  recommit "$d"
+  expect "an identity built from a REPO not bound to GitHub's is caught" "$WORK/unboundrepo" "for the exact identity of pack.yml on a tag"
+else
+  echo "  PASS: an identity built from a REPO not bound to GitHub's is caught (this reference names no \$REPO)"; PASSED=$((PASSED+1))
+fi
+
+d="$(fixture shortcontainer)"; printf '    container: alpine:3.20@sha256:abc\n' >> "$d/.github/workflows/pack.yml"; recommit "$d"
+expect "a workflow container with a cut digest is caught" "$WORK/shortcontainer" "pack.yml: image alpine:3.20@sha256:abc is not pinned by digest"
+
+d="$(fixture emptypins)"; grep '^#' "$d/ci-images.pins" > "$d/p"; mv "$d/p" "$d/ci-images.pins"; recommit "$d"
+expect "a pins file with no image is caught" "$WORK/emptypins" "ci-images.pins names no image"
+
 echo
 echo "passed: $PASSED   failed: $FAILED"
 [ "$FAILED" -eq 0 ]

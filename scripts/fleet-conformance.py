@@ -1138,8 +1138,11 @@ def evidence_rules(repo, names):
     exact = re.compile(r'--certificate-identity[ =]"?https://github\.com/'
                        r'(?:\$\{?(?:GITHUB_REPOSITORY|REPO)\}?|' + re.escape(OWNER) + "/" + re.escape(repo.name) + r')'
                        r'/\.github/workflows/pack\.yml@refs/tags/')
-    issuer = re.compile(r'--certificate-oidc-issuer[ =]"?https://token\.actions\.githubusercontent\.com\b')
-    release = [t for t in candidates if exact.search(t)]
+    issuer = re.compile(r'--certificate-oidc-issuer[ =]"?https://token\.actions\.githubusercontent\.com(?=["\s)]|$)', re.M)
+    # $REPO counts only where the same file binds it to GitHub's own value.
+    bound = re.compile(r'\bREPO=["\']?\$\{?GITHUB_REPOSITORY\b|\bREPO:\s*\$\{\{\s*github\.repository\s*\}\}')
+    release = [t for t in candidates if exact.search(t)
+               and (bound.search(t) or not re.search(r'--certificate-identity[ =]"?https://github\.com/\$\{?REPO\b', t))]
     if not release:
         bad.append("no release check verifies the packs for the exact identity of pack.yml on a tag")
     else:
@@ -1160,12 +1163,15 @@ def evidence_rules(repo, names):
         bad.append("no ci-images.pins: the images CI runs are not pinned in one place")
     # Read the way a shell would source it (export, quotes, a trailing
     # comment), and a digest is a whole one.
-    for m in re.finditer(r"^\s*(?:export\s+)?([A-Za-z0-9_]+)=['\"]?(\S+?)['\"]?\s*(?:#.*)?$", uncommented(pins or ""), re.M):
-        if not re.search(r"@sha256:[0-9a-f]{64}$", m.group(2)):
-            bad.append(f"ci-images.pins: {m.group(1)} is not pinned by digest")
+    entries = re.findall(r"^\s*(?:export\s+)?([A-Za-z0-9_]+)=['\"]?(\S+?)['\"]?\s*(?:#.*)?$", uncommented(pins or ""), re.M)
+    if pins is not None and not any(k.endswith("_IMAGE") for k, _ in entries):
+        bad.append("ci-images.pins names no image: there is nothing pinned to check")
+    for k, value in entries:
+        if not re.search(r"@sha256:[0-9a-f]{64}$", value):
+            bad.append(f"ci-images.pins: {k} is not pinned by digest")
     for w, text in sorted(workflows.items()):
         for m in re.finditer(r"^\s*(?:container|image):\s*['\"]?([^\s'\"{]+)", text, re.M):
-            if "@sha256:" not in m.group(1) and not m.group(1).startswith("$"):
+            if not re.search(r"@sha256:[0-9a-f]{64}$", m.group(1)) and not m.group(1).startswith("$"):
                 bad.append(f"{w}: image {m.group(1)} is not pinned by digest")
     bad += image_findings(repo, repo.tree())
     bad += readme_findings(repo, runbooks=False)
