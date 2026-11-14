@@ -825,6 +825,37 @@ case "$out" in "rc=4 digest= why=docker exited 1 and said nothing") ok "a failur
 out="$( (docker() { echo '{}'; }; rd any/image:1) )"
 case "$out" in "rc=4 digest= why=the registry answered without a digest") ok "an answer without a digest is not checked, not current" ;; *) no "an empty answer: $out" ;; esac
 
+echo "== an index named before it is filled is not pinned (nextcloud:35.0.3, 2026-11-14)"
+# Docker Hub pointed the tag at an index whose manifests list was still empty;
+# pinned, it failed every deploy with "no matching manifest for linux/amd64".
+IDX='{"digest":"sha256:%064d","mediaType":"application/vnd.oci.image.index.v1+json","manifests":%s}'
+AMD='{"digest":"sha256:a","platform":{"os":"linux","architecture":"amd64"}}'
+ARM='{"digest":"sha256:b","platform":{"os":"linux","architecture":"arm64","variant":"v8"}}'
+AMD3='{"digest":"sha256:c","platform":{"os":"linux","architecture":"amd64","variant":"v3"}}'
+ATT='{"digest":"sha256:d","platform":{"os":"unknown","architecture":"unknown"}}'
+rdp() { resolve_digest "$1" "${2:-}"; echo "rc=$? digest=$RESOLVED_DIGEST why=$RESOLVE_WHY"; }
+# shellcheck disable=SC2329,SC2059  # resolve_digest calls the docker below; IDX is the format
+out="$( (docker() { printf "$IDX\n" 1 '[]'; }; rdp nextcloud:35.0.3) )"
+case "$out" in "rc=5 digest= why="*"lists no linux/amd64 image yet"*"still being published"*) ok "an empty index is still being published (5), and no digest is handed out" ;; *) no "an empty index: $out" ;; esac
+# shellcheck disable=SC2329,SC2059
+out="$( (docker() { printf "$IDX\n" 1 "[$ARM,$ATT]"; }; rdp app:1) )"
+case "$out" in "rc=5 digest= why="*"no linux/amd64 image"*) ok "an index with arm64 and attestations but no amd64 is not pinned either" ;; *) no "an index without amd64: $out" ;; esac
+# shellcheck disable=SC2329,SC2059
+out="$( (docker() { printf "$IDX\n" 1 "[$AMD3]"; }; rdp app:1) )"
+case "$out" in "rc=5 "*) ok "an amd64/v3 build alone is not the amd64 image the templates run" ;; *) no "amd64/v3 only: $out" ;; esac
+# shellcheck disable=SC2329,SC2059
+out="$( (docker() { printf "$IDX\n" 7 "[$AMD,$ATT]"; }; rdp app:1) )"
+case "$out" in "rc=0 digest=sha256:$(printf '%064d' 7) why=") ok "a full index resolves as before" ;; *) no "a full index: $out" ;; esac
+# shellcheck disable=SC2329,SC2059
+out="$( (docker() { printf "$IDX\n" 7 "[$AMD]"; }; rdp img:1 linux/amd64,linux/arm64) )"
+case "$out" in "rc=5 digest= why="*"lists no linux/arm64 image"*) ok "an image repository that ships arm64 waits for the arm64 image too" ;; *) no "amd64 only, arm64 asked: $out" ;; esac
+# shellcheck disable=SC2329,SC2059
+out="$( (docker() { printf "$IDX\n" 7 "[$AMD,$ARM]"; }; rdp img:1 linux/amd64,linux/arm64) )"
+case "$out" in "rc=0 "*) ok "and takes arm64/v8 as arm64" ;; *) no "amd64 + arm64/v8: $out" ;; esac
+# shellcheck disable=SC2329
+out="$( (docker() { echo '{"digest":"sha256:0000000000000000000000000000000000000000000000000000000000000008","mediaType":"application/vnd.oci.image.manifest.v1+json"}'; }; rdp single:1) )"
+case "$out" in "rc=0 "*) ok "a single image is not an index and resolves as before" ;; *) no "a single image: $out" ;; esac
+
 dir3="$WORK/repo3"; mkdir -p "$dir3"
 # shellcheck disable=SC2016  # the ${...} belongs to the compose file
 printf 'x-images:\n  app: &app-image ${APP_IMAGE_TAG:-limited/app:${APP_IMAGE_VERSION:-2.0.0@%s}}\n' "$OLDDG_A" > "$dir3/stack.yml"
@@ -833,7 +864,7 @@ out="$(
   major_branch "2.0.0" "3.0.0" >/dev/null 2>&1
   printf 'NOTE %s\n' "${NOTES[@]+"${NOTES[@]}"}"
 )"
-case "$out" in *"limited/app:3.0.0 not checked, the registry did not answer"*"429"*"nothing prepared"*) ok "a major that cannot be checked says not checked" ;; *) no "a 429 on a major: $out" ;; esac
+case "$out" in *"limited/app:3.0.0 not checked: the registry did not answer"*"429"*"nothing prepared"*) ok "a major that cannot be checked says not checked" ;; *) no "a 429 on a major: $out" ;; esac
 case "$out" in *"does not resolve yet"*) no "a 429 was reported as an unpublished tag: $out" ;; *) ok "and never as an unpublished tag" ;; esac
 
 img4="$WORK/img4"
@@ -847,7 +878,7 @@ imgrepo "$img4" "FROM limited/base:1@$D_OLD"
   printf 'NOTE %s\n' "${NOTES[@]}"
 ) > "$WORK/img4.out" 2>&1
 out="$(cat "$WORK/img4.out")"
-case "$out" in *"limited/base:1 not checked, the registry did not answer"*"next run asks again"*) ok "an image base the registry would not answer for is not checked" ;; *) no "a 429 on an image repo: $out" ;; esac
+case "$out" in *"limited/base:1 not checked: the registry did not answer"*"next run asks again"*) ok "an image base the registry would not answer for is not checked" ;; *) no "a 429 on an image repo: $out" ;; esac
 case "$out" in *"dead tag"*|*"is current"*) no "a 429 was read as dead or current: $out" ;; *) ok "and neither dead nor current" ;; esac
 same "nothing was pushed for it" "1" "$(git -C "$img4.git" rev-list --count main)"
 
@@ -1149,6 +1180,10 @@ case "$4" in
   alpine:3.24) n="${E2E_ALPINE_DG:-11}" ;;
   *) n=4 ;;
 esac
+if [ "$4" = traefik:3.7 ] && [ -n "${E2E_TRAEFIK_INDEX:-}" ]; then
+  printf '{"digest":"sha256:%064d","mediaType":"application/vnd.oci.image.index.v1+json","manifests":%s}\n' "$n" "$E2E_TRAEFIK_INDEX"
+  exit 0
+fi
 printf '{"digest":"sha256:%064d"}\n' "$n"
 DK
 cat > "$e2e/bin/curl" <<'CU'
@@ -1176,7 +1211,7 @@ e2e_run() {          # e2e_run <true|false> [ledger] -> the script's output; the
     FLEET_PENDING="$e2e/pending.json" GIT_CONFIG_GLOBAL="$e2e/gitconfig" GITHUB_STEP_SUMMARY='' \
     E2E_DIR="$e2e" E2E_RED="$E2E_RED" E2E_GREEN="$E2E_GREEN" \
     E2E_TRAEFIK_DG="${E2E_TRAEFIK_DG:-4}" E2E_REDIS_DG="${E2E_REDIS_DG:-4}" E2E_SAME="${E2E_SAME:-}" \
-    E2E_ALPINE_DG="${E2E_ALPINE_DG:-11}" \
+    E2E_ALPINE_DG="${E2E_ALPINE_DG:-11}" E2E_TRAEFIK_INDEX="${E2E_TRAEFIK_INDEX:-}" \
     E2E_GREEN_CONCL="${E2E_GREEN_CONCL:-success}" E2E_MAILU_HEAD="${E2E_MAILU_HEAD:-}" \
     bash "$ROOT/scripts/fleet-triage.sh" 2>&1; echo "$?" > "$e2e/rc")
 }
@@ -1282,6 +1317,23 @@ same "in the same commit as the compose pins" "1" "$(git -C "$e2e/remote/$E2E_RE
 same "with a Security line that says the deploy job builds from it" "1" \
   "$(git -C "$e2e/remote/$E2E_RED" show main:CHANGELOG.md | grep -c 'alpine:3.24` was rebuilt upstream.*The deploy job builds the image from it')"
 has "and the report names it" "$e2e_out" "$E2E_RED: alpine:3.24 repushed upstream"
+
+# AN INDEX STILL BEING PUBLISHED, IN THE WHOLE RUN. traefik:3.7 resolves to
+# a new digest whose index lists no image yet: the pin waits, nobody is asked,
+# and the rest of the template's work lands.
+e2e_remotes
+e2e_out="$(E2E_TRAEFIK_DG=9 E2E_TRAEFIK_INDEX='[]' e2e_run false)"
+same "a run over an index still being published finishes" "0" "$(cat "$e2e/rc")"
+same "the traefik pin is not moved to it" "1" \
+  "$(git -C "$e2e/remote/$E2E_RED" show "main:$E2E_RED.yml" | grep -c "traefik:\${TRAEFIK_IMAGE_VERSION:-3.7@$(dgn 4)}")"
+has "the report says it is still being published and comes back" "$e2e_out" "still being published — the next run asks again"
+if grep -q 'traefik:3.7.*needs a human' <<<"$e2e_out"; then no "an index still being published went to a person: $e2e_out"; else ok "and it is not a person's to look at"; fi
+same "the rest of that template's work still lands" "1" \
+  "$(git -C "$e2e/remote/$E2E_RED" show "main:$E2E_RED.yml" | grep -c '0\.12\.5@')"
+e2e_remotes
+e2e_out="$(E2E_TRAEFIK_DG=9 E2E_TRAEFIK_INDEX='[{"digest":"sha256:a","platform":{"os":"linux","architecture":"amd64"}}]' e2e_run false)"
+same "once the index lists its amd64 image, the pin moves" "1" \
+  "$(git -C "$e2e/remote/$E2E_RED" show "main:$E2E_RED.yml" | grep -c "traefik:\${TRAEFIK_IMAGE_VERSION:-3.7@$(dgn 9)}")"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

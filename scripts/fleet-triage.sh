@@ -282,28 +282,71 @@ review_bump() {
 # an auth hiccup - came back as an empty digest, and an empty digest was read
 # as "this tag is not published yet". A new release was then reported as
 # announced but unpublished while the registry had only not answered.
-# resolve_digest <ref>: 0 with RESOLVED_DIGEST set when the registry names a
-# digest; 3 when it says there is no such manifest or tag; 4, with RESOLVE_WHY,
-# for anything else. 4 is "not checked": never "current", never "unpublished".
+# resolve_digest <ref> [os/arch,...]: 0 with RESOLVED_DIGEST set when the
+# registry names a digest; 3 when it says there is no such manifest or tag; 4,
+# with RESOLVE_WHY, for anything else; 5 when the tag names an index that does
+# not list an image for every platform asked (linux/amd64 when none is). 4 is
+# "not checked": never "current", never "unpublished". 5 is "still being
+# published": nothing is pinned to it and the next run asks again.
+#
+# AN INDEX CAN BE NAMED BEFORE IT IS FILLED. On 2026-11-14 at 00:36Z Docker
+# Hub's nextcloud:35.0.3 resolved to sha256:eb37f58646a9..., an index whose
+# manifests list was empty: the tag had been pointed at it in the middle of
+# the publication, and the full index came at 01:54Z. This run pinned it in
+# nextcloud and nextcloud-onlyoffice, and both went red on main with "no
+# matching manifest for linux/amd64" until the released pin was put back by
+# hand. The index is read in the same answer as its digest, so this costs no
+# second request.
+RESOLVE_RC=0
 resolve_digest() {
-  local out err rc=0
-  RESOLVED_DIGEST=""; RESOLVE_WHY=""
+  local out err rc=0 missing
+  RESOLVED_DIGEST=""; RESOLVE_WHY=""; RESOLVE_RC=0
   err="$(mktemp)"
   out="$(docker buildx imagetools inspect "$1" --format '{{json .Manifest}}' 2>"$err")" || rc=$?
   if [ "$rc" -eq 0 ]; then
     rm -f "$err"
     RESOLVED_DIGEST="$(jq -r '.digest // empty' <<<"$out" 2>/dev/null || true)"
-    [ -n "$RESOLVED_DIGEST" ] && return 0
-    RESOLVE_WHY="the registry answered without a digest"
-    return 4
+    if [ -z "$RESOLVED_DIGEST" ]; then
+      RESOLVE_WHY="the registry answered without a digest"; RESOLVE_RC=4
+      return 4
+    fi
+    missing="$(index_missing "$out" "${2:-linux/amd64}")"
+    if [ -n "$missing" ]; then
+      RESOLVE_WHY="its index ${RESOLVED_DIGEST:0:19}… lists no $missing image yet, so it is still being published"
+      RESOLVED_DIGEST=""; RESOLVE_RC=5
+      return 5
+    fi
+    return 0
   fi
   RESOLVE_WHY="$(tr -s '\n' ' ' < "$err" | sed -E 's/[[:space:]]+$//' | cut -c1-160)"
   rm -f "$err"
   case "$RESOLVE_WHY" in
-    *"manifest unknown"*|*"MANIFEST_UNKNOWN"*|*": not found"*|*"NAME_UNKNOWN"*) return 3 ;;
+    *"manifest unknown"*|*"MANIFEST_UNKNOWN"*|*": not found"*|*"NAME_UNKNOWN"*) RESOLVE_RC=3; return 3 ;;
   esac
   [ -n "$RESOLVE_WHY" ] || RESOLVE_WHY="docker exited $rc and said nothing"
+  RESOLVE_RC=4
   return 4
+}
+
+# index_missing <manifest json> <os/arch,...>: the platforms an index lists no
+# image for, comma-separated; empty for a complete index and for a single
+# image, which is not an index at all. arm64 counts as arm64 or arm64/v8, and
+# amd64 only without a variant, as build_of reads them.
+index_missing() {
+  jq -r --arg want "$2" '
+    if (.manifests? | type) != "array" then ""
+    else . as $i | [$want | split(",")[] | select(. != "") | . as $p | ($p | split("/")) as $q
+      | select([$i.manifests[] | .platform? // {} | select(.os == $q[0] and .architecture == $q[1]
+          and ((.variant // "") as $v | $v == "" or ($q[1] == "arm64" and $v == "v8")))] | length == 0)
+      | $p] | join(",") end' <<<"$1" 2>/dev/null || printf '%s' "$2"
+}
+
+# unchecked <rc>: why a pin was not moved, for the report line.
+unchecked() {
+  case "$RESOLVE_RC" in
+    5) printf '%s' "$RESOLVE_WHY" ;;
+    *) printf 'the registry did not answer (%s)' "$RESOLVE_WHY" ;;
+  esac
 }
 
 # A NEW INDEX IS NOT A NEW IMAGE. A multi-platform tag resolves to an index,
@@ -426,7 +469,7 @@ major_branch() {
     case "$rc" in
       0) newdg="$RESOLVED_DIGEST" ;;
       3) note "$repo: $newref does not resolve yet — nothing prepared"; continue ;;
-      *) note "$repo: $newref not checked, the registry did not answer ($RESOLVE_WHY) — nothing prepared, the next run asks again"; continue ;;
+      *) note "$repo: $newref not checked: $(unchecked) — nothing prepared, the next run asks again"; continue ;;
     esac
     if [ "$DRY_RUN" = "true" ]; then note "$repo: would prepare branch $br for $ref -> $newref"; continue; fi
     # THE TAG, NOT THE REPORTED VERSION. A freshness check reports the version
@@ -572,7 +615,7 @@ terraform_refresh() {
     case "$rc" in
       0) newdg="$RESOLVED_DIGEST" ;;
       3) note "$repo: $ref did not resolve — the registry has no such tag any more, needs a human"; continue ;;
-      *) note "$repo: $ref not checked, the registry did not answer ($RESOLVE_WHY) — the next run asks again"; continue ;;
+      *) note "$repo: $ref not checked: $(unchecked) — the next run asks again"; continue ;;
     esac
     [ "$newdg" = "$olddg" ] && continue
     if same_build "$ref" "$olddg" "$newdg"; then same_build_note "$repo: $var — " "$ref" "$olddg" "$newdg"; continue; fi
@@ -612,7 +655,7 @@ terraform_refresh() {
         case "$rc" in
           0) newdg2="$RESOLVED_DIGEST" ;;
           3) note "$repo: $newref does not resolve yet — skipping this bump"; continue ;;
-          *) note "$repo: $newref not checked, the registry did not answer ($RESOLVE_WHY) — skipping this bump, the next run asks again"; continue ;;
+          *) note "$repo: $newref not checked: $(unchecked) — skipping this bump, the next run asks again"; continue ;;
         esac
         if [ "$DRY_RUN" = "true" ]; then note "$repo: would move TERRAFORM_IMAGE $oldv -> $newv"; continue; fi
         sed -i "s|^TERRAFORM_IMAGE=.*|TERRAFORM_IMAGE=${newref}@${newdg2}|" "$dir/ci-images.pins"
@@ -911,11 +954,11 @@ from_refresh() {
       *:*) ;;
       *) note "$repo: $pin is pinned by digest with no tag to follow — needs a human"; IMG_NOTED=1; continue ;;
     esac
-    rc=0; resolve_digest "$ref" || rc=$?
+    rc=0; resolve_digest "$ref" "$(pin_platforms "$f" "$pin" "$final")" || rc=$?
     case "$rc" in
       0) newdg="$RESOLVED_DIGEST" ;;
       3) note "$repo: $ref did not resolve — the registry has no such tag, a dead tag, needs a human"; IMG_NOTED=1; continue ;;
-      *) note "$repo: $ref not checked, the registry did not answer ($RESOLVE_WHY) — the next run asks again"; IMG_NOTED=1; continue ;;
+      *) note "$repo: $ref not checked: $(unchecked) — the next run asks again"; IMG_NOTED=1; continue ;;
     esac
     [ "$newdg" = "$olddg" ] && continue
     IMG_NOTED=1
@@ -1652,7 +1695,7 @@ apply_lags() {
       if [ "$rc" -ne 0 ] && [ "$rc" -ne 3 ]; then
         # Not an unpublished tag: the registry did not say. Reported as not
         # checked, and the bump waits for a run where it answers.
-        note "$repo: $newref not checked, the registry did not answer ($RESOLVE_WHY) — not bumped, the next run asks again"
+        note "$repo: $newref not checked: $(unchecked) — not bumped, the next run asks again"
         UNRESOLVED_TAG=1
         continue
       fi
@@ -1967,7 +2010,7 @@ for repo in "${REPOS[@]}"; do
     case "$rc" in
       0) new_digest="$RESOLVED_DIGEST" ;;
       3) note "$repo: $ref did not resolve — the registry has no such tag, a dead tag, needs a human"; continue ;;
-      *) note "$repo: $ref not checked, the registry did not answer ($RESOLVE_WHY) — the next run asks again"; continue ;;
+      *) note "$repo: $ref not checked: $(unchecked) — the next run asks again"; continue ;;
     esac
     if [ "$new_digest" != "$old_digest" ] && same_build "$ref" "$old_digest" "$new_digest"; then
       same_build_note "$repo: $var — " "$ref" "$old_digest" "$new_digest"
