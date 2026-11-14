@@ -86,6 +86,27 @@ jobs:
           chmod +x tests/test-heartbeat.sh
           ./tests/test-heartbeat.sh
 
+      - name: A token of the fleet's reading app, on a quota of its own
+        # READ-ONLY, AND NOT HIS ALLOWANCE. Every token these jobs ran on was his,
+        # and his own gh, the fleet's writes and every sweep shared one 5000
+        # requests an hour: on 2026-11-13 it ran out for the seventh time. The
+        # app heyvaldemar-fleet-reader reads every repository of the account and
+        # writes nothing, on an allowance of its own. Until its id and key are
+        # set, or when minting fails, the steps below read on the token they used
+        # before, and the warning after this says so.
+        id: app
+        if: vars.FLEET_APP_CLIENT_ID != ''
+        continue-on-error: true
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.FLEET_APP_CLIENT_ID }}
+          private-key: ${{ secrets.FLEET_APP_KEY }}
+          owner: heyvaldemar
+
+      - name: Say so when that token could not be minted
+        if: vars.FLEET_APP_CLIENT_ID != '' && steps.app.outputs.token == ''
+        run: echo "::warning::the fleet app's token was not minted; this run reads on the old token and spends his quota"
+
       - name: This repository's own jobs that run and fail
         # A DIFFERENT QUESTION FROM THE ONE BELOW, and the distinction is the
         # point. "Did the schedule fire" is right for the fleet, where a red
@@ -94,12 +115,16 @@ jobs:
         # FINDING, and a job that crashes produces no findings, opens nothing,
         # and now sends no mail either. This reads the conclusions.
         #
-        # On the fleet token deliberately: it also reports how long that token
-        # has left, which is the single most likely quiet death of all of this.
+        # It also reports how long the fleet token has left, which is the
+        # single most likely quiet death of all of this. On the app's token
+        # that one question, and the watch list, are asked with the fleet
+        # token (FLEET_USER_TOKEN), the only one with a person behind it.
         id: failing
         continue-on-error: true
         env:
-          GH_TOKEN: ${{ secrets.FLEET_PAT }}
+          GH_TOKEN: ${{ steps.app.outputs.token || secrets.FLEET_PAT }}
+          FLEET_TOKEN_KIND: ${{ steps.app.outputs.token && 'app' || '' }}
+          FLEET_USER_TOKEN: ${{ secrets.FLEET_PAT }}
           # For one question only: is this repository's own report already
           # open. The fleet token cannot read this repository, so that lookup
           # failed silently and the noise it exists to remove kept arriving.
@@ -131,6 +156,23 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: A token of the fleet's reading app, on a quota of its own
+        # A FRESH ONE FOR THE SLOW HALF. An installation token lives an hour,
+        # and the sweep below may start half an hour into the job and take forty
+        # minutes, so it gets its own, minted right before it.
+        id: app_sweep
+        if: always() && vars.FLEET_APP_CLIENT_ID != '' && vars.FLEET_ROLE != 'house' && (github.event_name != 'workflow_dispatch' || inputs.sweep)
+        continue-on-error: true
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.FLEET_APP_CLIENT_ID }}
+          private-key: ${{ secrets.FLEET_APP_KEY }}
+          owner: heyvaldemar
+
+      - name: Say so when that token could not be minted
+        if: always() && vars.FLEET_APP_CLIENT_ID != '' && vars.FLEET_ROLE != 'house' && (github.event_name != 'workflow_dispatch' || inputs.sweep) && steps.app_sweep.outputs.token == ''
+        run: echo "::warning::the fleet app's token was not minted; this run reads on the old token and spends his quota"
+
       - name: Every public repository's schedules
         # A separate token because this reads other repositories, and a separate
         # step so an expired PAT shows up as its own failure rather than as the
@@ -158,12 +200,24 @@ jobs:
         # waited out for up to fifteen minutes (RATE_PAUSES) before it is named.
         timeout-minutes: 40
         env:
-          GH_TOKEN: ${{ secrets.FLEET_PAT }}
+          GH_TOKEN: ${{ steps.app_sweep.outputs.token || secrets.FLEET_PAT }}
+          FLEET_TOKEN_KIND: ${{ steps.app_sweep.outputs.token && 'app' || '' }}
           # Read-only, scoped to the repositories the main token does not reach.
           # Absent until one exists, and absent is the behaviour that shipped.
           FLEET_READ_TOKEN: ${{ secrets.FLEET_READ_PAT }}
         run: |
           python3 scripts/fleet-heartbeat.py --fleet --json fleet-beat.json | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: A fresh token of the fleet's reading app
+        # A token lives an hour; the first one was minted before the own-jobs and schedule steps, so the house sweep gets its own.
+        id: app_private
+        if: always() && vars.FLEET_APP_CLIENT_ID != '' && vars.FLEET_ROLE == 'house'
+        continue-on-error: true
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.FLEET_APP_CLIENT_ID }}
+          private-key: ${{ secrets.FLEET_APP_KEY }}
+          owner: heyvaldemar
 
       - name: The private repositories' pull requests and schedules
         # THE HOUSE COPY'S HALF, AND ONLY ITS. A finding about a private
@@ -185,7 +239,8 @@ jobs:
         # have to fit, or the step is killed before it can say it was the quota.
         timeout-minutes: 20
         env:
-          GH_TOKEN: ${{ secrets.FLEET_PAT }}
+          GH_TOKEN: ${{ steps.app_private.outputs.token || steps.app.outputs.token || secrets.FLEET_PAT }}
+          FLEET_TOKEN_KIND: ${{ (steps.app_private.outputs.token || steps.app.outputs.token) && 'app' || '' }}
           FLEET_READ_TOKEN: ${{ secrets.FLEET_READ_PAT }}
           FLEET_ROLE: ${{ vars.FLEET_ROLE }}
         run: |

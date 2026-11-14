@@ -60,6 +60,27 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: A token of the fleet's reading app, on a quota of its own
+        # READ-ONLY, AND NOT HIS ALLOWANCE. Every token these jobs ran on was his,
+        # and his own gh, the fleet's writes and every sweep shared one 5000
+        # requests an hour: on 2026-11-13 it ran out for the seventh time. The
+        # app heyvaldemar-fleet-reader reads every repository of the account and
+        # writes nothing, on an allowance of its own. Until its id and key are
+        # set, or when minting fails, the steps below read on the token they used
+        # before, and the warning after this says so.
+        id: app
+        if: vars.FLEET_APP_CLIENT_ID != ''
+        continue-on-error: true
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.FLEET_APP_CLIENT_ID }}
+          private-key: ${{ secrets.FLEET_APP_KEY }}
+          owner: heyvaldemar
+
+      - name: Say so when that token could not be minted
+        if: vars.FLEET_APP_CLIENT_ID != '' && steps.app.outputs.token == ''
+        run: echo "::warning::the fleet app's token was not minted; this run reads on the old token and spends his quota"
+
       - name: Fetch the reference repositories
         # Only git and gh run in this step; the read token never reaches a
         # script from this repository. The Kubernetes rules are broken on a
@@ -68,7 +89,7 @@ jobs:
         # until its first release: anonymous first, then the read token,
         # which has to be granted that repository until it is public.
         env:
-          READ_TOKEN: ${{ secrets.FLEET_READ_PAT }}
+          READ_TOKEN: ${{ steps.app.outputs.token || secrets.FLEET_READ_PAT }}
           OWNER: ${{ github.repository_owner }}
         run: |
           git clone -q --depth 1 "https://github.com/$OWNER/nextcloud-traefik-letsencrypt-docker-compose" /tmp/reference
@@ -109,14 +130,28 @@ jobs:
           ./tests/test-conformance-flagship-plants.sh /tmp/flagship-plants-reference /tmp/flagship-reference
           ./tests/test-fleet-kind.sh
 
+      - name: A fresh token of the fleet's reading app
+        # A token lives an hour, and the first one was minted before the clones and five test suites: the sweep and the claims get their own.
+        id: app_check
+        if: always() && vars.FLEET_APP_CLIENT_ID != ''
+        continue-on-error: true
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.FLEET_APP_CLIENT_ID }}
+          private-key: ${{ secrets.FLEET_APP_KEY }}
+          owner: heyvaldemar
+
       - name: Check the fleet
         # pipefail on this step and the next: both scripts exit 1 when a
         # repository falls short or a claim stops being true, and through tee
         # the exit was tee's. On 2026-10-15 a README that named the wrong
         # Outline version and a claims check that could not read the profile
         # both ran green.
+        # The app's token, not this repository's: GITHUB_TOKEN reads 1000
+        # requests an hour, and a second sweep inside one hour found 48 of 96
+        # repositories unreadable on 2026-11-12.
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app_check.outputs.token || steps.app.outputs.token || secrets.GITHUB_TOKEN }}
         run: |
           set -o pipefail
           python3 scripts/fleet-conformance.py | tee "$GITHUB_STEP_SUMMARY"
@@ -129,7 +164,7 @@ jobs:
         # nothing re-read them. A workflow that lost its cosign step would
         # leave the profile advertising it to the audience most likely to look.
         env:
-          GH_TOKEN: ${{ secrets.FLEET_PAT }}
+          GH_TOKEN: ${{ steps.app_check.outputs.token || steps.app.outputs.token || secrets.FLEET_PAT }}
         if: ${{ !cancelled() }}
         run: |
           set -o pipefail

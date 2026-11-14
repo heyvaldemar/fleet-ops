@@ -1155,6 +1155,105 @@ hb.gh = wait_gh
 check("a repository the caller did not hand over is not named", hb.waiting_on_us("o", now, only={"o/b"}), [])
 hb.gh = keep_gh
 
+print()
+print("=== on the app token: its own quota, and the three questions it cannot answer ===")
+# On 2026-11-13 the one allowance every token here draws on ran out for the
+# seventh time. The sweeps moved to a GitHub App installation, whose quota is
+# its own, and that token has no person behind it: it cannot list "my"
+# repositories, read /user or what the account watches. The listing is asked
+# of the installation, the other two of his token, and nothing else of his.
+import importlib.util as _il7
+spec7 = _il7.spec_from_file_location("hb7", "scripts/fleet-heartbeat.py")
+hb7 = _il7.module_from_spec(spec7); spec7.loader.exec_module(hb7)
+saved7 = {k: os.environ.get(k) for k in ("FLEET_TOKEN_KIND", "FLEET_USER_TOKEN", "GH_TOKEN", hb7.READ_TOKEN)}
+real_co7 = hb7.subprocess.check_output
+os.environ["FLEET_TOKEN_KIND"] = "app"
+os.environ["GH_TOKEN"] = "app-token"
+os.environ.pop("FLEET_USER_TOKEN", None)
+os.environ.pop(hb7.READ_TOKEN, None)
+
+INST7 = {"total_count": 4, "repositories": [
+    {"full_name": "heyvaldemar/zeta", "owner": {"login": "heyvaldemar"}, "archived": False, "fork": False,
+     "private": False, "default_branch": "main"},
+    {"full_name": "heyvaldemar/Alpha", "owner": {"login": "heyvaldemar"}, "archived": False, "fork": False,
+     "private": True, "default_branch": "trunk"},
+    {"full_name": "someone/else", "owner": {"login": "someone"}, "archived": False, "fork": False,
+     "private": False, "default_branch": "main"},
+    {"full_name": "heyvaldemar/old", "owner": {"login": "heyvaldemar"}, "archived": True, "fork": False,
+     "private": False, "default_branch": "main"}]}
+seen7 = []
+def inst_gh7(path):
+    seen7.append(path)
+    return INST7 if "page=1" in path else {"total_count": 4, "repositories": []}
+hb7.gh = inst_gh7
+pub7, both7 = hb7.list_owned(False), hb7.list_owned(True)
+check("on the app token the listing asks the installation",
+      bool(seen7) and all(p.startswith("installation/repositories?") for p in seen7), True)
+check("and never /user/repos, which that token cannot ask", any("user/repos" in p for p in seen7), False)
+check("a repository of anyone else's never enters a sweep", "someone/else" in both7, False)
+check("the private ones are there for the house half, archived ones are not",
+      both7, ["heyvaldemar/Alpha", "heyvaldemar/zeta"])
+check("the public sweep still leaves the private ones out", pub7, ["heyvaldemar/zeta"])
+check("and the default branch comes from the installation's answer", hb7.DEFAULT_BRANCH.get("heyvaldemar/Alpha"), "trunk")
+
+calls7 = []
+def run7(argv, stderr=None, env=None):
+    calls7.append((argv[2], (env if env is not None else os.environ).get("GH_TOKEN")))
+    if argv[2] == "user":
+        return b"HTTP/2.0 200 OK\r\ngithub-authentication-token-expiration: 2026-12-31 00:00:00 UTC\r\n\r\n{}"
+    return b"[]"
+def no_gh7(path):
+    raise AssertionError("asked on the app token: " + path)
+hb7.subprocess.check_output = run7
+hb7.gh = no_gh7
+
+exp7, note7 = hb7.token_expiry()
+check("without his token the expiry is said to be unread, not assumed", (exp7, "FLEET_USER_TOKEN" in note7), (None, True))
+check("and the app token was never asked about /user", [c for c in calls7 if c[0] == "user"], [])
+w7 = hb7.watch_drift()
+check("a watch list nobody read is a finding, not a clean one", len(w7) == 1 and "not read" in w7[0], True)
+
+os.environ["FLEET_USER_TOKEN"] = "his-token"
+calls7.clear()
+exp7, note7 = hb7.token_expiry()
+check("his token's expiry is read with his token", [c[1] for c in calls7 if c[0] == "user"], ["his-token"])
+check("and its date comes through", exp7 is not None and exp7.year == 2026, True)
+calls7.clear()
+w7 = hb7.watch_drift()
+check("the watch list is read with his token", [c[1] for c in calls7 if c[0].startswith("user/subscriptions")], ["his-token"])
+check("and an empty one is the intended state", w7, [])
+
+os.environ[hb7.READ_TOKEN] = "ro"
+calls7.clear()
+def run7b(argv, stderr=None, env=None):
+    calls7.append((argv[2], (env or {}).get("GH_TOKEN")))
+    return b'[{"n": 1}]'
+hb7.subprocess.check_output = run7b
+prs7, err7 = hb7.open_prs("heyvaldemar/x")
+check("a pull request list is asked on the app token's own quota first", calls7[0][1] if calls7 else None, "app-token")
+check("and the read token, which spends his, is not asked when that answered", len(calls7), 1)
+
+# Unset, everything is as it was on the fleet token.
+os.environ.pop("FLEET_TOKEN_KIND")
+calls7.clear()
+prs7, err7 = hb7.open_prs("heyvaldemar/x")
+check("on the fleet token the read token is still asked first", calls7[0][1] if calls7 else None, "ro")
+seen7.clear()
+def user_gh7(path):
+    seen7.append(path)
+    return []
+hb7.gh = user_gh7
+hb7.list_owned(True)
+check("and the listing is /user/repos, as before",
+      bool(seen7) and seen7[0].startswith("user/repos?affiliation=owner"), True)
+
+hb7.subprocess.check_output = real_co7
+for k, v in saved7.items():
+    if v is None:
+        os.environ.pop(k, None)
+    else:
+        os.environ[k] = v
+
 print("passed: %d   failed: %d" % (passed, failed))
 sys.exit(1 if failed else 0)
 PY

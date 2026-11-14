@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   check:
-    name: What FLEET_PAT and FLEET_READ_PAT may do
+    name: What FLEET_PAT, FLEET_READ_PAT and the reading app may do
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -47,3 +47,28 @@ jobs:
           runs="$(gh api 'repos/heyvaldemar/keycloak-traefik-letsencrypt-docker-compose/actions/runs?per_page=1' --jq '.total_count' 2>/dev/null || echo unreadable)"
           echo "  workflow runs readable on a template: $runs"
           case "$runs" in ''|unreadable) echo "::error::FLEET_READ_PAT cannot read workflow runs"; exit 1 ;; esac
+
+      - name: A token of the fleet's reading app, on a quota of its own
+        # Asked only when the app is configured; app-token-check.yml asks it more.
+        id: app
+        if: vars.FLEET_APP_CLIENT_ID != ''
+        continue-on-error: true
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.FLEET_APP_CLIENT_ID }}
+          private-key: ${{ secrets.FLEET_APP_KEY }}
+          owner: heyvaldemar
+
+      - name: Say so when that token could not be minted
+        if: vars.FLEET_APP_CLIENT_ID != '' && steps.app.outputs.token == ''
+        run: echo "::warning::the fleet app's token was not minted; this run reads on the old token and spends his quota"
+
+      - name: The reading app, when it is configured, reads the whole fleet
+        if: vars.FLEET_APP_CLIENT_ID != ''
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          [ -n "$GH_TOKEN" ] || { echo "::error::FLEET_APP_CLIENT_ID is set and no token could be minted: check FLEET_APP_KEY and the installation"; exit 1; }
+          n="$(gh api 'installation/repositories?per_page=1' --jq '.total_count' 2>/dev/null || echo 0)"
+          echo "  repositories the installation reads: ${n:-0}"
+          [ "${n:-0}" -ge 90 ] || { echo "::error::the reading app reads ${n:-0} repositories; the fleet has more than ninety"; exit 1; }

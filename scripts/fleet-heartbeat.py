@@ -215,10 +215,18 @@ def quota_empty():
 
 
 def gh(path):
+    return _gh(path)
+
+
+def _gh(path, env=None):
+    """gh() in another environment, for the two questions only his own token
+    can answer (gh_user below). The environment is handed to gh as it is and
+    never rendered."""
     pauses, waits = list(RETRY_PAUSES), list(RATE_PAUSES)
+    kw = {} if env is None else {"env": env}
     while True:
         try:
-            out = subprocess.check_output(["gh", "api", path], stderr=subprocess.PIPE)
+            out = subprocess.check_output(["gh", "api", path], stderr=subprocess.PIPE, **kw)
         except subprocess.CalledProcessError as e:
             lines = (e.stderr or b"").decode("utf-8", "replace").strip().splitlines()
             said = lines[0] if lines else "gh api failed"
@@ -675,18 +683,79 @@ def house():
     return os.environ.get("FLEET_ROLE") == "house"
 
 
-def list_owned(include_private, private_only=False):
+# A CREDENTIAL WITH A QUOTA OF ITS OWN.
+#
+# Every token this file ran on until 2026-11-13 was his: the fleet token, the
+# read-only one and his own gh on the Mac all draw on one allowance of 5000
+# requests an hour, and the sweeps here spend well over a thousand of it. That
+# afternoon it ran out for the seventh time, with some twenty sessions of his
+# asking at once. A GitHub App installation (read-only, on every repository
+# of the account) has an allowance of its own: 5000 an hour and 50 more for
+# each repository past twenty. When the workflow mints one it passes it as
+# GH_TOKEN and says so with FLEET_TOKEN_KIND=app.
+#
+# Three questions such a token cannot answer, because there is no person
+# behind it: "my" repositories (/user/repos), the account itself (/user) and
+# what that account watches (/user/subscriptions). The first is asked of the
+# installation instead. The other two go to his token, FLEET_USER_TOKEN, and
+# nothing else does. Unset, everything runs exactly as it did on the fleet
+# token.
+TOKEN_KIND = "FLEET_TOKEN_KIND"
+USER_TOKEN = "FLEET_USER_TOKEN"
+
+
+def on_app_token():
+    return os.environ.get(TOKEN_KIND) == "app"
+
+
+def user_env():
+    """The environment for a question only his token can answer, or None when
+    this runs on the app token and his was not given. Never logged: the value
+    is moved from one variable to another and never rendered."""
+    env = dict(os.environ)
+    if not on_app_token():
+        return env
+    token = env.get(USER_TOKEN)
+    if not token:
+        return None
+    env["GH_TOKEN"] = token
+    env.pop("GITHUB_TOKEN", None)
+    return env
+
+
+def gh_user(path):
+    """gh() for /user and /user/subscriptions. On the fleet token it IS gh();
+    on the app token it asks with his, or answers None when there is none."""
+    if not on_app_token():
+        return gh(path)
+    env = user_env()
+    if env is None:
+        return None
+    return _gh(path, env)
+
+
+def list_owned(include_private, private_only=False, owner="heyvaldemar"):
     """Repositories this token owns, newest naming first.
 
     /user/repos, not /users/OWNER/repos: the second is PUBLIC ONLY, whatever
     the token can see, which is how the private half of this estate stayed
     invisible to every check in this file. fleet-triage.sh learned the same
     thing about the same endpoint and its comment says so.
+
+    On the app token there is no "me" to ask about. The installation is asked
+    instead: it lists every repository it was installed on, the private ones
+    included, and the account is checked by name, so a repository of anyone
+    else's never enters a sweep. The order is the one /user/repos gives.
     """
-    out, page = [], 1
+    out, page, app = [], 1, on_app_token()
     while True:
-        batch = gh("user/repos?affiliation=owner&per_page=100&page=%d&sort=full_name" % page)
+        if app:
+            batch = gh("installation/repositories?per_page=100&page=%d" % page)["repositories"]
+        else:
+            batch = gh("user/repos?affiliation=owner&per_page=100&page=%d&sort=full_name" % page)
         for r in batch:
+            if app and (r.get("owner") or {}).get("login") != owner:
+                continue
             if r["archived"] or r["fork"]:
                 continue
             if r["private"] and not include_private:
@@ -698,7 +767,7 @@ def list_owned(include_private, private_only=False):
         if len(batch) < 100:
             break
         page += 1
-    return out
+    return sorted(out, key=str.lower) if app else out
 
 
 # A SECOND CREDENTIAL, BECAUSE THIS CHECK ONLY NEEDS TO READ.
@@ -742,7 +811,12 @@ def open_prs(full):
     Its own function so the suite can replace it. A check nobody can show a
     violation to is the thing this file exists to refuse."""
     attempts = [pr_env(os.environ)] if os.environ.get(READ_TOKEN) else []
-    attempts.append(dict(os.environ))          # whatever the job already runs on
+    if on_app_token():
+        # The app token already reads every pull request list, on its own
+        # quota; the read token draws on his, so it is the second try here.
+        attempts.insert(0, dict(os.environ))
+    else:
+        attempts.append(dict(os.environ))      # whatever the job already runs on
     err, missing = "gh api failed", False
     for env in attempts:
         try:
@@ -1166,8 +1240,16 @@ def token_expiry():
     "checked and there is nothing to report" and "could not check" must not
     look the same.
     """
+    # On the app token the question is about his token, the one every job that
+    # writes runs on, and it is asked with that token; the app's own expires
+    # within the hour by design and is not what can die quietly.
+    env = user_env()
+    if env is None:
+        return None, ("not read: this ran on the app token and FLEET_USER_TOKEN, the token "
+                      "the jobs that write run on, was not given")
+    kw = {"env": env} if on_app_token() else {}
     try:
-        out = subprocess.check_output(["gh", "api", "user", "-i"], stderr=subprocess.DEVNULL).decode("utf-8", "replace")
+        out = subprocess.check_output(["gh", "api", "user", "-i"], stderr=subprocess.DEVNULL, **kw).decode("utf-8", "replace")
     except subprocess.CalledProcessError:
         return None, "the token could not read /user at all"
     for line in out.splitlines():
@@ -1201,9 +1283,13 @@ def watch_drift(keep=("heyvaldemar/fleet-ops", "heyvaldemar/fleet-ops-private"))
     other people are left alone: watching somebody else's work is a decision,
     not drift.
     """
+    if on_app_token() and user_env() is None:
+        # Said as a finding: a watch list nobody read must not pass for a clean one.
+        return ["the watch list was not read: this ran on the app token, which watches nothing, "
+                "and FLEET_USER_TOKEN was not given"]
     subs, page, out = [], 1, []
     while page <= 5:
-        b = gh("user/subscriptions?per_page=100&page=%d" % page)
+        b = gh_user("user/subscriptions?per_page=100&page=%d" % page)
         if not b:
             break
         subs += b
@@ -1420,6 +1506,11 @@ def main():
     JSON_OUT = a.js
 
     now = datetime.datetime.now(datetime.timezone.utc)
+    if a.failing or a.fleet or a.private:
+        # Which allowance this spent, said every run: a mint step that failed
+        # falls back to the fleet token, and that must not be silent.
+        print("reading on: %s" % ("the app installation's token, its own quota" if on_app_token()
+                                  else "the token in GH_TOKEN, his quota"))
 
     if a.failing:
         findings, rows = failing_here(a.repo, a.tolerance, now)

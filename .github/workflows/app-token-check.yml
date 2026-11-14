@@ -1,0 +1,61 @@
+name: App token check
+# What the fleet's reading app can do, asked without writing anything.
+#
+# The sweeps moved off his token on 2026-11-13: catalog, heartbeat,
+# conformance and the clean room read on an installation of the GitHub App
+# heyvaldemar-fleet-reader, whose quota is its own. A token nobody has asked
+# anything is a token nobody knows works, so this asks it the four things the
+# sweeps depend on and prints only numbers and yes or no: never a
+# repository's name, since the answer about a private one goes into a log
+# anyone can read in the public copy. Run by hand after the app, its key or
+# its installation changes.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: The reading app reads the fleet, on a quota of its own
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Mint the app's token
+        id: app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.FLEET_APP_CLIENT_ID }}
+          private-key: ${{ secrets.FLEET_APP_KEY }}
+          owner: heyvaldemar
+
+      - name: Ask it four things
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          bad=0
+          n="$(gh api 'installation/repositories?per_page=1' --jq '.total_count' 2>/dev/null || echo 0)"
+          echo "  repositories the installation reads: ${n:-0}"
+          [ "${n:-0}" -ge 90 ] || { echo "::error::the app reads ${n:-0} repositories; the fleet has more than ninety"; bad=1; }
+
+          # A private one's workflow runs, by a name that is never printed.
+          priv="$(gh api 'installation/repositories?per_page=100' --paginate --jq '.repositories[] | select(.private) | .full_name' 2>/dev/null | head -n 1)"
+          if [ -n "$priv" ] && gh api "repos/$priv/actions/runs?per_page=1" --jq '.total_count' >/dev/null 2>&1; then
+            echo "  a private repository's workflow runs readable: yes"
+          else
+            echo "  a private repository's workflow runs readable: no"; echo "::error::the app cannot read a private repository's workflow runs"; bad=1
+          fi
+
+          # A public repository it is not installed on: the upstream threads
+          # the catalog follows live in repositories like this one.
+          if gh api 'repos/kyverno/kyverno/releases/latest' --jq '.tag_name' >/dev/null 2>&1; then
+            echo "  a public repository outside the installation readable: yes"
+          else
+            echo "  a public repository outside the installation readable: no"; echo "::error::the app cannot read a public repository outside its installation"; bad=1
+          fi
+
+          # The point of all this: an allowance above the 5000 his token shares.
+          limit="$(gh api rate_limit --jq '.resources.core.limit' 2>/dev/null || echo 0)"
+          echo "  its hourly quota: ${limit:-0}"
+          [ "${limit:-0}" -gt 5000 ] || { echo "::error::the app's quota is ${limit:-0}, not above the 5000 his token shares"; bad=1; }
+          exit "$bad"
