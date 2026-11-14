@@ -168,6 +168,10 @@
    "role": "issue",
    "found_in": "kubernetes-oscal-evidence",
    "related": "https://github.com/kyverno/website/pull/2273"
+  },
+  {
+   "url": "https://github.com/kyverno/policies/pull/1721#discussion_r4571970628",
+   "role": "review suggestion"
   }
  ]
 }
