@@ -705,8 +705,9 @@ expect "a password compose interpolates into a health check is caught" "$WORK/re
 expect "and redis-cli -a is named" "$WORK/redisdasha" "a Redis password given to redis-cli as -a"
 # A name with KEY at its start is not a secret: keycloak passes KEYCLOAK_DB_NAME
 # to pg_isready in its health check.
+d="$(fixture rediskeycloak)"; tag_all "$d"
 # shellcheck disable=SC2016  # the ${...} belongs to the compose file
-d="$(fixture rediskeycloak)"; tag_all "$d"; redis_check "$d" '["CMD-SHELL", "redis-cli ping | grep -q PONG && test -n ${KEYCLOAK_DB_NAME:-db}"]'
+redis_check "$d" '["CMD-SHELL", "redis-cli ping | grep -q PONG && test -n ${KEYCLOAK_DB_NAME:-db}"]'
 expect_clean "$WORK/rediskeycloak"
 
 # THE DOOR: a declared line is listed as an exemption, with its reason, and passes.
