@@ -218,6 +218,12 @@ same "a scanner that ran out of its own time is NOT" "no" \
 same "nor is an ordinary scan error" "no" "$(refused 'analyze error: pipeline error: failed to analyze layer')"
 same "Docker Hub's lowercase spelling is the registry too" "yes" \
   "$(refused 'Error response from daemon: toomanyrequests: retry-after: 251.293µs, allowed: 44000/minute')"
+same "Codeberg shedding load is the registry" "yes" \
+  "$(refused '* remote error: GET https://codeberg.org/v2/: unexpected status code 403 Forbidden: Codeberg is under load. Please try again later.')"
+same "a bare 403 is NOT: a private image answers it too" "no" \
+  "$(refused 'unexpected status from HEAD request to https://ghcr.io/v2/x/manifests/sha256:a: 403 Forbidden')"
+same "nor is the phrase alone, printed by something in the log" "no" \
+  "$(refused 'worker: the queue is under load, backing off')"
 
 echo "== what a pushed refresh's CI answer means"
 # 2026-09-25 13:10: twenty-three digest refreshes reverted in one run. The

@@ -1305,8 +1305,14 @@ freshness_only_failure() {
 
 registry_refused() {
   # Case-insensitive: ghcr.io says TOOMANYREQUESTS, Docker Hub's daemon says
-  # "toomanyrequests: retry-after" (immich, 2026-09-25).
-  grep -qiE "TOOMANYREQUESTS|429 Too Many Requests|connection reset by peer|TLS handshake timeout|unexpected EOF|502 Bad Gateway|503 Service Unavailable"
+  # "toomanyrequests: retry-after" (immich, 2026-09-25). Codeberg sheds load
+  # with a 403 whose body says so: "403 Forbidden: Codeberg is under load.
+  # Please try again later." It failed forgejo's Trivy and compose up in one
+  # run on 2026-11-12 (43240852819), and the same commit was green the next
+  # day. Matched as the registry's whole answer, status and name: a bare 403
+  # is also what a private or deleted image gets, and "is under load" alone is
+  # prose any program in the log may print.
+  grep -qiE "TOOMANYREQUESTS|429 Too Many Requests|connection reset by peer|TLS handshake timeout|unexpected EOF|502 Bad Gateway|503 Service Unavailable|403 Forbidden: Codeberg is under load"
 }
 
 # rerun_verdict <failed-jobs> <log-file>: one word saying what a red run is.
