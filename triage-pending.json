@@ -1,165 +1,279 @@
 [
   {
-    "repo": "affine-traefik-letsencrypt-docker-compose",
-    "sha": "8e29b7e04156d8b3bf6fff16b0b00c0644f58e1d",
+    "repo": "anythingllm-traefik-letsencrypt-docker-compose",
+    "sha": "031d456d9c22de6adb4af8f6b1f993de59d2afc2",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-14T00:29:03Z"
+    "pushed_at": "2026-11-14T13:54:11Z"
   },
   {
-    "repo": "amazon-ec2-gitlab-pipeline-terraform",
-    "sha": "7b87d17384e71f2c987afd78bac2e0c559a64f1a",
-    "wf": "Terraform Verification",
-    "kind": "version",
-    "pushed_at": "2026-11-14T00:30:05Z",
-    "review": "\n## Upstream changes 6.72.0 -> 6.73.0\n\n**Verdict:** NEEDS ATTENTION \u2014 a breaking change in `aws_wafv2_web_acl_rule` validation can reject configs that previously applied, and the registry check needed to confirm image-level behavior could not be performed.\n\n### Breaking changes\n- `resource/aws_wafv2_web_acl_rule`: \"Removes `and_statement` from `statement` blocks nested in `and_statement`, and `or_statement` from `statement` blocks nested in `or_statement`. These values are rejected by AWS.\" Any existing `aws_wafv2_web_acl_rule` resource using these nested combinations will fail to apply/plan after upgrade.\n- `resource/aws_wafv2_web_acl_rule`: \"Removes `managed_rule_group_statement`, `rate_based_statement` and `rule_group_reference_statement` from `statement` blocks nested in `and_statement`, `not_statement` and `or_statement`. These values are rejected by AWS.\"\n- `resource/aws_wafv2_web_acl_rule`: \"Removes `or_statement` from `statement` blocks nested in `or_statement`. These values are rejected by AWS.\"\n\nThese three are listed under the 6.73.0 BREAKING CHANGES header and only affect hosts using `aws_wafv2_web_acl_rule` with nested logical statements of these shapes. If this module/template does not define WAF ACL rules of this kind, none of the three apply in practice.\n\n### Variables\n- none found in the notes or in `.env.example` (file supplied is empty)\n\n### Data and dependencies\n- none found specific to this range beyond the WAFv2 validation change above. No database, cache, or search-engine version requirement is named in these notes.\n\n### Before applying\n- Search the Terraform configuration for any `aws_wafv2_web_acl_rule` resources with nested `and_statement`/`or_statement`/`not_statement` blocks containing `managed_rule_group_statement`, `rate_based_statement`, `rule_group_reference_statement`, or nested `and_statement`/`or_statement` of the same type. If found, rewrite them to the flat shape AWS actually accepts before upgrading, since the notes state these configurations \"are rejected by AWS\" (this is a provider-side validation tightening, not a new AWS restriction, so existing applied resources are not touched retroactively but future plans will fail).\n- Note from the NOTES section: \"Until AWS roll out the service change supporting the new default encryption setting, changing `encrypted = true` to `encrypted = false` will seem to have succeeded without modifying anything on the AWS side. In this scenario you will need to manually recreate the file system via `terraform destroy` and `terraform apply`\" \u2014 relevant only if this template manages `aws_efs_file_system` resources and flips `encrypted` to `false`.\n- Run `terraform plan` after upgrading the provider constraint and before `terraform apply`, to catch any of the above before it affects a real environment.\n- No action needed for the Go-toolchain TLS handshake fix; it is a transparent provider-binary fix, not a config change.\n\n### Notes read\n- hashicorp/terraform-provider-aws release notes for v6.73.0 and v6.72.0 (the latter used only as the stated baseline).\n- The image-level diff (WHAT THE IMAGES THEMSELVES DIFFER IN) could not be retrieved: \"HTTPError: HTTP Error 401: Unauthorized.\" No container user/entrypoint/command/ports/volumes/healthcheck/environment comparison was possible; this review relies on the upstream notes alone for that dimension.\n"
-  },
-  {
-    "repo": "amazon-rds-pipeline-terraform",
-    "sha": "426938782f3b34be9f7aa701ca3e3914a8e2e0ae",
-    "wf": "Terraform Verification",
-    "kind": "version",
-    "pushed_at": "2026-11-14T00:30:52Z",
-    "review": "\n## Upstream changes 6.72.0 -> 6.73.0\n\n**Verdict:** NEEDS ATTENTION \u2014 a breaking change in `aws_wafv2_web_acl_rule` validation can reject configs that previously applied, and the registry check needed to confirm image-level behavior could not be performed.\n\n### Breaking changes\n- `resource/aws_wafv2_web_acl_rule`: \"Removes `and_statement` from `statement` blocks nested in `and_statement`, and `or_statement` from `statement` blocks nested in `or_statement`. These values are rejected by AWS.\" Any existing `aws_wafv2_web_acl_rule` resource using these nested combinations will fail to apply/plan after upgrade.\n- `resource/aws_wafv2_web_acl_rule`: \"Removes `managed_rule_group_statement`, `rate_based_statement` and `rule_group_reference_statement` from `statement` blocks nested in `and_statement`, `not_statement` and `or_statement`. These values are rejected by AWS.\"\n- `resource/aws_wafv2_web_acl_rule`: \"Removes `or_statement` from `statement` blocks nested in `or_statement`. These values are rejected by AWS.\"\n\nThese three are listed under the 6.73.0 BREAKING CHANGES header and only affect hosts using `aws_wafv2_web_acl_rule` with nested logical statements of these shapes. If this module/template does not define WAF ACL rules of this kind, none of the three apply in practice.\n\n### Variables\n- none found in the notes or in `.env.example` (file supplied is empty)\n\n### Data and dependencies\n- none found specific to this range beyond the WAFv2 validation change above. No database, cache, or search-engine version requirement is named in these notes.\n\n### Before applying\n- Search the Terraform configuration for any `aws_wafv2_web_acl_rule` resources with nested `and_statement`/`or_statement`/`not_statement` blocks containing `managed_rule_group_statement`, `rate_based_statement`, `rule_group_reference_statement`, or nested `and_statement`/`or_statement` of the same type. If found, rewrite them to the flat shape AWS actually accepts before upgrading, since the notes state these configurations \"are rejected by AWS\" (this is a provider-side validation tightening, not a new AWS restriction, so existing applied resources are not touched retroactively but future plans will fail).\n- Note from the NOTES section: \"Until AWS roll out the service change supporting the new default encryption setting, changing `encrypted = true` to `encrypted = false` will seem to have succeeded without modifying anything on the AWS side. In this scenario you will need to manually recreate the file system via `terraform destroy` and `terraform apply`\" \u2014 relevant only if this template manages `aws_efs_file_system` resources and flips `encrypted` to `false`.\n- Run `terraform plan` after upgrading the provider constraint and before `terraform apply`, to catch any of the above before it affects a real environment.\n- No action needed for the Go-toolchain TLS handshake fix; it is a transparent provider-binary fix, not a config change.\n\n### Notes read\n- hashicorp/terraform-provider-aws release notes for v6.73.0 and v6.72.0 (the latter used only as the stated baseline).\n- The image-level diff (WHAT THE IMAGES THEMSELVES DIFFER IN) could not be retrieved: \"HTTPError: HTTP Error 401: Unauthorized.\" No container user/entrypoint/command/ports/volumes/healthcheck/environment comparison was possible; this review relies on the upstream notes alone for that dimension.\n"
-  },
-  {
-    "repo": "authelia-traefik-letsencrypt-docker-compose",
-    "sha": "775259497e32dcac15ca81dc49bc58e1e987396b",
+    "repo": "audiobookshelf-traefik-letsencrypt-docker-compose",
+    "sha": "96eb1a97edb3df3654326a0e13e7da0cf9ddcadd",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-14T00:31:02Z"
+    "pushed_at": "2026-11-14T13:54:17Z"
   },
   {
-    "repo": "bitbucket-traefik-letsencrypt-docker-compose",
-    "sha": "5b793cf0d9fce8bb977fde628eb56df005948c74",
+    "repo": "beszel-traefik-letsencrypt-docker-compose",
+    "sha": "9dafd109f03ba064b7bc90cbb587220751a17dd6",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-14T00:31:10Z"
+    "pushed_at": "2026-11-14T13:54:26Z"
   },
   {
-    "repo": "confluence-traefik-letsencrypt-docker-compose",
-    "sha": "652138aa3bdadb0dd1ccab5f2b43979d1e7d25f6",
+    "repo": "chatops-privilege-wall",
+    "sha": "182abae3576331e10af0dc6e28cb707e9809eee6",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-14T00:31:20Z"
-  },
-  {
-    "repo": "dify-traefik-letsencrypt-docker-compose",
-    "sha": "4311b66be1fab61b2658df8ed9b29ad066e68302",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-14T00:31:54Z"
-  },
-  {
-    "repo": "docmost-traefik-letsencrypt-docker-compose",
-    "sha": "a518bb420556fcf464d07fe005e8d3e0b69ff8eb",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-14T00:32:01Z"
-  },
-  {
-    "repo": "dozzle-traefik-letsencrypt-docker-compose",
-    "sha": "fb6c99ef01a3c6ec40bc3bacedd8659b1c20ff9a",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-14T00:32:10Z",
-    "review": "\n## Upstream changes v11.4.2 -> v11.4.3\n\n**Verdict:** SAFE TO APPLY \u2014 feature additions and bug fixes only; the two image configurations are confirmed identical in every field that affects this deployment.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none \u2014 no new, renamed or removed environment variables are mentioned in the v11.4.3 notes. Nothing in this template's compose or `.env.example` needs editing.\n\n### Data and dependencies\n- none. No database, cache or companion service version is named in these notes, and this template does not run one for Dozzle itself (dockerproxy, traefik and backups are unaffected companions, each pinned separately).\n\n### Before applying\n- Bump `DOZZLE_IMAGE_VERSION` (or the `x-images` default) from `v11.4.2` to `v11.4.3` with its new digest.\n- No data migration, backup, or config edit is indicated by the notes or by the image diff.\n- Optional: the notes mention a configurable \"image update check interval\" (\"Make the image update check interval configurable\") and cooldowns for log alerts/notifications \u2014 cosmetic/opt-in features, nothing this template currently sets or needs to set.\n\n### Notes read\n- v11.4.3 (2026-11-13) \u2014 full notes provided above, read in full.\n- v11.4.2 (2026-11-08) \u2014 provided as the baseline \"release the template runs now,\" read to confirm no items in it are mistakenly attributed to this upgrade.\n"
-  },
-  {
-    "repo": "gitea-traefik-letsencrypt-docker-compose",
-    "sha": "182a6f9c7386371418300148c89766f69da4e028",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-14T00:32:21Z"
-  },
-  {
-    "repo": "grafana-traefik-letsencrypt-docker-compose",
-    "sha": "f32a7a034fe308db94098ed3ada53e1b2f637d9a",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-14T00:32:29Z"
-  },
-  {
-    "repo": "immich-traefik-letsencrypt-docker-compose",
-    "sha": "448a3df99c75a63207e97c5f0069d155a509d599",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-14T00:33:09Z",
-    "review": "\n## Upstream changes v3.3.6 -> v3.4.1\n\n**Verdict:** NEEDS ATTENTION \u2014 no companion-service version mismatch, but v3.4.0 introduces a machine-learning model revision setting this template does not carry, and a batch of security fixes changes some API/permission behaviour.\n\n### Breaking changes\n- None flagged explicitly as \"breaking\" in the notes. However, v3.4.0's security batch changes authorization/visibility behaviour that could surprise users relying on the old (looser) behaviour, e.g. \"fix(server): do not expose album members to shared link viewers\", \"fix(server): require upload access for checksum duplicate check\", \"fix(server): only serve edited assets to shared links in archive downloads\", and \"feat(server): remove deprecated password field from update-me\". These are security hardening, not reversible config, so treat them as behavioural changes a host should be aware of rather than a bug to roll back.\n\n### Variables\n- The v3.4.0-rc.2 and v3.4.0-rc.3 notes both state: \"Set `MACHINE_LEARNING_MODEL_REVISION=v2` to take full advantage of the memory usage and performance improvements in this release.\" This variable is **not present** in this template's compose file or `.env.example`. It is optional (the release says \"to take full advantage of\", not \"required\"), so it is not a hard break, but it is a real tuning knob this upgrade introduces that the template does not surface. Add it to `.env.example` and the `immich-machine-learning` environment block if the operator wants the improvement.\n- No renamed or removed variables found in the notes for this range.\n\n### Data and dependencies\n- No new database/cache/search-engine version requirement is named in the v3.4.0 or v3.4.1 notes for this range. The compose file pins `postgres: 17-vectorchord0.4.3-pgvector0.8.0` and `redis: valkey 9`; nothing in the read notes asks for a different version, so this does not change the verdict.\n- The already-fixed v3.3.6 baseline note (\"fix(ml): disable onnxruntime telemetry\") is prior behaviour, not part of this upgrade \u2014 noted for completeness only, not counted as a change here.\n- No irreversible migration or removed default is called out in the notes read.\n\n### Before applying\n- Optional: add `MACHINE_LEARNING_MODEL_REVISION=v2` to the machine-learning service's environment (and document it in `.env.example`) to get the memory/performance improvement the release notes describe. Not doing this does not break anything per the notes \u2014 it only forgoes a stated improvement.\n- Take the routine backup this repository already automates (`backups` service) before pulling, as general good practice; the notes do not call for a manual migration step.\n- No manual database command, volume change, or port/path edit is required by the notes.\n\n### Notes read\n- v3.4.1 (2026-11-11)\n- v3.4.0 (2026-11-10)\n- v3.4.0-rc.3 (2026-11-06) \u2014 read for the `MACHINE_LEARNING_MODEL_REVISION=v2` instruction, which is not repeated in the final v3.4.0 or v3.4.1 notes but was not retracted either\n- v3.4.0-rc.2 (2026-11-04) \u2014 read for the same reason, and because it duplicates the v3.3.6 onnxruntime fix (confirming that fix was already in the baseline, not part of this range)\n- v3.3.6 (2026-11-04) \u2014 read as the stated baseline only, per instructions\n"
-  },
-  {
-    "repo": "joomla-traefik-letsencrypt-docker-compose",
-    "sha": "e0db2a60e74fef8fe9353a05da841232bacabd1e",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-14T00:33:21Z"
-  },
-  {
-    "repo": "mattermost-traefik-letsencrypt-docker-compose",
-    "sha": "7c05b9ce6f24ad48c62d9363e3a3e9cba429afa2",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-14T00:33:33Z"
-  },
-  {
-    "repo": "mssql-server-traefik-letsencrypt-docker-compose",
-    "sha": "1f4a9a7f1ae09c9fcdf00fee0e45b5a9e324e6bc",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-14T00:34:02Z",
-    "review": "\n## Upstream changes 2022-CU27-ubuntu-22.04 -> 2022-CU28-ubuntu-22.04\n\n**Verdict:** NEEDS ATTENTION \u2014 no release notes are available for this upgrade, and the image configuration diff could not be read either, so there is no source to confirm what changed or that nothing breaking is in scope.\n\n### Breaking changes\n- none found in the notes \u2014 because no notes exist to check. Microsoft does not publish mssql-server CU release notes on GitHub, and none were supplied here.\n\n### Variables\n- none identified. No evidence either way: `.env.example` and the compose file's `x-images` block do not change shape for this bump, but that reflects the template, not confirmation from upstream that CU28 introduces no new variable.\n\n### Data and dependencies\n- none confirmed from notes (none available).\n- Already true at the current version (CU27), not a change introduced by this range: the compose file already runs `mssql-tools18` paths in its healthcheck and backup script (`/opt/mssql-tools18/bin/sqlcmd`), and already requires `platform: linux/amd64`. Nothing in hand indicates CU28 changes these.\n\n### Before applying\n- Before moving the pin, read Microsoft's own SQL Server 2022 CU release history/build list (learn.microsoft.com, \"KB articles for SQL Server\") for CU28 specifically \u2014 that is the only authoritative source for this image, GitHub has nothing.\n- Take a `BACKUP DATABASE` (or confirm the `backups` service has produced a recent verified `.bak`) for every user database, `master`, and `msdb` before swapping the pin, standard precaution for any SQL Server engine upgrade whether or not notes mention schema changes.\n- After pulling CU28, check `SELECT @@VERSION` and the SQL Server error log for the in-place upgrade steps engine CUs run on first startup (recovery of system databases) \u2014 expect a brief unavailability on first boot of the new image.\n- Update both the compose file's `x-images` default and, if anyone has set `MSSQL_IMAGE_VERSION` in `.env`, that override too, since the template's stated model is that `git pull` plus the shipped default is the tested combination \u2014 confirm the new digest is substituted, not just the tag.\n- Re-run the pinned-digest substitution carefully: the compose line pins `mcr.microsoft.com/mssql/server:2022-CU27-ubuntu-22.04@sha256:...`; CU28 needs its own verified digest, not a floating tag.\n\n### Notes read\n- None. Release-notes source was given as \"none\" and the upstream notes block states they are not available (\"Microsoft publishes SQL Server release notes in its own documentation, not on GitHub\"). The registry image-diff also could not be read (`RuntimeError: no anonymous token endpoint known for mcr.microsoft.com`), so the \"WHAT THE IMAGES THEMSELVES DIFFER IN\" section carries no measured findings and cannot arbitrate any point above. Check Microsoft's own SQL Server CU documentation by hand before applying.\n"
-  },
-  {
-    "repo": "nocodb-traefik-letsencrypt-docker-compose",
-    "sha": "cb07d65777e7d8249421f08a9056fcfa40e5124c",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-14T00:34:12Z"
-  },
-  {
-    "repo": "seafile-traefik-letsencrypt-docker-compose",
-    "sha": "02fbd7d52f395709d7c16b3759a21defd97f31e7",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-14T00:34:29Z"
-  },
-  {
-    "repo": "wikijs-traefik-letsencrypt-docker-compose",
-    "sha": "07c1f773680e336654ead88980daddce9d23bbfb",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-14T00:34:46Z",
-    "review": "\n## Upstream changes 17.11 -> 17.12\n\n**Verdict:** SAFE TO APPLY \u2014 this is a routine PostgreSQL point release (17.11-1 -> 17.12-1 packaging); no release notes are available, but both are 17.x minor builds and the compose file's own pin is what's moving.\n\n### Breaking changes\n- none found in the notes (no release notes exist for this packaging layer; see Notes read below)\n\n### Variables\n- none \u2014 no variable is renamed, removed, or newly required by this range\n\n### Data and dependencies\n- The image-vs-image diff shows only `PG_VERSION`: `17.11-1.pgdg13+2` -> `17.12-1.pgdg13+1` \u2014 a point-release packaging bump within PostgreSQL 17, not a major-version jump. No data format or on-disk layout change is implied by this alone.\n- Compose pins `postgres:17.11@sha256:...` as the default; `.env.example` documents `WIKIJS_POSTGRES_IMAGE_VERSION=17.11`. Moving to 17.12 means updating both the compose default and, if a host has uncommented the override, the `.env` value \u2014 otherwise the host stays on 17.11 regardless of this review.\n- No companion-service version is newly named by this range (notes are absent, and the image diff names only PostgreSQL itself), so the SAFE TO APPLY block above is not disqualified by the mismatch rule.\n\n### Before applying\n- Take a database backup before restarting the `postgres` container with the new image \u2014 standard practice for any PostgreSQL image bump, since no upstream notes are available to confirm there is no on-disk change. The stack already runs a `backups` service (`pg_dump` to `wikijs-database-backups` volume); trigger or wait for one manually before the bump if the schedule is far off.\n- Update the pin: edit the compose file's `x-images.postgres` default from `17.11@sha256:...` to the new `17.12@sha256:...` digest (or set `WIKIJS_POSTGRES_IMAGE_VERSION=17.12` / `WIKIJS_POSTGRES_IMAGE_TAG` in `.env` with the correct digest).\n- After pulling, confirm the `postgres` healthcheck (`pg_isready`) passes and check container logs for a crash-recovery or checkpoint message, since no upstream notes exist to pre-confirm a clean upgrade path.\n\n### Notes read\n- None. Upstream release notes are not published for this image: PostgreSQL's own release notes live at postgresql.org and the `docker-library/postgres` repository only packages tags, it does not version its own changes. Checked by hand instead: the registry-reported `PG_VERSION` label difference (quoted above), which is the only concrete signal available for this range.\n"
-  },
-  {
-    "repo": "zabbix-traefik-letsencrypt-docker-compose",
-    "sha": "433973469377be4d415c3fb3cd12e0ddd3c35b45",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-14T00:34:58Z"
+    "pushed_at": "2026-11-14T13:54:36Z"
   },
   {
     "repo": "dashy-traefik-letsencrypt-docker-compose",
-    "sha": "e876bf712d4b88c18e6ae9b60de5b67d7ca91055",
+    "sha": "c65d85e16a90a24e7fac10c0092ec8e60234344e",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-14T00:35:21Z",
+    "pushed_at": "2026-11-14T13:54:43Z",
     "review": "\n## Upstream changes 4.9.17 -> 4.9.18\n\n**Verdict:** SAFE TO APPLY \u2014 this is a dependency-bump-only release with no application-level breaking changes noted, and the compose file does not need to pin anything new.\n\n### Breaking changes\n- none found in the notes. The only entries are a dependabot dependency bump (\"\u2b06\ufe0f (deps): Bump the minor-and-patch group with 12 updates\") touching libraries like `@sentry/vue`, `jose`, `simple-icons`, `vue`, `vue-i18n`, `vite`, `sass`, etc., and a version bump commit. No release notes exist for these tags beyond the commit log.\n\n### Variables\n- none. No new, renamed, or removed environment variables are mentioned in the notes, and nothing in the compose file or .env.example is affected.\n\n### Data and dependencies\n- The image diff shows `NODE_VERSION`: `24.22.2` -> `24.22.3`. This is a patch-level Node.js bump inside the image; nothing in the notes calls this out explicitly, but it is confirmed by the registry comparison, which is authoritative for the image contents. No companion services (database, cache, search engine) are referenced by this image or these notes, so the \"unpinned companion version\" rule does not apply here.\n- No database version requirements, irreversible migrations, removed defaults, or changed ports/paths appear in the notes.\n\n### Before applying\n- No manual steps required. Pull the new digest, restart the `dashy` container, confirm the healthcheck (`node /app/services/healthcheck`) passes as before.\n\n### Notes read\n- Commits between `4.9.17` and `4.9.18` from the GitHub compare API for `Lissy93/dashy` (no dedicated GitHub Release notes exist for either tag, so the 3 commits in that range are the full record read).\n"
   },
   {
-    "repo": "nextcloud-onlyoffice-traefik-letsencrypt-docker-compose",
-    "sha": "2263b0b1bcb750c9b3eb2b7596dc73f634835697",
+    "repo": "forgejo-traefik-letsencrypt-docker-compose",
+    "sha": "816deabbecd07a0211c7c9fc1d570681a2c84ee3",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-14T00:35:59Z",
-    "review": "\n## Upstream changes 35.0.2 -> 35.0.3\n\n**Verdict:** NEEDS ATTENTION \u2014 the release notes for v35.0.3 contain no body text (only title and link), so there is no way to confirm what changed; the image comparison that would otherwise confirm or override this is also unavailable.\n\n### Breaking changes\n- none found in the notes \u2014 the only content supplied for v35.0.3 is the release title and URL, with no description of changes. Quote of the entire entry as given: \"### v35.0.3 (2026-11-12)\\nhttps://github.com/nextcloud-releases/server/releases/tag/v35.0.3\"\n\n### Variables\n- none found in the notes\n\n### Data and dependencies\n- none found in the notes. Note that the companion postgres (16), redis (7.4) images are pinned in the compose file already, at the current baseline \u2014 this is not something this range changes.\n\n### Before applying\n- Since the notes carry no actual content, check by hand before applying:\n  - Open the linked GitHub release page directly (`https://github.com/nextcloud-releases/server/releases/tag/v35.0.3`) and read it, since the text wasn't captured here.\n  - Check the Nextcloud changelog site (`https://nextcloud.com/changelog/`) for 35.0.3, since the CHANGELOG.md in this repo is a stub pointing there.\n  - Take the normal pre-upgrade backup (the compose file's `backups` service already does nightly postgres + data dumps \u2014 confirm a recent one exists before pulling the new image).\n  - Because `WHAT THE IMAGES THEMSELVES DIFFER IN` could not be read (\"no linux/amd64 manifest in the index\"), manually diff the 35.0.2 and 35.0.3 image configs (user, entrypoint, command, exposed port, healthcheck) once the registry is reachable, before trusting the compose file's existing healthcheck/entrypoint assumptions still hold.\n\n### Notes read\n- v35.0.3 (title/link only, no body)\n- v35.0.2 given only as the current baseline, not re-applied as a change\n- CHANGELOG.md: stub pointing to https://nextcloud.com/changelog/, no version-specific content\n- Image-level diff: unavailable (registry manifest fetch failed)\n"
+    "pushed_at": "2026-11-14T13:54:57Z"
+  },
+  {
+    "repo": "gaseous-server-using-docker-compose",
+    "sha": "78270cd47aa8a95d730b03b79fab2917f3e31482",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T13:55:03Z"
+  },
+  {
+    "repo": "ghost-traefik-letsencrypt-docker-compose",
+    "sha": "bd565422766a90be2a1840375b2cdffdde33fc52",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T13:55:09Z"
+  },
+  {
+    "repo": "gitlab-traefik-letsencrypt-docker-compose",
+    "sha": "786f696a452c4a7fbb86aae9ef03c2ee2abb954f",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T13:55:17Z"
+  },
+  {
+    "repo": "glpi-traefik-letsencrypt-docker-compose",
+    "sha": "899faed3a011fe2933a56770ca294c2e44076d8d",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T13:55:23Z"
+  },
+  {
+    "repo": "homeassistant-traefik-letsencrypt-docker-compose",
+    "sha": "0e12f1de57685628d7fc7613ac4536b9c88d61a7",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T13:55:31Z"
+  },
+  {
+    "repo": "homebox-traefik-letsencrypt-docker-compose",
+    "sha": "c1257fc70320e178a6484c3e94af1fa1151f69d9",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T13:55:37Z"
+  },
+  {
+    "repo": "homepage-traefik-letsencrypt-docker-compose",
+    "sha": "2046abc1c2ccc68b5cf0bb5dcb033f3ec4eaa535",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T13:55:44Z"
+  },
+  {
+    "repo": "humanitz-server-docker-compose",
+    "sha": "6ce07a4cab7fe9e9cf1e4bf9dea8f9b44e8b492b",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T13:55:49Z"
+  },
+  {
+    "repo": "jellyfin-traefik-letsencrypt-docker-compose",
+    "sha": "880f755fb9facebdae53447d31be124f9df13c50",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T13:56:31Z"
+  },
+  {
+    "repo": "jira-traefik-letsencrypt-docker-compose",
+    "sha": "ebc584752fb973a3331824a9c68ddc447217380b",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T13:56:38Z"
+  },
+  {
+    "repo": "joomla-traefik-letsencrypt-docker-compose",
+    "sha": "8ac5de8e38a43c1647bd3bb9b0ccd241877a8b35",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T13:56:45Z"
+  },
+  {
+    "repo": "keycloak-traefik-letsencrypt-docker-compose",
+    "sha": "ff343eb5566d77873b7fc5c627cfe321608cb9b0",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T13:56:51Z"
+  },
+  {
+    "repo": "kf2-server-docker-compose",
+    "sha": "426aa23e65c1b4f643ba164edc944fc1bd679f5f",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T13:56:56Z"
+  },
+  {
+    "repo": "mailu-traefik-letsencrypt-docker-compose",
+    "sha": "764ae39219fe8609fa539d78f273ef2c0c84745f",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T13:57:14Z"
+  },
+  {
+    "repo": "navidrome-traefik-letsencrypt-docker-compose",
+    "sha": "938f32ae924dd403bb417c3480d093dae0b46e07",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T13:57:42Z"
+  },
+  {
+    "repo": "nextcloud-onlyoffice-traefik-letsencrypt-docker-compose",
+    "sha": "e9979ea77dc7410f906ce9635996ad0296bad440",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T13:58:09Z",
+    "review": "\n## Upstream changes 35.0.2 -> 35.0.3\n\n**Verdict:** NEEDS ATTENTION \u2014 the release notes for v35.0.3 contain no body text (only title and link), so there is no way to confirm what changed; the image comparison that would otherwise confirm or override this is also unavailable.\n\n### Breaking changes\n- none found in the notes \u2014 the only content supplied for v35.0.3 is the release title and URL, with no description of changes. Quote of the entire entry as given: \"### v35.0.3 (2026-11-12)\\nhttps://github.com/nextcloud-releases/server/releases/tag/v35.0.3\"\n\n### Variables\n- none found in the notes\n\n### Data and dependencies\n- none found in the notes. Note that the companion postgres (16), redis (7.4) images are pinned in the compose file already, at the current baseline \u2014 this is not something this range changes.\n\n### Before applying\n- Since the notes carry no actual content, check by hand before applying:\n  - Open the linked GitHub release page directly (`https://github.com/nextcloud-releases/server/releases/tag/v35.0.3`) and read it, since the text wasn't captured here.\n  - Check the Nextcloud changelog site (`https://nextcloud.com/changelog/`) for 35.0.3, since the CHANGELOG.md in this repo is a stub pointing there.\n  - Take the normal pre-upgrade backup (the compose file's `backups` service already does nightly postgres + data dumps \u2014 confirm a recent one exists before pulling the new image).\n  - Because `WHAT THE IMAGES THEMSELVES DIFFER IN` could not be read (\"no linux/amd64 manifest in the index\"), manually diff the 35.0.2 and 35.0.3 image configs (user, entrypoint, command, exposed port, healthcheck) once the registry is reachable, before trusting the compose file's existing healthcheck/entrypoint assumptions still hold.\n\n### Notes read\n- v35.0.3 (title/link only, no body)\n- v35.0.2 given only as the current baseline, not re-applied as a change\n- CHANGELOG.md: stub pointing to https://nextcloud.com/changelog/, no version-specific content\n- Image-level diff: unavailable (registry manifest fetch failed)\n\n## Upstream changes 35.0.2 -> 35.0.3\n\n**Verdict:** SAFE TO APPLY \u2014 this is a patch release, the only documented change is the version bump, and the registry diff shows no effective change beyond the version label.\n\n### Breaking changes\n- none found in the notes. The release notes provided contain only tag/date/link entries for v35.0.3 and surrounding point releases (v34.0.6, v33.0.11, and their RCs) \u2014 no actual changelog text, description of fixes, or breaking-change text was present in the supplied notes.\n\n### Variables\n- none. The only observable difference between the two images is `env NEXTCLOUD_VERSION: '35.0.2' -> '35.0.3'`, which is an informational label baked into the image, not a compose/.env variable. `.env.example`'s commented default `NEXTCLOUD_IMAGE_VERSION=35.0.2` is stale and should be bumped to `35.0.3` for consistency, but since the compose file's `x-images` block pins `35.0.2` as its own default, confirm that block is updated too (not shown as changed in the supplied compose excerpt \u2014 it still reads `35.0.2` at the top).\n\n### Data and dependencies\n- none introduced by this range. The compose file already pins `nextcloud-postgres` at major version 16 and `nextcloud-redis` at 7.4; nothing in the 35.0.3 notes names a different requirement for either, so this is unaffected.\n\n### Before applying\n- Update the compose file's `x-images` pin for `nextcloud` from `35.0.2@sha256:...` to the `35.0.3` tag and its correct digest, and update the commented `NEXTCLOUD_IMAGE_VERSION=35.0.2` line in `.env.example` to `35.0.3` for documentation consistency. No database migration, backup step, or config edit is indicated by the available notes beyond the routine good practice of taking a backup before any version bump (the `backups` service in this compose file already does this on its own schedule).\n\n### Notes read\n- v35.0.3 (2026-11-12) \u2014 title/link only, no body content supplied\n- v35.0.3rc2, v35.0.3rc1 \u2014 title/link only, no body content supplied\n- Companion point releases (v34.0.6, v33.0.11 and their RCs) \u2014 not applicable to this upgrade path, listed only because they share a release date\n- CHANGELOG.md \u2014 contains only a pointer to https://nextcloud.com/changelog/, no inline entries\n- No UPGRADING or BREAKING_CHANGES section was supplied for this range\n\nBecause the actual body text of the 35.0.3 release notes was not included (only the tag title and URL), this verdict rests on the absence of any breaking-change signal in what was provided, plus the registry diff showing only the version label changed. If the operator has access to the full release body at the linked URL, it should be checked by hand before applying, as a precaution \u2014 but nothing in the materials given here points to a required action.\n"
   },
   {
     "repo": "nextcloud-traefik-letsencrypt-docker-compose",
-    "sha": "e36b3f110cc2ad44ba0ae96c1a6491909b0e4446",
+    "sha": "0eea7a925169eb15b005f77ea8e3f70972451b17",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-14T00:36:04Z",
-    "review": "\n## Upstream changes 35.0.2 -> 35.0.3\n\n**Verdict:** NEEDS ATTENTION \u2014 the release notes for v35.0.3 contain no body text (only title and link), so there is no way to confirm what changed; the image comparison that would otherwise confirm or override this is also unavailable.\n\n### Breaking changes\n- none found in the notes \u2014 the only content supplied for v35.0.3 is the release title and URL, with no description of changes. Quote of the entire entry as given: \"### v35.0.3 (2026-11-12)\\nhttps://github.com/nextcloud-releases/server/releases/tag/v35.0.3\"\n\n### Variables\n- none found in the notes\n\n### Data and dependencies\n- none found in the notes. Note that the companion postgres (16), redis (7.4) images are pinned in the compose file already, at the current baseline \u2014 this is not something this range changes.\n\n### Before applying\n- Since the notes carry no actual content, check by hand before applying:\n  - Open the linked GitHub release page directly (`https://github.com/nextcloud-releases/server/releases/tag/v35.0.3`) and read it, since the text wasn't captured here.\n  - Check the Nextcloud changelog site (`https://nextcloud.com/changelog/`) for 35.0.3, since the CHANGELOG.md in this repo is a stub pointing there.\n  - Take the normal pre-upgrade backup (the compose file's `backups` service already does nightly postgres + data dumps \u2014 confirm a recent one exists before pulling the new image).\n  - Because `WHAT THE IMAGES THEMSELVES DIFFER IN` could not be read (\"no linux/amd64 manifest in the index\"), manually diff the 35.0.2 and 35.0.3 image configs (user, entrypoint, command, exposed port, healthcheck) once the registry is reachable, before trusting the compose file's existing healthcheck/entrypoint assumptions still hold.\n\n### Notes read\n- v35.0.3 (title/link only, no body)\n- v35.0.2 given only as the current baseline, not re-applied as a change\n- CHANGELOG.md: stub pointing to https://nextcloud.com/changelog/, no version-specific content\n- Image-level diff: unavailable (registry manifest fetch failed)\n"
+    "pushed_at": "2026-11-14T13:58:19Z",
+    "review": "\n## Upstream changes 35.0.2 -> 35.0.3\n\n**Verdict:** NEEDS ATTENTION \u2014 the release notes for v35.0.3 contain no body text (only title and link), so there is no way to confirm what changed; the image comparison that would otherwise confirm or override this is also unavailable.\n\n### Breaking changes\n- none found in the notes \u2014 the only content supplied for v35.0.3 is the release title and URL, with no description of changes. Quote of the entire entry as given: \"### v35.0.3 (2026-11-12)\\nhttps://github.com/nextcloud-releases/server/releases/tag/v35.0.3\"\n\n### Variables\n- none found in the notes\n\n### Data and dependencies\n- none found in the notes. Note that the companion postgres (16), redis (7.4) images are pinned in the compose file already, at the current baseline \u2014 this is not something this range changes.\n\n### Before applying\n- Since the notes carry no actual content, check by hand before applying:\n  - Open the linked GitHub release page directly (`https://github.com/nextcloud-releases/server/releases/tag/v35.0.3`) and read it, since the text wasn't captured here.\n  - Check the Nextcloud changelog site (`https://nextcloud.com/changelog/`) for 35.0.3, since the CHANGELOG.md in this repo is a stub pointing there.\n  - Take the normal pre-upgrade backup (the compose file's `backups` service already does nightly postgres + data dumps \u2014 confirm a recent one exists before pulling the new image).\n  - Because `WHAT THE IMAGES THEMSELVES DIFFER IN` could not be read (\"no linux/amd64 manifest in the index\"), manually diff the 35.0.2 and 35.0.3 image configs (user, entrypoint, command, exposed port, healthcheck) once the registry is reachable, before trusting the compose file's existing healthcheck/entrypoint assumptions still hold.\n\n### Notes read\n- v35.0.3 (title/link only, no body)\n- v35.0.2 given only as the current baseline, not re-applied as a change\n- CHANGELOG.md: stub pointing to https://nextcloud.com/changelog/, no version-specific content\n- Image-level diff: unavailable (registry manifest fetch failed)\n\n## Upstream changes 35.0.2 -> 35.0.3\n\n**Verdict:** SAFE TO APPLY \u2014 this is a patch release, the only documented change is the version bump, and the registry diff shows no effective change beyond the version label.\n\n### Breaking changes\n- none found in the notes. The release notes provided contain only tag/date/link entries for v35.0.3 and surrounding point releases (v34.0.6, v33.0.11, and their RCs) \u2014 no actual changelog text, description of fixes, or breaking-change text was present in the supplied notes.\n\n### Variables\n- none. The only observable difference between the two images is `env NEXTCLOUD_VERSION: '35.0.2' -> '35.0.3'`, which is an informational label baked into the image, not a compose/.env variable. `.env.example`'s commented default `NEXTCLOUD_IMAGE_VERSION=35.0.2` is stale and should be bumped to `35.0.3` for consistency, but since the compose file's `x-images` block pins `35.0.2` as its own default, confirm that block is updated too (not shown as changed in the supplied compose excerpt \u2014 it still reads `35.0.2` at the top).\n\n### Data and dependencies\n- none introduced by this range. The compose file already pins `nextcloud-postgres` at major version 16 and `nextcloud-redis` at 7.4; nothing in the 35.0.3 notes names a different requirement for either, so this is unaffected.\n\n### Before applying\n- Update the compose file's `x-images` pin for `nextcloud` from `35.0.2@sha256:...` to the `35.0.3` tag and its correct digest, and update the commented `NEXTCLOUD_IMAGE_VERSION=35.0.2` line in `.env.example` to `35.0.3` for documentation consistency. No database migration, backup step, or config edit is indicated by the available notes beyond the routine good practice of taking a backup before any version bump (the `backups` service in this compose file already does this on its own schedule).\n\n### Notes read\n- v35.0.3 (2026-11-12) \u2014 title/link only, no body content supplied\n- v35.0.3rc2, v35.0.3rc1 \u2014 title/link only, no body content supplied\n- Companion point releases (v34.0.6, v33.0.11 and their RCs) \u2014 not applicable to this upgrade path, listed only because they share a release date\n- CHANGELOG.md \u2014 contains only a pointer to https://nextcloud.com/changelog/, no inline entries\n- No UPGRADING or BREAKING_CHANGES section was supplied for this range\n\nBecause the actual body text of the 35.0.3 release notes was not included (only the tag title and URL), this verdict rests on the absence of any breaking-change signal in what was provided, plus the registry diff showing only the version label changed. If the operator has access to the full release body at the linked URL, it should be checked by hand before applying, as a precaution \u2014 but nothing in the materials given here points to a required action.\n"
+  },
+  {
+    "repo": "ollama-traefik-letsencrypt-docker-compose",
+    "sha": "ad3d4e87e3feef6263fb936afcd63ba960de1df9",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T13:58:26Z"
+  },
+  {
+    "repo": "otrs-traefik-letsencrypt-docker-compose",
+    "sha": "a604a29a54cfc93d103d9bb60dfa3c96a3be0e8a",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T13:58:33Z"
+  },
+  {
+    "repo": "outline-keycloak-traefik-letsencrypt-docker-compose",
+    "sha": "23d7729b761d190ba6d575839cc1b9085531410f",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T13:58:42Z"
+  },
+  {
+    "repo": "owncloud-traefik-letsencrypt-docker-compose",
+    "sha": "98dbd092892db008dd1069dafe1fa864e98ddc55",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T13:58:49Z"
+  },
+  {
+    "repo": "portainer-traefik-letsencrypt-docker-compose",
+    "sha": "781868865f8375a4bd5076b72e7051bbf9c7b295",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T13:58:55Z"
+  },
+  {
+    "repo": "rocketchat-traefik-letsencrypt-docker-compose",
+    "sha": "f2487d7930f1f74612589980aab9d96115153ff1",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T13:59:42Z",
+    "review": "\n## Upstream changes 8.9.1 -> 9.0.0\n\n**Verdict:** DO NOT APPLY UNATTENDED \u2014 the notes require MongoDB `8.0` (\"### Engine versions - MongoDB: `8.0`\"), but the compose file pins `mongodb: &mongodb-image ${ROCKETCHAT_MONGODB_IMAGE_TAG:-mongo:${ROCKETCHAT_MONGODB_IMAGE_VERSION:-7.0@sha256:...}}`. This requirement is new at this version \u2014 the 8.9.1 baseline notes list MongoDB `8.0` too, so it is *not* newly introduced by this range (it already applied at 8.9.1, see Data and dependencies), but the compose file's actual pin of 7.0 means Rocket.Chat 9.0.0 would run on an engine version its own release notes never certify. Also several authentication methods break on upgrade unless action is taken first.\n\n### Breaking changes\n- LDAP, SAML and Custom OAuth become Premium-only: `\"Makes LDAP and SAML authentication Premium features. **Breaking:** workspaces without a Premium plan that includes the `ldap-enterprise` or `saml-enterprise` module lose LDAP and SAML login on upgrade to 9.0.0.\"` and `\"Makes Custom OAuth authentication a Premium feature... the enable setting of every Custom OAuth service falls back to `false`, Custom OAuth logins are refused...\"`\n- Built-in Drupal, Facebook, GitHub Enterprise, LinkedIn, Meteor, Twitter, WordPress and Dolphin OAuth login providers are removed: `\"Removes the built-in Drupal, Facebook, GitHub Enterprise, LinkedIn, Meteor, Twitter, WordPress and Dolphin OAuth login providers.\"`\n- 157 Meteor/DDP methods removed: `\"**Breaking:** Removed 157 Meteor (DDP) methods that no longer have callers inside the Rocket.Chat codebase... External DDP/SDK clients that still invoke these by name will receive a `Method 'X' not found [404]` error.\"`\n- Webhook integration scripts no longer transpiled with Babel, now run in strict-mode V8 (`isolated-vm`): `\"**Breaking:** Stopped transpiling webhook integration scripts with Babel. Scripts now run as-is...\"` \u2014 implicit globals, `this` in nested functions, `arguments.callee`, octal literals and duplicate params all behave differently or throw.\n- `phone` user field replaced by `phones` array: `\"**Breaking:** the `phone` user field is replaced by the `phones` array (`{ number, label? }[]`); existing numbers are migrated automatically on upgrade.\"`\n- `freeSwitchExtension` renamed to `sipExtension` on users; REST integrations using the old field name break: `\"Renames the user `freeSwitchExtension` attribute to `sipExtension`... REST API integrations must switch to the new name...\"`\n- REST API status codes change for auth/authorization failures (401/403 reshuffled, bodies change shape): `\"**Breaking:** REST API status codes for authentication and authorization failures now follow their meaning...\"` and the follow-up 403 unification in PR #43214.\n- `query`/`fields` REST params and `ALLOW_UNSAFE_QUERY_AND_FIELDS_API_PARAMS` removed: `\"Removes the deprecated `query` and `fields` REST API parameters, along with the `ALLOW_UNSAFE_QUERY_AND_FIELDS_API_PARAMS` environment variable that re-enabled them.\"`\n- `/ufs` legacy file download endpoint removed: `\"Removes `/ufs` legacy endpoint for downloading files\"`\n- Anonymous write/login removed, `anonymous` role deleted, affected users deactivated and logged out: `\"On upgrade the setting and role are deleted from the database and any existing users holding the `anonymous` role are deactivated and logged out.\"`\n- Atlassian Crowd integration removed; Crowd-provisioned users must switch login method: `\"Users previously provisioned through Crowd keep their accounts... but must sign in through another authentication method.\"`\n- WebDAV, Gravatar, legacy federation/Matrix Bridge, legacy GCM push settings all removed and cleared from the database (see respective notes).\n- `POST /v1/push.token` response shape flattened: `\"Changes the `POST /v1/push.token` response to return flat `tokenValue` and `tokenType` fields instead of the nested `token` object.\"`\n- `/hooks` endpoints change status codes/body shapes on failure (403/404/500 instead of uniform 400).\n\n### Variables\n- `MESSAGE_MAX_PARSE_LENGTH` default changes from `0` (unlimited) to `10000`: `\"Changes the default value of the `MESSAGE_MAX_PARSE_LENGTH` environment variable from `0` (no limit) to `10000` characters.\"` Not set in this compose file's environment block or `.env.example`, so the host inherits the new default. Only matters if `Message_MaxAllowedSize` is raised above 5000.\n- `ALLOW_UNSAFE_QUERY_AND_FIELDS_API_PARAMS` removed (not referenced in this compose/.env.example, so no action needed here, but any external automation using it will break).\n- No variables in this template's compose file or `.env.example` are renamed or newly required by this release.\n\n### Data and dependencies\n- Already true at 8.9.1 (not a change introduced by this range): MongoDB `8.0` is required \u2014 the 8.9.1 baseline notes already state `\"MongoDB: \\`8.0\\`\"`. The compose file pins `mongo:7.0`, so the deployment is already out of line with upstream's stated engine requirement before this upgrade is even applied. This is a standing mismatch, not something 9.0.0 introduces, but it is the reason the verdict cannot be SAFE TO APPLY.\n- Node engine requirement unchanged (`>=22.22.3 <23 || >=24.15.0 <25`), and the image itself moves to Node 24.22.1 on Debian bookworm per the summary \u2014 this is an image-internal change, not something the compose file controls.\n- `phone` \u2192 `phones` and `freeSwitchExtension` \u2192 `sipExtension` migrate automatically on upgrade (irreversible field rename, done in-place against the live database).\n- Unused MongoDB indexes dropped automatically: `\"The upgrade drops unused MongoDB indexes\"` (irreversible, routine).\n- Stale `Drafts` sidebar group migration runs against `Accounts_Default_User_Preferences_sidebarSectionsOrder` and every user's `sidebarCategories` preference.\n- Various settings (Crowd, WebDAV, Gravatar, legacy federation/Matrix, legacy GCM push, `Use_RC_SDK`) are deleted from the database on upgrade \u2014 not reversible by downgrading the image alone.\n\n### Before applying\n- Confirm the compose file's MongoDB pin against what 9.0.0 requires before upgrading Rocket.Chat: either raise `ROCKETCHAT_MONGODB_IMAGE_VERSION` to a `8.0.x` tag (with matching digest) and perform the MongoDB major-version upgrade first, with a verified backup, or do not proceed with the Rocket.Chat image bump yet.\n- Confirm at least one admin account can log in with local username/password before upgrading, per the release banner: `\"**Before you update:** make sure at least one administrator can log in with a local username and password.\"`\n- If LDAP, SAML or Custom OAuth are in use, confirm an active Premium plan with the relevant module (`ldap-enterprise`, `saml-enterprise`, `oauth-enterprise`), or migrate affected users to local/Google/GitHub/GitLab/Apple/Nextcloud login before upgrading.\n- If any users signed in via Drupal, Facebook, GitHub Enterprise, LinkedIn, Meteor, Twitter, WordPress or Dolphin OAuth, notify them to switch to a supported login method \u2014 their accounts survive but the login method is removed.\n- Audit any external scripts/bots using removed Meteor DDP methods, the `query`/`fields` REST params, `/ufs`, or `ALLOW_UNSAFE_QUERY_AND_FIELDS_API_PARAMS`, and migrate them to the listed REST equivalents beforehand.\n- Review any custom webhook integration scripts for sloppy-mode JavaScript (implicit globals, `arguments.callee`, octal literals, duplicate params) that will now throw under strict mode.\n- Take a MongoDB backup (the `backups` service in this compose file already runs `mongodump` on a schedule \u2014 trigger/verify a fresh one) before upgrading, given the irreversible field renames and index drops.\n- After upgrade, re-check any REST API client code that inspects HTTP status codes or `errorType` for auth/authorization failures (401/403 reshuffle).\n\n### Notes read\n- RocketChat/Rocket.Chat release notes for `9.0.0` (full detail section, Major/Minor/Patch changes).\n- RocketChat/Rocket.Chat release notes for `8.9.1`, supplied as the current-baseline section, used only to confirm which requirements (MongoDB 8.0, Node range) already applied before this upgrade.\n"
+  },
+  {
+    "repo": "romm-traefik-letsencrypt-docker-compose",
+    "sha": "cd041d71ddf5cd649e3838891af8f8968bfb672e",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T13:59:48Z"
+  },
+  {
+    "repo": "sftp-traefik-letsencrypt-docker-compose",
+    "sha": "25d5642428d036c03334bd1bd8c378d9de744e97",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T13:59:55Z"
+  },
+  {
+    "repo": "sonarqube-traefik-letsencrypt-docker-compose",
+    "sha": "7ac452ccc89d0b6a1980e21e7ecf199d5d1d1d17",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T14:00:02Z"
+  },
+  {
+    "repo": "tf2-server-docker-compose",
+    "sha": "cdb96b9d8a5f4e49f1f66e9fa06f38f12299532b",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T14:00:11Z"
+  },
+  {
+    "repo": "uptime-kuma-traefik-letsencrypt-docker-compose",
+    "sha": "f396f3cb545528968510939305de4ff40f199f76",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T14:00:20Z"
+  },
+  {
+    "repo": "vaultwarden-traefik-letsencrypt-docker-compose",
+    "sha": "fab459075f8dc6b4da266b1f22759cdb54b43086",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T14:00:26Z"
+  },
+  {
+    "repo": "webrcade-traefik-letsencrypt-docker-compose",
+    "sha": "7645bf1cc36b80d2afb17db5602b91fd8b6753e8",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T14:00:34Z"
+  },
+  {
+    "repo": "wordpress-traefik-letsencrypt-docker-compose",
+    "sha": "eaf22b2ebf4a44df688d1f8d5c5e6ebaba76f1e4",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T14:00:46Z"
+  },
+  {
+    "repo": "xwiki-traefik-letsencrypt-docker-compose",
+    "sha": "be1048dd44cdfde8f03c8379e00e84474ddfb47c",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T14:00:54Z"
+  },
+  {
+    "repo": "zammad-traefik-letsencrypt-docker-compose",
+    "sha": "c7637397a68c43e95f2f2fde3cedbd355b4fcf5c",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-14T14:01:11Z"
   }
 ]
