@@ -684,6 +684,30 @@ if printf '%s' "$out" | grep -qE 'secret|password|Authorization|interpolated|arg
 else
   echo "  PASS: none of the shapes that keep a secret off the command line is reported"; PASSED=$((PASSED+1))
 fi
+# A REDIS HEALTH CHECK READS THE REPLY. redis-cli exits 0 on NOAUTH and
+# WRONGPASS (redis 7.4.11, 2026-11-14), so a bare ping against requirepass is
+# green with any password; and affine's check gave the password as -a, which
+# compose interpolates into the check's arguments every interval.
+redis_check() {     # redis_check <repo-dir> <test line>
+  python3 - "$(compose_of "$1")" "$2" <<'PY'
+import re, sys
+c, line = sys.argv[1], sys.argv[2]
+s = open(c).read()
+s2, n = re.subn(r'(?m)^      test: \["CMD-SHELL", "redis-cli ping \| grep -q PONG"\]$', "      test: " + line, s)
+assert n == 1, "the reference has no PONG-reading Redis check to replace"
+open(c, "w").write(s2)
+PY
+}
+d="$(fixture redisbare)"; tag_all "$d"; redis_check "$d" '["CMD", "redis-cli", "ping"]'
+expect "a bare redis-cli ping against requirepass is caught" "$WORK/redisbare" "never reads the reply"
+d="$(fixture redisdasha)"; tag_all "$d"; redis_check "$d" "[\"CMD\", \"redis-cli\", \"-a\", \"\$NEXTCLOUD_REDIS_$P\", \"ping\"]"
+expect "a password compose interpolates into a health check is caught" "$WORK/redisdasha" "NEXTCLOUD_REDIS_${P} interpolated by compose into the container's health check"
+expect "and redis-cli -a is named" "$WORK/redisdasha" "a Redis password given to redis-cli as -a"
+# A name with KEY at its start is not a secret: keycloak passes KEYCLOAK_DB_NAME
+# to pg_isready in its health check.
+d="$(fixture rediskeycloak)"; tag_all "$d"; redis_check "$d" '["CMD-SHELL", "redis-cli ping | grep -q PONG && test -n ${KEYCLOAK_DB_NAME:-db}"]'
+expect_clean "$WORK/rediskeycloak"
+
 # THE DOOR: a declared line is listed as an exemption, with its reason, and passes.
 d="$(fixture argvallow)"; tag_all "$d"
 allow_line='# conformance: allow-argv-secret - a fixture: the value is a public test constant'

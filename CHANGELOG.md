@@ -82,6 +82,23 @@ check or a job, a patch fixes one.
   final stage (moved) and under a build-platform stage (not moved).
 
 ### Added
+- **Conformance: a Redis health check reads the reply, and a health check's
+  `test:` is a command line.** `redis-cli` exits 0 on an error reply: against
+  `requirepass` a bare `redis-cli ping` prints NOAUTH, with a wrong
+  `REDISCLI_AUTH` it prints WRONGPASS, and both exit 0 (measured on redis
+  7.4.11, 2026-11-14), so three templates' checks were green with any
+  password. A service with `requirepass` whose check runs `redis-cli ping`
+  now has to test for PONG. And a secret compose interpolates into a
+  health check's `test:` is read like one in `command:`: affine gave its
+  Redis password to `redis-cli -a` there, in a process's arguments every ten
+  seconds. `redis-cli -a "$X"` is a finding of its own. Found by a host
+  sweep; all four fixed and released before the rule went live (nextcloud
+  v2.1.24, nextcloud-onlyoffice v2.2.21, affine v1.9.20, authelia v1.8.20,
+  each proven red on its old check with a wrong password). A secret's name
+  now carries KEY as a word, not as its first letters: KEYCLOAK_DB_NAME, a
+  database name keycloak hands to pg_isready, was read as a secret. Run over
+  the 73 compose files of the fleet before going live: no finding. Four new
+  cases (98).
 - **A template's own Dockerfile bases move like an image repository's.**
   rathena-docker builds its server on alpine and its password page on
   python, and neither base was pinned or read: `FROM alpine:${ALPINE}` with

@@ -1252,7 +1252,9 @@ def cooldown_findings(text):
 # from. Workflow files are not read: a GitHub-hosted runner is the job's own.
 # A line may declare an exemption the way resource limits do, with a reason:
 #   # conformance: allow-argv-secret - <why>
-ARGV_SECRET_NAME = r"[A-Za-z0-9_]*(?:PASS|PWD|SECRET|TOKEN|KEY|CRED)[A-Za-z0-9_]*"
+# KEY as a word of the name, not as the first letters of one: KEYCLOAK_DB_NAME
+# is a database name, and a health check passes it to pg_isready (2026-11-14).
+ARGV_SECRET_NAME = r"[A-Za-z0-9_]*(?:PASS|PWD|SECRET|TOKEN|KEYS?(?![A-Za-z])|CRED)[A-Za-z0-9_]*"
 Q = r"\\?[\"']?"  # an optional quote, escaped or not: -P \"$$X\" inside a compose string
 ARGV_SECRET_PATTERNS = [
     # mysql -p"$X", mariadb-dump -p$$X: the client blanks its own copy once it
@@ -1289,6 +1291,10 @@ ARGV_SECRET_PATTERNS = [
      "a secret in a crontab line, which cron runs as sh -c with the value in its arguments"),
     (re.compile(r"\+(?:rcon_password|sv_password|sv_setsteamaccount)\b[\"']?\s+" + Q + r"\$"), None,
      "a game server given a secret on its own command line, readable for as long as it runs"),
+    # redis-cli -a "$X": affine's health check, every interval, as a compose
+    # exec array ("redis-cli", "-a", "$X", "ping"). REDISCLI_AUTH is the fix.
+    (re.compile(r"\bredis-cli\b.*?(?:-a|--pass)[\"',\s]+\$"), None,
+     "a Redis password given to redis-cli as -a; set REDISCLI_AUTH in its environment instead"),
 ]
 ARGV_SECRET_KEEP = re.compile(r"_(?:FILE|PATH|DIR)$")
 ARGV_SECRET_ALLOW = re.compile(r"#\s*conformance:\s*allow-argv-secret\s*[-—]\s*(\S.*)")
@@ -1334,7 +1340,9 @@ def compose_command_secrets(path, lines, exempt):
     """Secrets compose interpolates into a service's command: or entrypoint:."""
     bad, i = [], 0
     while i < len(lines):
-        m = re.match(r"^(\s+)(command|entrypoint):(.*)$", lines[i])
+        # a health check's test: is run by docker exec every interval: what
+        # compose interpolates into it is that process's argument each time
+        m = re.match(r"^(\s+)(command|entrypoint|test):(.*)$", lines[i])
         if not m:
             i += 1
             continue
@@ -1351,7 +1359,8 @@ def compose_command_secrets(path, lines, exempt):
                 if not hit or ARGV_SECRET_KEEP.search(hit.group(1)):
                     continue
                 allow = ARGV_SECRET_ALLOW.search(l) or (n and ARGV_SECRET_ALLOW.search(lines[n - 1]))
-                what = f"{path}:{n + 1} {hit.group(1)} interpolated by compose into the container's {m.group(2)}"
+                part = "health check" if m.group(2) == "test" else m.group(2)
+                what = f"{path}:{n + 1} {hit.group(1)} interpolated by compose into the container's {part}"
                 if allow:
                     exempt.append(f"{what}, declared: {allow.group(1).strip()}")
                 else:
@@ -1520,6 +1529,16 @@ def check_repo(repo, exempt=None):
                 bad.append(f"{name}: no resource limits")
         if STATEFUL.search(block) and not SKIP_SVC.search(name) and "stop_grace_period" not in block:
             bad.append(f"{name}: data-owning service with no stop_grace_period")
+        # A REDIS HEALTH CHECK THAT READS A REFUSAL AS HEALTHY. redis-cli
+        # exits 0 on an error reply: `redis-cli ping` against a server with
+        # requirepass prints NOAUTH, and with a wrong REDISCLI_AUTH prints
+        # WRONGPASS, and both exit 0 (measured on redis 7.4.11, 2026-11-14).
+        # Three templates' checks were green whatever the password was. The
+        # reply has to be read: REDISCLI_AUTH, then `redis-cli ping | grep -q PONG`.
+        if "requirepass" in block and re.search(r"redis-cli[^\n]*ping", block) and "PONG" not in block:
+            bad.append(f"{name}: its health check runs redis-cli ping against a server with requirepass and never "
+                       f"reads the reply; redis-cli exits 0 on NOAUTH and WRONGPASS, so the check is green with no "
+                       f"password or a wrong one (set REDISCLI_AUTH and test for PONG)")
         # A HEAP THE CONTAINER CANNOT HOLD. The resource-limits rollout of
         # 2026-09-02 set every service's memory limit without reading the heap
         # the same file gives its JVM: Confluence got 2g under an 8G minimum
