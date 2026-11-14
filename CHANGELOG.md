@@ -88,7 +88,8 @@ check or a job, a patch fixes one.
   `REDISCLI_AUTH` it prints WRONGPASS, and both exit 0 (measured on redis
   7.4.11, 2026-11-14), so three templates' checks were green with any
   password. A service with `requirepass` whose check runs `redis-cli ping`
-  now has to test for PONG. And a secret compose interpolates into a
+  now has to test for PONG on the line that pings; a PONG in a trailing
+  comment or elsewhere in the service reads nothing. And a secret compose interpolates into a
   health check's `test:` is read like one in `command:`: affine gave its
   Redis password to `redis-cli -a` there, in a process's arguments every ten
   seconds. `redis-cli -a "$X"` is a finding of its own. Found by a host
@@ -97,8 +98,8 @@ check or a job, a patch fixes one.
   each proven red on its old check with a wrong password). A secret's name
   now carries KEY as a word, not as its first letters: KEYCLOAK_DB_NAME, a
   database name keycloak hands to pg_isready, was read as a secret. Run over
-  the 73 compose files of the fleet before going live: no finding. Four new
-  cases (98).
+  the 73 compose files of the fleet before going live: no finding. Five new
+  cases (99).
 - **A template's own Dockerfile bases move like an image repository's.**
   rathena-docker builds its server on alpine and its password page on
   python, and neither base was pinned or read: `FROM alpine:${ALPINE}` with

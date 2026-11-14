@@ -700,6 +700,9 @@ PY
 }
 d="$(fixture redisbare)"; tag_all "$d"; redis_check "$d" '["CMD", "redis-cli", "ping"]'
 expect "a bare redis-cli ping against requirepass is caught" "$WORK/redisbare" "never reads the reply"
+# A PONG in a trailing comment is not a reply read.
+d="$(fixture redispongcomment)"; tag_all "$d"; redis_check "$d" '["CMD", "redis-cli", "ping"]  # expects PONG'
+expect "a PONG only in a trailing comment does not count" "$WORK/redispongcomment" "never reads the reply"
 d="$(fixture redisdasha)"; tag_all "$d"; redis_check "$d" "[\"CMD\", \"redis-cli\", \"-a\", \"\$NEXTCLOUD_REDIS_$P\", \"ping\"]"
 expect "a password compose interpolates into a health check is caught" "$WORK/redisdasha" "NEXTCLOUD_REDIS_${P} interpolated by compose into the container's health check"
 expect "and redis-cli -a is named" "$WORK/redisdasha" "a Redis password given to redis-cli as -a"

@@ -1535,7 +1535,10 @@ def check_repo(repo, exempt=None):
         # WRONGPASS, and both exit 0 (measured on redis 7.4.11, 2026-11-14).
         # Three templates' checks were green whatever the password was. The
         # reply has to be read: REDISCLI_AUTH, then `redis-cli ping | grep -q PONG`.
-        if "requirepass" in block and re.search(r"redis-cli[^\n]*ping", block) and "PONG" not in block:
+        # The reply is read on the line that pings: a PONG elsewhere in the
+        # block, in a trailing comment or a variable, reads nothing.
+        pings = [re.sub(r"\s+#.*$", "", l) for l in block.split("\n") if re.search(r"redis-cli[^\n]*ping", l)]
+        if "requirepass" in block and any("PONG" not in l for l in pings):
             bad.append(f"{name}: its health check runs redis-cli ping against a server with requirepass and never "
                        f"reads the reply; redis-cli exits 0 on NOAUTH and WRONGPASS, so the check is green with no "
                        f"password or a wrong one (set REDISCLI_AUTH and test for PONG)")
