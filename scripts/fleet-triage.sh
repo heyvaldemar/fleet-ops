@@ -1229,6 +1229,26 @@ pending_action() {
   esac
 }
 
+# A REFRESH ALREADY RELEASED IS NOT A RELEASE TO CUT. A pending row waits for
+# the next run, and in between somebody else may cut a release that carries
+# the refresh: on 2026-11-14 the game line released tf2 v2.2.0 three hours
+# after triage pushed cdb96b9, the row stayed, and that evening triage judged
+# the refresh green and released whatever was under [Unreleased] - one CI line
+# of the game line's - as v2.2.3. The highest semver tag is asked whether it
+# already contains the pushed commit. A lookup that fails says nothing, and
+# the release is cut as before: one patch too many is the smaller mistake.
+released_in() {   # released_in <repo> <sha>: the highest tag that already holds sha, or 1
+  local repo="$1" sha="$2" tag status
+  tag="$(gh api "repos/$OWNER/$repo/tags" --paginate --jq '.[].name' 2>/dev/null \
+         | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1 || true)"
+  [ -n "$tag" ] || return 1
+  status="$(gh api "repos/$OWNER/$repo/compare/$sha...$tag" --jq '.status' 2>/dev/null || true)"
+  case "$status" in
+    ahead|identical) printf '%s\n' "$tag" ;;
+    *) return 1 ;;
+  esac
+}
+
 settle_pending() {
   [ -s "$PENDING" ] || return 0
   local repo sha wf kind age verdict dir keep=()
@@ -1284,6 +1304,8 @@ settle_pending() {
             gh workflow run "$fwf" --repo "$OWNER/$repo" --ref main >/dev/null 2>&1 \
               || note "$repo: refreshed and green, but re-running its freshness check failed — that verdict stays stale until the next cron"
           fi
+        elif shipped="$(released_in "$repo" "$sha")"; then
+          note "$repo: the $kind refresh is already in $shipped, released by another route — no release is cut for it"
         elif [ "$DRY_RUN" = "true" ]; then
           note "$repo: would cut the release for it"
         elif dir="$(workdir_for "$repo")" && [ -n "$dir" ]; then

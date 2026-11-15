@@ -10,6 +10,30 @@ check or a job, a patch fixes one.
 ## [Unreleased]
 
 ### Fixed
+- **Triage does not release a refresh somebody else already released.** A
+  pushed refresh waits in the pending ledger for the next run, and in between
+  another session may cut a release that carries it. On 2026-11-14 tf2's
+  refresh cdb96b9 went out in the game line's v2.2.0; the row stayed, and that
+  evening triage judged the refresh green and released whatever was under
+  [Unreleased], one CI line, as v2.2.3. Before cutting, `released_in` now asks
+  whether the highest semver tag already contains the pushed commit, and if it
+  does the report names that tag and no release is cut. A lookup that fails
+  says nothing and the release is cut as before. Six cases in
+  `tests/test-triage.sh` (298); on the old code three of them fail.
+- **No personal address in any security policy.** Every SECURITY.md in the
+  fleet gave a personal address as the email channel, from the 2026-09-25
+  rollout on; on 2026-11-14 the maintainer decided a personal address appears
+  nowhere public. `scripts/rollout-security-contact.sh` now rewrites the one
+  contact line, recognised by its shape (the three spellings the fleet
+  carried), to link GitHub's private advisory form for that repository and to
+  give the public address the site gives, from `SECURITY_CONTACT_EMAIL`, never
+  printed. A rewrite is pushed only when exactly one line changed and the
+  line count held; commits carry `[skip ci]`; private vulnerability reporting
+  is switched on in every repository the link lands in.
+  `scripts/rollout-security-policy.sh`, which writes the policy for a
+  repository that has none, writes the same line. Neither script contains a
+  personal address. This repository's own SECURITY.md described a Keycloak
+  template, copied from one; it now describes fleet-ops.
 - **Triage and lifecycle name a private repository only in the house copy.**
   Both run in the public copy, whose run log, report and issue anyone can
   read, and both listed `/user/repos`, which answers with the private

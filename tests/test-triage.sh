@@ -1335,5 +1335,25 @@ e2e_out="$(E2E_TRAEFIK_DG=9 E2E_TRAEFIK_INDEX='[{"digest":"sha256:a","platform":
 same "once the index lists its amd64 image, the pin moves" "1" \
   "$(git -C "$e2e/remote/$E2E_RED" show "main:$E2E_RED.yml" | grep -c "traefik:\${TRAEFIK_IMAGE_VERSION:-3.7@$(dgn 9)}")"
 
+echo "== a refresh somebody else already released is not released again"
+# 2026-11-14: tf2's refresh cdb96b9 went out in the game line's v2.2.0, the
+# pending row stayed, and the next run cut v2.2.3 from one CI line.
+rel_gh() {           # rel_gh <compare status> -> a gh that serves tags and that status
+  eval "gh() { case \"\$*\" in *'/tags'*) printf '%s\\n' v2.1.9 v2.2.0 v2.10.0-rc1 2.9.9 ;; *'/compare/'*) echo '$1' ;; *) return 1 ;; esac; }"
+}
+rel_gh ahead
+same "a commit the highest tag already holds is released in that tag" "v2.2.0" "$(released_in tf2-server-docker-compose cdb96b9)"
+rel_gh identical
+same "a tag on the very commit counts too" "v2.2.0" "$(released_in tf2-server-docker-compose cdb96b9)"
+rel_gh behind
+if released_in tf2-server-docker-compose cdb96b9 >/dev/null; then no "a commit after the highest tag was called released"; else ok "a commit after the highest tag is not released yet"; fi
+rel_gh diverged
+if released_in tf2-server-docker-compose cdb96b9 >/dev/null; then no "a commit beside the highest tag was called released"; else ok "nor is one beside it"; fi
+gh() { return 1; }
+if released_in tf2-server-docker-compose cdb96b9 >/dev/null; then no "a lookup that failed stopped the release"; else ok "a lookup that fails says nothing, so the release is cut as before"; fi
+same "the release path asks before it cuts" "1" \
+  "$(awk '/shipped="\$\(released_in "\$repo" "\$sha"\)"/{a=NR} /cut_release "\$dir" "\$repo"/{if (a && NR > a) {print 1; exit}}' "$ROOT/scripts/fleet-triage.sh")"
+unset -f gh
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
