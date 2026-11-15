@@ -88,12 +88,23 @@ expect_rc "a real repository without the pinned tag is 1" 1 ./scripts/verify-map
 expect_rc "the right repository with its tag is 0" 0 ./scripts/verify-mapping.sh henrygd/beszel 0.20.0
 expect_rc "a credential GitHub refuses is 2, not absent" 2 env GITHUB_TOKEN=ghp_this-token-is-not-valid ./scripts/verify-mapping.sh henrygd/beszel 0.20.0
 
-echo "== nothing is in both tables"
+echo "== nothing is in two tables"
 both="$(comm -12 <(read_table SOURCES | cut -f1 | sort) <(read_table NO_NOTES | cut -f1 | sort))"
 if [ -z "$both" ]; then
   ok "no image is both mapped and declared unmappable"
 else
   no "in both SOURCES and NO_NOTES: $both"
+fi
+# WEB_NOTES is read from the publisher's own site (tests/test-review-mssql.sh
+# proves the one reader there is). An image in it and in either table above
+# would be read one way and reported another.
+web="$(read_table WEB_NOTES | cut -f1 | sort)"
+[ -n "$web" ] || no "WEB_NOTES could not be read at all"
+twice="$(comm -12 <(printf '%s\n' "$web") <({ read_table SOURCES; read_table NO_NOTES; } | cut -f1 | sort))"
+if [ -z "$twice" ]; then
+  ok "no image read from the web is also mapped or declared unmappable"
+else
+  no "in WEB_NOTES and in SOURCES or NO_NOTES: $twice"
 fi
 
 echo "== every NO_NOTES entry says why"

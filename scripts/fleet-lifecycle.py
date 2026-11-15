@@ -258,6 +258,33 @@ def eks_versions(repo):
     return sorted(found)
 
 
+def house():
+    """The private copy of fleet-ops says so with FLEET_ROLE=house. Unset reads
+    as public: a new copy, a rehearsal or a fork has not been told it is the
+    house, and the safe default is to say less."""
+    return os.environ.get("FLEET_ROLE") == "house"
+
+
+def fleet_repos():
+    """The fleet's repositories this copy may name, sorted.
+
+    /user/repos answers with the private repositories too. This runs in the
+    public copy, whose log and report anyone can read and which name every
+    repository checked, so only an answer that says "private": false is kept
+    there; one without the field counts as private. The house copy keeps all
+    of them, as fleet-heartbeat.py does. tests/test-triage-privacy.sh."""
+    repos, page = [], 1
+    while True:
+        batch = gh("user/repos?affiliation=owner&per_page=100&page=%d" % page)
+        if not batch:
+            break
+        repos += [r["name"] for r in batch
+                  if not r["archived"] and (house() or r.get("private") is False)
+                  and fleet_kind.kind_of(r["name"])]
+        page += 1
+    return sorted(repos)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--warn-days", type=int, default=180,
@@ -272,15 +299,7 @@ def main():
     if a.repos:
         repos = [r.strip() for r in a.repos.split(",") if r.strip()]
     else:
-        repos, page = [], 1
-        while True:
-            batch = gh("user/repos?affiliation=owner&per_page=100&page=%d" % page)
-            if not batch:
-                break
-            repos += [r["name"] for r in batch
-                      if not r["archived"] and fleet_kind.kind_of(r["name"])]
-            page += 1
-        repos.sort()
+        repos = fleet_repos()
 
     findings, checked = [], 0
     for repo in repos:

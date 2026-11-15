@@ -18,7 +18,9 @@ under the federation rule. No long-lived key exists anywhere.
 """
 import argparse
 import base64
+import datetime
 import hashlib
+import html
 import io
 import json
 import os
@@ -52,7 +54,6 @@ NO_NOTES = {
     "atlassian/bitbucket": "Atlassian publishes release notes on its own site, not on GitHub",
     "atlassian/jira": "Atlassian publishes release notes on its own site, not on GitHub",
     "atlassian/jira-software": "Atlassian publishes release notes on its own site, not on GitHub",
-    "mcr.microsoft.com/mssql/server": "Microsoft publishes SQL Server release notes in its own documentation, not on GitHub",
     "gitlab/gitlab-runner": "GitLab Runner is developed on gitlab.com, not on GitHub",
     "codeberg.org/forgejo/forgejo": "Forgejo is developed on Codeberg, not on GitHub",
     # Moved here on 2026-10-03 from SOURCES, where each pointed at a packaging
@@ -62,6 +63,34 @@ NO_NOTES = {
     "wordpress": "WordPress publishes release notes on wordpress.org; docker-library/wordpress is the packaging and tags no versions",
     "xwiki": "XWiki publishes release notes on xwiki.org; xwiki/xwiki-docker is the packaging and tags no versions",
     "danixu86/project-zomboid-dedicated-server": "The game's notes are The Indie Stone's; the packaging repository tags no versions at all",
+}
+
+# Publishers whose notes are not on GitHub but are read anyway, from their own
+# site, by a reader named here (WEB_READERS, below the readers).
+#
+# SQL Server sat in NO_NOTES until 2026-11-14. Every CU move came back NEEDS
+# ATTENTION with "no release notes could be read", which was true and useless:
+# Microsoft publishes a build list per release line and a KB article per
+# update, and both were there. The same move from CU27 to CU28 also carried two
+# security updates (2022-CU27-GDR1 and -GDR2) that nothing had read either.
+#
+# A reader answers like release_notes(): text that names every page it read
+# (the KB, its build, its date, its address), or a problem. A problem that
+# starts with "absent:" means the publisher's own list answered and does not
+# carry the version. Anything else - the site did not answer, or answered with
+# a page this reader could not find a single update in - is no verdict about
+# the upgrade, and says so.
+WEB_NOTES = {
+    "mcr.microsoft.com/mssql/server": "mssql",
+}
+
+# One build list per SQL Server release line. Only the line this fleet pins is
+# here: a list nobody has proven is a guess at an address, and a tag in another
+# line gets a problem that names the line rather than a confident read of the
+# wrong page. tests/test-review-mssql.sh proves this one against the image's
+# own com.microsoft.version label on every run.
+MSSQL_BUILD_LISTS = {
+    "2022": "https://support.microsoft.com/en-us/servicing/sql/sql-server-2022/kb5023451-build-versions",
 }
 
 # Images whose GitHub source is not <owner>/<name> of the image reference.
@@ -256,7 +285,16 @@ def _split_ref(image):
     return "registry-1.docker.io", image if "/" in image else "library/" + image
 
 
+# Registries that serve public images with no token at all. Microsoft's answers
+# /v2/ anonymously and has no token endpoint to ask, so the review of SQL
+# Server CU27 -> CU28 reported "the registry could not be queried" for an image
+# anyone can read: _token() raised before a single request was made.
+NO_TOKEN = ("mcr.microsoft.com",)
+
+
 def _token(host, repo):
+    if host in NO_TOKEN:
+        return None
     urls = {
         "registry-1.docker.io": "https://auth.docker.io/token?service=registry.docker.io&scope=repository:%s:pull",
         "ghcr.io": "https://ghcr.io/token?service=ghcr.io&scope=repository:%s:pull",
@@ -266,12 +304,19 @@ def _token(host, repo):
     if host not in urls:
         raise RuntimeError("no anonymous token endpoint known for %s" % host)
     with urllib.request.urlopen(urls[host] % repo, timeout=20) as r:
-        return json.load(r).get("token") or json.load(r).get("access_token")
+        # Read once: a second json.load() on the same response reads an
+        # exhausted stream and raises, so a registry answering access_token
+        # alone was reported as unreadable.
+        body = json.load(r)
+    return body.get("token") or body.get("access_token")
 
 
 def _get(host, repo, kind, ref, token, raw=False):
     url = "https://%s/v2/%s/%s/%s" % ("ghcr.io" if host == "lscr.io" else host, repo, kind, ref)
-    req = urllib.request.Request(url, headers={"Authorization": "Bearer " + token, "Accept": ACCEPT})
+    headers = {"Accept": ACCEPT}
+    if token:
+        headers["Authorization"] = "Bearer " + token
+    req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req, timeout=30) as r:
         return r.read() if raw else json.load(r)
 
@@ -473,6 +518,191 @@ def from_release(source, frm, limit=12000):
     return None
 
 
+# --- notes on the publisher's own site (WEB_NOTES) -----------------------------
+
+# A LINK READ OFF A PAGE IS SOMEBODY ELSE'S TEXT. The build list's rows link
+# the articles that are fetched next, and the text fetched goes into the
+# review and from there into a public report. So a fetch goes over https to a
+# host one of the lists above lives on, and nowhere else: not a file, not the
+# runner's own network, not a redirect that leaves the host. The check runs
+# before any request is made, and again on every redirect.
+def _web_hosts():
+    return {urllib.parse.urlsplit(u).netloc for u in MSSQL_BUILD_LISTS.values()}
+
+
+def _check_url(url):
+    p = urllib.parse.urlsplit(url)
+    if p.scheme != "https" or p.netloc not in _web_hosts():
+        raise ValueError("refused %s: only https on %s is fetched" % (url, ", ".join(sorted(_web_hosts()))))
+
+
+class _SameHostsRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        _check_url(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def _fetch(url, timeout=30):
+    req = urllib.request.Request(url, headers={"User-Agent": "fleet-upstream-review"})
+    with urllib.request.build_opener(_SameHostsRedirect).open(req, timeout=timeout) as r:
+        return r.read().decode("utf-8", "replace")
+
+
+def web(url, timeout=30):
+    """A page as the site sends it, from an allowed host only."""
+    _check_url(url)
+    return _fetch(url, timeout)
+
+
+def _cells(row):
+    return [re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", c))).strip()
+            for c in re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", row, flags=re.S)]
+
+
+def _build(v):
+    return tuple(int(x) for x in re.findall(r"\d+", v))
+
+
+MSSQL_TAG = re.compile(r"^(\d{4})-CU(\d+)(?:-GDR(\d+))?-")
+
+
+def mssql_builds(page, base):
+    """Every CU and CU + GDR row of a SQL Server build list, or [] if none.
+
+    Columns are found by their headings, not by position. A GDR row carries no
+    number of its own on the page; the image tags number them in build order
+    (2022-CU27-GDR1 is 16.0.4305.5, GDR2 is 16.0.4315.2), and so does this."""
+    rows, cols = [], None
+    for tr in re.findall(r"<tr.*?</tr>", page, flags=re.S):
+        c = _cells(tr)
+        low = [x.lower() for x in c]
+        if any(x.startswith("cumulative update name") for x in low):
+            def col(word):
+                return next((i for i, x in enumerate(low) if word in x), None)
+            cols = {"name": col("cumulative update name"), "build": col("sql server build"),
+                    "kb": col("knowledge base"), "date": col("release date")}
+            cols = cols if None not in cols.values() else None
+            continue
+        if not cols or len(c) <= max(cols.values()):
+            continue
+        m = re.match(r"^CU(\d+)\b[^+]*(\+\s*GDR)?", c[cols["name"]])
+        if not m or not re.match(r"^\d+\.\d+\.\d+\.\d+$", c[cols["build"]]):
+            continue
+        date = c[cols["date"]]
+        try:
+            date = datetime.datetime.strptime(date, "%B %d, %Y").date().isoformat()
+        except ValueError:
+            pass
+        href = re.search(r'href="([^"]+)"', tr)
+        rows.append({"cu": int(m.group(1)), "gdr": 1 if m.group(2) else 0, "build": c[cols["build"]],
+                     "kb": c[cols["kb"]], "date": date,
+                     "href": urllib.parse.urljoin(base, html.unescape(href.group(1))) if href else ""})
+    for cu in {r["cu"] for r in rows}:
+        gdrs = sorted((r for r in rows if r["cu"] == cu and r["gdr"]), key=lambda r: _build(r["build"]))
+        for n, r in enumerate(gdrs, 1):
+            r["gdr"] = n
+    for r in rows:
+        r["name"] = "CU%d" % r["cu"] + (" GDR%d" % r["gdr"] if r["gdr"] else "")
+    return rows
+
+
+def kb_text(page, prose_limit=6000, fix_limit=150):
+    """A KB article as notes: its summary and known issues, then the fixes that
+    apply on Linux, which is all an image runs. Returns (text, kept, left_out)."""
+    m = re.search(r"<main.*?</main>", page, flags=re.S)
+    s = re.sub(r"<script.*?</script>|<style.*?</style>", "", m.group(0) if m else page, flags=re.S)
+    fixes, dropped = [], 0
+    for tr in re.findall(r"<tr.*?</tr>", s, flags=re.S):
+        c = _cells(tr)
+        if len(c) >= 5 and re.fullmatch(r"\d{6,8}", c[0]):
+            if "Linux" in c[-1] or c[-1] == "All":
+                fixes.append("- %s: %s (%s; %s)" % (c[0], c[1], " / ".join(c[2:-1]), c[-1]))
+            else:
+                dropped += 1
+    s = re.sub(r"<table.*?</table>", "\n", s, flags=re.S)
+    s = re.sub(r"</(p|li|h\d|div)>|<br\s*/?>", "\n", s)
+    lines = [re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", x))).strip() for x in s.split("\n")]
+    lines = [x for x in lines if x]
+    # The article opens with its own table of contents, so the prose starts
+    # after the LAST "Summary" heading and ends where installing starts.
+    starts = [i for i, x in enumerate(lines) if x == "Summary"]
+    start = starts[-1] + 1 if starts else 0
+    end = next((i for i in range(start, len(lines)) if lines[i].startswith("How to obtain")), len(lines))
+    skip = re.compile(r"^(A downloadable|Individual entries|For more information about the bugs|Note$)")
+    prose = "\n".join(x for x in lines[start:end] if not skip.match(x))[:prose_limit]
+    text = prose + ("\n\nFixes that apply on Linux:\n" + "\n".join(fixes[:fix_limit]) if fixes else "")
+    return text, len(fixes), dropped
+
+
+def mssql_notes(frm, to, max_pages=8):
+    """SQL Server notes for frm -> to, from Microsoft's build list and the KB
+    article of every update after frm up to to, newest first."""
+    a, b = MSSQL_TAG.match(frm.split("@")[0]), MSSQL_TAG.match(to.split("@")[0])
+    if not b:
+        return None, ("the tag %s names no cumulative update (<line>-CU<n>[-GDR<m>]-...), so no Microsoft "
+                      "article can be matched to it" % to)
+    line = b.group(1)
+    url = MSSQL_BUILD_LISTS.get(line)
+    if not url:
+        return None, ("no Microsoft build list is known for the SQL Server %s line (known: %s); this is no "
+                      "verdict about %s" % (line, ", ".join(sorted(MSSQL_BUILD_LISTS)), to))
+    try:
+        page = web(url)
+    except Exception as e:
+        return None, ("Microsoft's SQL Server %s build list could not be read (%s: %s); this is no verdict "
+                      "about %s" % (line, e.__class__.__name__, e, to))
+    rows = mssql_builds(page, url)
+    if not rows:
+        return None, ("Microsoft's SQL Server %s build list answered (%s) but not one CU row could be read "
+                      "from it, so the page changed shape; this is no verdict about %s" % (line, url, to))
+
+    def find(m):
+        cu, gdr = int(m.group(2)), int(m.group(3) or 0)
+        return next((r for r in rows if r["cu"] == cu and r["gdr"] == gdr), None)
+
+    target = find(b)
+    want = "CU%s" % b.group(2) + (" GDR%s" % b.group(3) if b.group(3) else "")
+    if not target:
+        newest = max(rows, key=lambda r: _build(r["build"]))
+        return None, ("absent: Microsoft's SQL Server %s build list (%s) names no %s; the newest update it lists "
+                      "is %s, build %s, %s" % (line, url, want, newest["name"], newest["build"], newest["date"]))
+    start = find(a) if a and a.group(1) == line else None
+    if start:
+        lo, hi = _build(start["build"]), _build(target["build"])
+        picked = [r for r in rows if lo < _build(r["build"]) <= hi]
+    else:
+        picked = [target]
+    picked.sort(key=lambda r: _build(r["build"]), reverse=True)
+
+    parts, read = [], 0
+    for r in picked[:max_pages]:
+        head = "### %s - %s, build %s, %s" % (r["name"], r["kb"], r["build"], r["date"])
+        if not r["href"]:
+            parts.append(head + "\n(the build list links no article for this update)")
+            continue
+        try:
+            body, kept, dropped = kb_text(web(r["href"]))
+        except Exception as e:
+            parts.append("%s\n(%s could not be read: %s: %s)" % (head, r["href"], e.__class__.__name__, e))
+            continue
+        read += 1
+        parts.append("%s\n(read from %s; %d fixes apply on Linux and are listed, %d Windows-only fixes left out)\n%s"
+                     % (head, r["href"], kept, dropped, body))
+    if not read:
+        return None, ("Microsoft's build list names %s (%s, build %s) but no article in the range could be read; "
+                      "this is no verdict about %s" % (want, target["kb"], target["build"], to))
+    pre = ["(from Microsoft's SQL Server %s build list, %s)" % (line, url)]
+    if not start:
+        pre.append("(the build list names no update for the pinned %s, so %s is read alone, with no baseline)" % (frm, to))
+    if len(picked) > max_pages:
+        pre.append("(%d older update(s) in the range were not read: %s)"
+                   % (len(picked) - max_pages, ", ".join(r["name"] for r in picked[max_pages:])))
+    return ("\n".join(pre) + "\n\n" + "\n\n".join(parts))[:60000], None
+
+
+WEB_READERS = {"mssql": mssql_notes}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--repo", required=True)
@@ -493,7 +723,12 @@ def main():
     compose = open(compose_path, encoding="utf-8").read() if os.path.exists(compose_path) else ""
     envx = open(".env.example", encoding="utf-8").read() if os.path.exists(".env.example") else ""
 
-    if image in NO_NOTES:
+    web_notes = None
+    if image in WEB_NOTES:
+        web_notes = WEB_NOTES[image]
+        source = None
+        notes, problem = WEB_READERS[web_notes](a.frm, a.to)
+    elif image in NO_NOTES:
         source, notes, problem = None, None, NO_NOTES[image]
     elif not source:
         notes, problem = None, "no known source repository for %s" % image
@@ -556,7 +791,7 @@ def main():
         "### Before applying\n- the concrete steps, if any, a deployed host needs (backup, a manual migration command, a config edit)\n\n"
         "### Notes read\n- the release tags whose notes you read, or the reason they could not be read\n" % (a.frm, a.to)
     )
-    user = "Template repository: %s\nImage: %s\nFrom: %s\nTo: %s\nRelease-notes source: %s\n\n" % (a.repo, image, a.frm, a.to, source or "none")
+    user = "Template repository: %s\nImage: %s\nFrom: %s\nTo: %s\nRelease-notes source: %s\n\n" % (a.repo, image, a.frm, a.to, source or (("the publisher's own site (%s reader)" % web_notes) if web_notes else "none"))
     if notes:
         user += "=== UPSTREAM RELEASE NOTES ===\n" + notes + "\n\n"
     else:
@@ -578,7 +813,7 @@ def main():
     text, msg = answer(client, model=MODEL, max_tokens=6000, system=system, messages=[{"role": "user", "content": user}])
     verdict = re.search(r"\*\*Verdict:\*\*\s*(.+)", text)
     result = {
-        "repo": a.repo, "image": image, "from": a.frm, "to": a.to, "source": source,
+        "repo": a.repo, "image": image, "from": a.frm, "to": a.to, "source": source, "web_notes": web_notes or "",
         "notes_found": bool(notes), "notes_problem": problem,
         "image_diff": images_differ,
         "verdict": verdict.group(1).strip() if verdict else "",

@@ -74,7 +74,18 @@ section() { echo; echo "### $*" >> "$REPORT"; }
 # /user/repos, not /users/OWNER/repos: the latter lists PUBLIC repositories
 # only, so a private template (gaseous) went red every morning and was in
 # no report at all, because the listing never handed it to the loop. The
-# token decides what is visible; the listing must not narrow it further.
+# token decides what is visible.
+#
+# WHAT IS VISIBLE IS NOT WHAT MAY BE NAMED. This runs in the public copy of
+# fleet-ops, whose run log, report and issue anyone can read, and every
+# repository listed here is named in all three. So the public copy keeps only
+# the repositories whose answer says "private": false; an answer without the
+# field counts as private. Only the house copy (FLEET_ROLE=house), which
+# prints into a private log, keeps the rest, the way fleet-heartbeat.py
+# splits its two halves. No private repository passed fleet_kind's filter
+# when this was written (2026-11-14), so nothing changes today; the first one
+# that did would have been named in public. tests/test-triage-privacy.sh shows
+# this listing and fleet-lifecycle.py's a private name.
 REPOS=()
 # WHICH REPOSITORIES ARE TRIAGED IS DECIDED IN scripts/fleet_kind.py, the one
 # place every fleet tool asks. It used to be a regular expression here and
@@ -85,7 +96,9 @@ REPOS=()
 # compose pins and Terraform providers, and fleet-heartbeat reports any red
 # run of theirs instead.
 list_repos() {
-  while IFS= read -r _r; do REPOS+=("$_r"); done < <(gh api "user/repos?affiliation=owner&per_page=100" --paginate --jq '.[] | select(.archived|not) | .name' | python3 "$(dirname "${BASH_SOURCE[0]}")/fleet_kind.py" filter --triaged | cut -f1 | sort)
+  local keep='select(.private == false)'
+  if [ "${FLEET_ROLE:-}" = house ]; then keep='.'; fi
+  while IFS= read -r _r; do REPOS+=("$_r"); done < <(gh api "user/repos?affiliation=owner&per_page=100" --paginate --jq ".[] | select(.archived|not) | $keep | .name" | python3 "$(dirname "${BASH_SOURCE[0]}")/fleet_kind.py" filter --triaged | cut -f1 | sort)
   if [ "${#REPOS[@]}" -eq 0 ]; then
     echo "::error::repository listing came back empty — token or API problem, refusing to report a false green"
     exit 1

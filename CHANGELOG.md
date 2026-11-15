@@ -10,6 +10,44 @@ check or a job, a patch fixes one.
 ## [Unreleased]
 
 ### Fixed
+- **Triage and lifecycle name a private repository only in the house copy.**
+  Both run in the public copy, whose run log, report and issue anyone can
+  read, and both listed `/user/repos`, which answers with the private
+  repositories too, then kept whatever `fleet_kind` accepted by name. No
+  private repository passed that filter yet, and 703 public logs read on
+  2026-10-27 named none; the first one named like a template would have been
+  published by both. They now keep a repository only when its answer says
+  `"private": false` (an answer without the field counts as private), and the
+  house copy (`FLEET_ROLE=house`) keeps the rest, the line
+  `fleet-heartbeat.py` drew on 2026-10-27. `tests/test-triage-privacy.sh`
+  serves both listings a public template, a private one, one with no
+  visibility and an archived one through a fake `gh`, with invented names; on
+  the old code four of its five checks fail.
+- **SQL Server's notes are read from Microsoft, and its registry without a
+  token.** `mcr.microsoft.com/mssql/server` sat in NO_NOTES, so on 2026-11-14
+  the review of 2022-CU27 -> CU28 came back NEEDS ATTENTION with "no release
+  notes could be read and the registry could not be queried either". Both
+  were there: Microsoft keeps a build list per release line and a KB article
+  per update, and its registry answers anonymously, while `_token()` raised
+  for a host with no token endpoint before asking it anything. The image now
+  sits in WEB_NOTES, read by `mssql_notes()`: the 2022 build list, then the
+  article of every update after the pin up to the target, newest first, each
+  named with its KB, build, date and address, with the fixes that apply on
+  Linux listed and the Windows-only ones counted. That move also carried two
+  security updates on CU27 (KB5126934, KB5129300) that the template's
+  freshness check never saw; they are read now as part of the range.
+  "absent:" is said only when Microsoft's own list answered and does not
+  carry the version; a list that does not answer, or answers with no update
+  in it, is no verdict and says so. A link read off Microsoft's page is
+  somebody else's text, so a fetch goes only over https to the host the list
+  lives on, checked before the request and again on every redirect: a row
+  linking a file or another host is named and left unread. Microsoft's
+  registry is asked with no token, and a token endpoint answering
+  `access_token` alone is no longer read twice. `tests/test-review-mssql.sh`
+  (47) shows the reader those answers offline and proves the 2022 list live
+  against the image's own `com.microsoft.version` label for CU27 and CU27
+  GDR1; against the old reviewer it fails at once, and with the host check
+  taken out six of its cases fail.
 - **Conformance reads README shell blocks, and any value expanded into
   `-e NAME=`.** The rule against secrets on a command line matched
   `docker -e NAME=value` only for names with PASS, PWD, SECRET, TOKEN, KEY or
