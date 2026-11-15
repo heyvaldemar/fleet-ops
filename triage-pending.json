@@ -1,30 +1,16 @@
 [
   {
     "repo": "game-server-wireguard-relay-docker-compose",
-    "sha": "1ae36bac48a408f615a8ca92f3f4cd4d8e5c1206",
+    "sha": "df9342fb0f6262234e63b0b20f82dd41c601556a",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-15T14:23:36Z"
-  },
-  {
-    "repo": "glpi-traefik-letsencrypt-docker-compose",
-    "sha": "11f7f98353295d27ee5ffd37da286c0dab015ee8",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-15T14:23:50Z"
-  },
-  {
-    "repo": "outline-keycloak-traefik-letsencrypt-docker-compose",
-    "sha": "1c9f3c1a443b630c99ebd2086d1fca6bfc2779ae",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-15T14:24:56Z"
+    "pushed_at": "2026-11-15T23:30:54Z"
   },
   {
     "repo": "rathena-docker",
-    "sha": "30573939960a2eddb5f3eb1679b7dc68c114a3d5",
+    "sha": "5f4f586b2f52f8dc41139daa4d3edf45f18c9150",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-15T14:25:10Z"
+    "pushed_at": "2026-11-15T23:31:38Z"
   }
 ]
