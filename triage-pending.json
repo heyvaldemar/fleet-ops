@@ -1,16 +1,1 @@
-[
-  {
-    "repo": "game-server-wireguard-relay-docker-compose",
-    "sha": "df9342fb0f6262234e63b0b20f82dd41c601556a",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-15T23:30:54Z"
-  },
-  {
-    "repo": "rathena-docker",
-    "sha": "5f4f586b2f52f8dc41139daa4d3edf45f18c9150",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-15T23:31:38Z"
-  }
-]
+[]
