@@ -9,6 +9,38 @@ check or a job, a patch fixes one.
 
 ## [Unreleased]
 
+### Added
+- **One freshness check for every Kubernetes repository, with a three-day
+  grace for new releases.** The seven repositories that pin charts, images,
+  tools and providers outside Dependabot each carried their own
+  `scripts/check-freshness.py`: five versions, and a fix made in one (release
+  candidates, a throttling registry) reached none of the others.
+  `templates/check-freshness.py` is the one copy now, the union of all five,
+  and what differs between repositories is in each one's `freshness.json`; a
+  misspelt key, a listed check whose lock file is missing, or a pin file whose
+  check is not listed fails the run. A release younger than three days is a
+  `::warning::` naming the moment it becomes a failure; older, or with a date
+  that cannot be read, it fails, and a moved tag fails at once. Before, every
+  upstream release turned these repositories red for three days that the
+  release-age rule forbade acting on: helm v4.3.2, published 2026-11-13 at
+  04:53Z, failed kubernetes-supply-chain-admission at once (run
+  43680156929). On one snapshot of upstream, each old copy and the canon
+  checked the same pins (12 to 61 per repository) and found the same lags,
+  except 11 findings inside the grace (helm v4.3.2 in five of them). The
+  canon also reads a values file's `repo:` as the image's repository, as
+  Coder's chart names it: the Coder server's pin in
+  kubernetes-coder-agent-workspaces `helm/values.yaml` was read by no copy,
+  and was checked only because a recording of a past run quoted it.
+  With more than one Terraform lock file a provider's line names its file,
+  and the selftest shows its throttling simulation's output indented, so its
+  deliberate `::error::` lines never mark a passing run.
+  `tests/test-check-freshness.sh` (63): 44 cases with no network, the copy
+  from before the canon fails the five young-release cases, nine mutations
+  of the canon are each caught, and the selftest prints no workflow command. Conformance holds every copy to
+  the template byte for byte and reads `freshness.json` with the template's
+  own validator, three new cases in each of the Kubernetes and sandbox
+  suites; pyflakes now reads `templates/` too.
+
 ### Fixed
 - **Triage does not release a refresh somebody else already released.** A
   pushed refresh waits in the pending ledger for the next run, and in between

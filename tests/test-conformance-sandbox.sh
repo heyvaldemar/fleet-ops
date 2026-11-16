@@ -109,6 +109,17 @@ expect "an auto-merge that waits for a workflow the repository does not have is 
 d="$(fixture runbooks)"; rm -rf "$d/docs/runbooks"
 expect_clean "a sandbox is not asked for a platform's runbooks" "$WORK/runbooks"
 
+# One freshness check (templates/check-freshness.py), copied byte for byte,
+# with a freshness.json the check itself accepts.
+d="$(fixture freshcopy)"; printf '\n# a local fix\n' >> "$d/scripts/check-freshness.py"
+expect "a check-freshness.py that is not the fleet's template is caught" "$WORK/freshcopy" "is not fleet-ops templates/check-freshness.py byte for byte"
+
+d="$(fixture freshcfg)"; rm -f "$d/freshness.json"
+expect "a check-freshness.py with no freshness.json is caught" "$WORK/freshcfg" "has no freshness.json"
+
+d="$(fixture freshkey)"; edit "$d/freshness.json" 's/"checks"/"tool_lock": [], "checks"/'
+expect "a freshness.json key the check does not know is caught" "$WORK/freshkey" "key(s) this check does not know: tool_lock"
+
 echo
 echo "passed: $PASSED   failed: $FAILED"
 [ "$FAILED" -eq 0 ]

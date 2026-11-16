@@ -42,7 +42,7 @@ jobs:
       - name: Undefined names, unused imports
         run: |
           python3 -m pip install --quiet pyflakes
-          python3 -m pyflakes scripts/*.py
+          python3 -m pyflakes scripts/*.py templates/*.py
 
       - name: ShellCheck
         # The pinned container, not the runner's preinstalled shellcheck. The

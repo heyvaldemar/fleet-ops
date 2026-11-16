@@ -361,6 +361,17 @@ d="$(tf_fixture tfhelm)"
 for wf in "$d"/.github/workflows/*.yml; do edit "$wf" 's/helm_release/helm_rel/g'; done
 expect "helm_release pins nobody compares upstream are caught" "$WORK/tfhelm" "installs charts with helm_release and no workflow compares"
 
+# One freshness check (templates/check-freshness.py), copied byte for byte,
+# with a freshness.json the check itself accepts.
+d="$(fixture kfreshcopy)"; printf '\n# a local fix\n' >> "$d/scripts/check-freshness.py"
+expect "a check-freshness.py that is not the fleet's template is caught" "$WORK/kfreshcopy" "is not fleet-ops templates/check-freshness.py byte for byte"
+
+d="$(fixture kfreshcfg)"; rm -f "$d/freshness.json"
+expect "a check-freshness.py with no freshness.json is caught" "$WORK/kfreshcfg" "has no freshness.json"
+
+d="$(fixture kfreshkey)"; edit "$d/freshness.json" 's/"checks"/"tool_lock": [], "checks"/'
+expect "a freshness.json key the check does not know is caught" "$WORK/kfreshkey" "key(s) this check does not know: tool_lock"
+
 echo
 echo "passed: $PASSED   failed: $FAILED"
 [ "$FAILED" -eq 0 ]

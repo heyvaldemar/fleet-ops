@@ -1484,6 +1484,46 @@ def check(repo, exempt=None):
     return extra if (found is NOT_APPLICABLE or found == NOT_APPLICABLE) else list(found) + extra
 
 
+# --- One freshness check for every Kubernetes repository -----------------------
+#
+# Until 15 November 2026 the focused repositories and the EKS platform each
+# carried their own scripts/check-freshness.py: five versions of one check,
+# and a fix made in one (the release-age grace, release candidates, a
+# throttling registry) reached none of the others. There is one now,
+# templates/check-freshness.py, and what differs between repositories is in
+# each one's freshness.json. A copy that differs from the template by a byte
+# is a finding; so is a copy with no freshness.json, or one the check itself
+# would refuse, which this reads with the template's own validator.
+FRESHNESS_TEMPLATE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "templates", "check-freshness.py")
+
+
+def freshness_findings(repo):
+    copy = repo.read("scripts/check-freshness.py")
+    if copy is None:
+        return []
+    with open(FRESHNESS_TEMPLATE, encoding="utf-8") as f:
+        template = f.read()
+    bad = []
+    if copy != template:
+        bad.append("scripts/check-freshness.py is not fleet-ops templates/check-freshness.py byte for byte: "
+                   "copy the template, and put what this repository needs in freshness.json")
+    cfg = repo.read("freshness.json")
+    if cfg is None:
+        bad.append("scripts/check-freshness.py has no freshness.json to say which checks this repository needs")
+        return bad
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("freshness_template", FRESHNESS_TEMPLATE)
+    canon = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(canon)
+    try:
+        canon.validate_config(json.loads(cfg))
+    except ValueError as e:
+        bad.append("freshness.json is not JSON: %s" % e)
+    except canon.ConfigError as e:
+        bad.append(str(e))
+    return bad
+
+
 def check_repo(repo, exempt=None):
     """Returns a list of failures. An empty list means the repo conforms.
     Declared exemptions are appended to `exempt`, never to the failures."""
@@ -1496,19 +1536,19 @@ def check_repo(repo, exempt=None):
 
     kind = fleet_kind.kind_of(repo.name)
     if kind == "kubernetes":
-        return kubernetes_rules(repo, names) + workflow_claims(repo) + changelog_claims(repo, exempt)
+        return kubernetes_rules(repo, names) + freshness_findings(repo) + workflow_claims(repo) + changelog_claims(repo, exempt)
     if fleet_kind.kind_from_files(names) == "kubernetes":
         return ["its files are a Kubernetes platform, but its name puts it outside the Kubernetes rules (scripts/fleet_kind.py)"]
     if kind == "focused":
-        return focused_rules(repo, names) + workflow_claims(repo) + changelog_claims(repo, exempt)
+        return focused_rules(repo, names) + freshness_findings(repo) + workflow_claims(repo) + changelog_claims(repo, exempt)
     if fleet_kind.kind_from_files(names) == "focused":
         return ["its files are a focused Kubernetes repository, but its name puts it outside those rules (scripts/fleet_kind.py)"]
     if kind == "measured":
-        return measured_rules(repo, names) + workflow_claims(repo) + changelog_claims(repo, exempt)
+        return measured_rules(repo, names) + freshness_findings(repo) + workflow_claims(repo) + changelog_claims(repo, exempt)
     if fleet_kind.kind_from_files(names) == "measured":
         return ["its files are a measured Kubernetes repository, but its name puts it outside those rules (scripts/fleet_kind.py)"]
     if kind == "evidence":
-        return evidence_rules(repo, names) + workflow_claims(repo) + changelog_claims(repo, exempt)
+        return evidence_rules(repo, names) + freshness_findings(repo) + workflow_claims(repo) + changelog_claims(repo, exempt)
     if fleet_kind.kind_from_files(names) == "evidence":
         return ["its files are an evidence repository, but its name puts it outside those rules (scripts/fleet_kind.py)"]
 
