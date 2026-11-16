@@ -91,6 +91,17 @@ WORKFLOW = {
 }
 
 
+# Game servers, a part of the compose and docker kinds rather than a kind of
+# their own: conformance holds them to one more rule (an image that publishes
+# no secret it is handed, tests/secret-probe.sh). Named here so that no tool
+# carries a name pattern of its own.
+GAME = re.compile(r"-server(?:-proxy)?-docker-compose$|^(?:rathena|modernuo)-docker$")
+
+
+def game(name):
+    return bool(GAME.search(name))
+
+
 def kind_of(name):
     if name in NAMED:
         return NAMED[name]

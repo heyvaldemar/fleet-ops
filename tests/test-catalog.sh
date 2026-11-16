@@ -420,6 +420,27 @@ odd = legs(dict(LIVE, scheduled_streak="two", scheduled_runs=True, latest=dict(L
 check("a count that is not a number, or an event that is not a word, is not passed on",
       ("scheduled_streak" in odd, "scheduled_runs" in odd, odd["scheduled_passed"], "event" in odd["latest"]), (False, False, 0, False))
 check("a record that is not a record is no leg", sorted(legs(["not", "a", "record"])), ["kind"])
+WEBRUN = lambda i: {"id": i, "at": "2026-11-1%dT13:33:36Z" % i, "event": "schedule", "conclusion": "success",
+                    "url": "u%d" % i, "commit": "b1f7c6b", "webhook": True, "extra": "stays"}
+w1 = legs(dict(LIVE, webhook_scheduled_streak=1, webhook_scheduled_in_a_row=[WEBRUN(4)]))["live"]
+check("the webhook streak travels with the run it counted",
+      (w1["webhook_scheduled_streak"], [r["id"] for r in w1["webhook_scheduled_in_a_row"]]), (1, [4]))
+check("each counted run carries its id, time, link and commit, nothing else",
+      sorted(w1["webhook_scheduled_in_a_row"][0]), ["at", "commit", "conclusion", "event", "id", "url", "webhook"])
+w2 = legs(dict(LIVE, webhook_scheduled_streak=2, webhook_scheduled_in_a_row=[WEBRUN(5), WEBRUN(4)]))["live"]
+check("two webhook greens in a row arrive with both ids, which is what daily needs",
+      (w2["webhook_scheduled_streak"], [r["id"] for r in w2["webhook_scheduled_in_a_row"]]), (2, [5, 4]))
+check("fleet.json carries the webhook streak next to scheduled_streak",
+      json.loads(m.fleet_json(rows0, ev0, [], live={"cypress-cloud-triage-agent": {"live": w2}}))["live_status"]["cypress-cloud-triage-agent"]["live"]["webhook_scheduled_streak"], 2)
+for label, rec in (("a streak with fewer runs than it counts", dict(webhook_scheduled_streak=2, webhook_scheduled_in_a_row=[WEBRUN(4)])),
+                   ("a streak with no runs at all", dict(webhook_scheduled_streak=2)),
+                   ("a run started by hand inside the streak", dict(webhook_scheduled_streak=2, webhook_scheduled_in_a_row=[WEBRUN(5), dict(WEBRUN(4), event="workflow_dispatch")])),
+                   ("a red run inside the streak", dict(webhook_scheduled_streak=2, webhook_scheduled_in_a_row=[WEBRUN(5), dict(WEBRUN(4), conclusion="failure")])),
+                   ("a run without an id", dict(webhook_scheduled_streak=1, webhook_scheduled_in_a_row=[dict(WEBRUN(4), id=None)])),
+                   ("a streak that is not a number", dict(webhook_scheduled_streak="two", webhook_scheduled_in_a_row=[WEBRUN(5), WEBRUN(4)]))):
+    bad = legs(dict(LIVE, **rec))["live"]
+    check("%s carries no webhook streak" % label, ("webhook_scheduled_streak" in bad, "webhook_scheduled_in_a_row" in bad), (False, False))
+check("a record without the webhook fields carries none", [k for k in got["live"] if k.startswith("webhook")], [])
 m.gh = keep
 
 print()
@@ -681,6 +702,22 @@ check("a first run with no previous file is not held to one",
       m.refuse_partial(whole, [{}] * 3, None), [])
 check("a drill or two failing is not a collapse",
       m.refuse_partial(whole, [{}] * 45, {"clean_machine_restores": [{}] * 47}), [])
+
+print()
+print("=== a gateway whose verdict workflow is ci.yml is listed, not dropped ===")
+# 2026-11-16: oxy-llm-gateway went public with nine proofs in ci.yml, a file no
+# group listed, so it fell through to the catch-all and left the page.
+keep_repos, keep_wf, keep_rel = m.repos, m.has_workflow, m.latest_release
+m.repos = lambda: [{"name": "oxy-llm-gateway"}, {"name": "some-tool"}]
+m.has_workflow = lambda n, wf: wf == "ci.yml"
+m.latest_release = lambda n: ("v1.0.3", "2026-11-15")
+got = m.collect()
+gw = [label for label, short, _, _ in m.GROUPS if short == "LLM gateway"]
+check("the gateway has a group of its own", len(gw), 1)
+check("and it is in it", [r[1] for r in got[gw[0]]] if gw else [], ["oxy-llm-gateway"])
+check("its badge is ci.yml's", "workflows/ci.yml/badge.svg" in (got[gw[0]][0][3] if gw and got[gw[0]] else ""), True)
+check("a tool with only ci.yml is still not listed", any(r[1] == "some-tool" for rows in got.values() for r in rows), False)
+m.repos, m.has_workflow, m.latest_release = keep_repos, keep_wf, keep_rel
 
 print("\npassed: %d   failed: %d" % (passed, failed))
 sys.exit(1 if failed else 0)

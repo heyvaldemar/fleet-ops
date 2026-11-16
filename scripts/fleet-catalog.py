@@ -117,6 +117,11 @@ def has_workflow(name, wf):
 # it does rather than for how it is deployed disappears from both the catalog
 # and the profile count without anything failing. Add it here instead.
 NAMED_TRAEFIK_STACKS = ("chatops-privilege-wall",)
+# Not a template: a self-hosted LLM gateway with nine proofs and their planted
+# violations in CI. Its verdict workflow is ci.yml, which no group lists, so it
+# fell through to the catch-all and was dropped (2026-11-16). Its branch
+# `status` has the same shape as the measured repositories' (scripts/status.py).
+NAMED_GATEWAYS = ("oxy-llm-gateway",)
 
 GROUPS = [
     ("Self-hosted applications behind Traefik with Let's Encrypt", "self-hosted applications behind Traefik",
@@ -130,6 +135,8 @@ GROUPS = [
      lambda n: n.endswith("-terraform"), ["terraform-verification.yml"]),
     ("Kubernetes platforms", "Kubernetes platforms",
      lambda n: fleet_kind.kind_of(n) in ("kubernetes", "helm", "focused", "measured", "evidence"), ["kind-e2e.yml", "verification.yml", "e2e.yml", "verify.yml", "evidence.yml", "pack.yml"]),
+    ("Self-hosted LLM gateway", "LLM gateway",
+     lambda n: n in NAMED_GATEWAYS, ["ci.yml"]),
     ("Operations tools and scripts", "operations tools and scripts",
      lambda n: True, ["tests.yml", "verification.yml"]),
 ]
@@ -513,6 +520,12 @@ def collect_bestpractices(names, sleep=time.sleep):
 # started by hand and the page may say "daily" only on scheduled runs.
 LIVE_STATUS_FILES = (("kind", "status.json"), ("aws", "eks/status.json"), ("live", "status-live.json"))
 SCHEDULED_COUNTS = ("scheduled_runs", "scheduled_passed", "scheduled_streak")
+# The same count for the scheduled runs where a signed Cypress Cloud delivery
+# was the only trigger (cypress-cloud-triage-agent since a5cc1d0): "daily" about
+# that delivery rests on it, at 2 or more, with the run ids it names.
+WEBHOOK_STREAK = "webhook_scheduled_streak"
+WEBHOOK_RUNS = "webhook_scheduled_in_a_row"
+WEBHOOK_RUN_KEYS = ("id", "at", "event", "conclusion", "url", "commit", "webhook")
 
 
 def models_window_of(s):
@@ -569,6 +582,16 @@ def live_status_one(name, path):
             out[key] = s[key]
     if isinstance(latest.get("event"), str):
         out["latest"]["event"] = latest["event"]
+    # The webhook streak travels only with the runs it counted, and only when
+    # they agree: as many runs as the count, each a scheduled success with its id.
+    streak, runs = s.get(WEBHOOK_STREAK), s.get(WEBHOOK_RUNS)
+    if isinstance(streak, int) and not isinstance(streak, bool) and streak >= 0 and isinstance(runs, list):
+        kept = [{k: r.get(k) for k in WEBHOOK_RUN_KEYS} for r in runs
+                if isinstance(r, dict) and isinstance(r.get("id"), int) and not isinstance(r.get("id"), bool)
+                and r.get("event") == "schedule" and r.get("conclusion") == "success"]
+        if len(kept) == len(runs) == streak:
+            out[WEBHOOK_STREAK] = streak
+            out[WEBHOOK_RUNS] = kept
     # Only where the branch keeps one: every other record stays as it was.
     window = models_window_of(s)
     if window:
@@ -582,7 +605,8 @@ def collect_live_status(names):
     for n in sorted(names):
         # By kind, not by name: cypress-cloud-triage-agent keeps the same
         # record and was left off the page until 2026-11-03 for its prefix.
-        if fleet_kind.kind_of(n) not in ("kubernetes", "focused", "measured") or not has_workflow(n, "status.yml"):
+        if (fleet_kind.kind_of(n) not in ("kubernetes", "focused", "measured") and n not in NAMED_GATEWAYS) \
+                or not has_workflow(n, "status.yml"):
             continue
         found = {kind: s for kind, path in LIVE_STATUS_FILES for s in [live_status_one(n, path)] if s}
         if found:

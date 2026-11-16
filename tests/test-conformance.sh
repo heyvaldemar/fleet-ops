@@ -712,6 +712,41 @@ d="$(fixture rediskeycloak)"; tag_all "$d"
 # shellcheck disable=SC2016  # the ${...} belongs to the compose file
 redis_check "$d" '["CMD-SHELL", "redis-cli ping | grep -q PONG && test -n ${KEYCLOAK_DB_NAME:-db}"]'
 expect_clean "$WORK/rediskeycloak"
+# A webhook URL is its own credential. Two host scripts handed one to curl as
+# its argument on 2026-11-14; read from stdin with --config - it is not one.
+HOOK='WEB''HOOK'
+d="$(fixture argvhook)"; tag_all "$d"; put "$d" tools/ban-queue.sh "curl -fsS -X POST -d \"\$BODY\" \"\$KF2_DISCORD_${HOOK}_URL\""
+expect "a webhook URL handed to curl as an argument is caught" "$WORK/argvhook" "tools/ban-queue.sh:2 a webhook URL handed to curl as an argument"
+d="$(fixture argvhookfine)"; tag_all "$d"; put "$d" tools/notify.sh "printf 'url = \"%s\"\\n' \"\$KF2_DISCORD_${HOOK}_URL\" | curl -fsS --config - -d \"\$BODY\""
+expect_clean "$WORK/argvhookfine"
+
+# A GAME TEMPLATE THAT HANDS A SECRET TO ITS IMAGE RUNS tests/secret-probe.sh.
+# The reference compose file hands passwords to its services; under a game
+# template's name it is held to the rule.
+game_fixture() {    # game_fixture <case>: the reference under a game template's name
+  local d g; d="$(fixture "$1")"; g="$(dirname "$d")/case-server-docker-compose"
+  mv "$d" "$g"; tag_all "$g"; printf '%s' "$g"
+}
+probe_workflow() {  # probe_workflow <repo-dir> <run line>
+  printf 'name: Secret probe\non: workflow_dispatch\npermissions:\n  contents: read\njobs:\n  probe:\n    name: The secret probe\n    runs-on: ubuntu-24.04\n    timeout-minutes: 10\n    steps:\n      %s\n' "$2" \
+    > "$1/.github/workflows/secret-probe.yml"
+}
+d="$(game_fixture probemissing)"
+expect "a game template handing a secret to its image without a probe is caught" "$WORK/probemissing" "has no tests/secret-probe.sh"
+d="$(game_fixture probeunrun)"; put "$d" tests/secret-probe.sh "exit 0"
+expect "a probe no workflow runs is caught" "$WORK/probeunrun" "tests/secret-probe.sh is in the repository and no workflow runs it"
+d="$(game_fixture probecomment)"; put "$d" tests/secret-probe.sh "exit 0"; probe_workflow "$d" "# - run: ./tests/secret-probe.sh"
+expect "a workflow that only names the probe in a comment is caught" "$WORK/probecomment" "no workflow runs it"
+d="$(game_fixture proberun)"; put "$d" tests/secret-probe.sh "exit 0"; probe_workflow "$d" "- run: ./tests/secret-probe.sh"
+expect_clean "$WORK/proberun"
+d="$(game_fixture probeallow)"
+printf '\n# conformance: allow-no-secret-probe - a fixture: every secret here is a public test constant\n' >> "$(compose_of "$d")"
+out="$(run_on "$WORK/probeallow")"
+if printf '%s' "$out" | grep -q 'Every repository meets the standard' && printf '%s' "$out" | grep -qF 'no secret probe, declared: a fixture: every secret here is a public test constant'; then
+  echo "  PASS: a declared game template without a probe passes and is listed with its reason"; PASSED=$((PASSED+1))
+else
+  echo "  FAIL: a declared game template without a probe was not handled:"; printf '%s\n' "$out" | sed 's/^/        /' | head -8; FAILED=$((FAILED+1))
+fi
 
 # THE DOOR: a declared line is listed as an exemption, with its reason, and passes.
 d="$(fixture argvallow)"; tag_all "$d"

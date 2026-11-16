@@ -162,6 +162,25 @@ check or a job, a patch fixes one.
   database name keycloak hands to pg_isready, was read as a secret. Run over
   the 73 compose files of the fleet before going live: no finding. Five new
   cases (99).
+- **Conformance: a game template proves its image does not publish a secret.**
+  The command-line rule reads the files a repository ships, and the leaks found
+  on 2026-11-14 were not in any of them: six of fourteen pinned game images
+  put a token or password back on show (CS2's entry script runs the server
+  with `+sv_setsteamaccount`, `+rcon_password` and `+sv_password`, Project
+  Zomboid's launcher prints every argument into `docker compose logs`, VEIN's
+  start line printed its Steam token, LinuxGSM's `details` prints passwords
+  on every start). A game template whose compose file hands a secret-named
+  variable to its image now carries `tests/secret-probe.sh` and a workflow
+  that runs it; the probe plants a value for each such variable and looks for
+  it in `docker compose logs`, in every process's `/proc/<pid>/cmdline` in
+  every container and in the host's `ps`. A comment naming the probe runs
+  nothing and does not count. A template may declare
+  `# conformance: allow-no-secret-probe - <why>` in its compose file.
+- **Conformance: a webhook URL is not curl's argument.** The URL is the
+  credential: whoever reads it posts as the bot. Two host scripts that queue
+  game bans and guard a world handed one to `curl` on 2026-11-14;
+  `curl --config -` with `url = "..."` on stdin is the fix and is not a
+  finding. Seven new cases in `tests/test-conformance.sh` (106).
 - **A template's own Dockerfile bases move like an image repository's.**
   rathena-docker builds its server on alpine and its password page on
   python, and neither base was pinned or read: `FROM alpine:${ALPINE}` with

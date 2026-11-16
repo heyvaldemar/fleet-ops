@@ -1295,6 +1295,12 @@ ARGV_SECRET_PATTERNS = [
     # exec array ("redis-cli", "-a", "$X", "ping"). REDISCLI_AUTH is the fix.
     (re.compile(r"\bredis-cli\b.*?(?:-a|--pass)[\"',\s]+\$"), None,
      "a Redis password given to redis-cli as -a; set REDISCLI_AUTH in its environment instead"),
+    # A webhook URL is its own credential: whoever reads it can post as the
+    # bot. Found 2026-11-14 in two host scripts that queue game bans and guard a
+    # world (curl "$X_WEBHOOK_URL"). curl reads the URL from stdin with
+    # --config - (url = "..."), and that line is not a finding.
+    (re.compile(r"^(?!.*(?:--config|-K)\s+-(?:\s|$)).*\bcurl\b.*\$\$?\{?[A-Za-z0-9_]*WEBHOOK[A-Za-z0-9_]*"), None,
+     "a webhook URL handed to curl as an argument; the URL is the credential, pass it with curl --config -"),
 ]
 ARGV_SECRET_KEEP = re.compile(r"_(?:FILE|PATH|DIR)$")
 ARGV_SECRET_ALLOW = re.compile(r"#\s*conformance:\s*allow-argv-secret\s*[-—]\s*(\S.*)")
@@ -1369,6 +1375,48 @@ def compose_command_secrets(path, lines, exempt):
                 break
         i = j
     return bad
+
+
+# THE IMAGE CAN PUBLISH WHAT THE TEMPLATE KEPT OFF THE COMMAND LINE. The rule
+# above reads the files a repository ships. A game template hands its token
+# and passwords to a pinned image in environment:, and on 2026-11-14 six of
+# fourteen such images were found putting them back on show: CS2's entry
+# script runs the server with +sv_setsteamaccount, +rcon_password and
+# +sv_password, Project Zomboid's launcher prints every argument into
+# docker compose logs, VEIN's start line printed its Steam token, and LinuxGSM's
+# `details` prints passwords on every start. None of that is in a file this
+# repository holds, so no pattern can read it. The only thing that sees it is a
+# test that plants a value for every secret the compose file hands over and
+# looks for it where a user or a pasted log would: docker compose logs, every
+# process's /proc/<pid>/cmdline in every container, and the host's ps. So a game
+# template that hands over a secret carries that test, and a workflow runs it.
+# A template may declare why it does not need one, in its compose file:
+#   # conformance: allow-no-secret-probe - <why>
+SECRET_PROBE = "tests/secret-probe.sh"
+SECRET_PROBE_ALLOW = re.compile(r"#\s*conformance:\s*allow-no-secret-probe\s*[-—]\s*(\S.*)")
+
+
+def secret_probe_findings(repo, compose, exempt):
+    """A game template that hands a secret to its image proves, in CI, that
+    the image does not print it or keep it in a process's arguments."""
+    if not fleet_kind.game(repo.name):
+        return []
+    handed = sorted({m.group(1) for m in ARGV_SECRET_INTERP.finditer(uncommented(compose))
+                     if not ARGV_SECRET_KEEP.search(m.group(1))})
+    if not handed:
+        return []
+    allow = SECRET_PROBE_ALLOW.search(compose)
+    if allow:
+        exempt.append(f"no secret probe, declared: {allow.group(1).strip()}")
+        return []
+    names = ", ".join(handed[:4]) + (f" and {len(handed) - 4} more" if len(handed) > 4 else "")
+    if "secret-probe.sh" not in repo.names_in("tests"):
+        return [f"hands {names} to its image and has no {SECRET_PROBE}: the image's own start line can print a "
+                f"secret into docker compose logs or keep it in a process's arguments, and nothing here would see it"]
+    # a comment that names the probe runs nothing
+    if not any(SECRET_PROBE in uncommented(repo.read(f".github/workflows/{w}") or "") for w in repo.workflows()):
+        return [f"{SECRET_PROBE} is in the repository and no workflow runs it"]
+    return []
 
 
 def argv_secret_findings(repo, exempt):
@@ -1982,6 +2030,7 @@ def check_repo(repo, exempt=None):
                 if var in declared and declared[var] != tag:
                     bad.append(f".env.example names {declared[var]} for {var} and the compose file pins {tag}")
 
+    bad += secret_probe_findings(repo, compose, exempt)
     bad += workflow_claims(repo)
     bad += changelog_claims(repo, exempt)
     return bad

@@ -119,6 +119,11 @@
    "found_in": "kubernetes-oscal-evidence"
   },
   {
+   "url": "https://github.com/oscal-compass/compliance-to-policy/issues/64",
+   "role": "issue with a reproduction",
+   "found_in": "kubernetes-oscal-evidence"
+  },
+  {
    "url": "https://github.com/kyverno/kyverno/issues/16841#issuecomment-6568511088",
    "role": "independent reproduction",
    "found_in": "kubernetes-oscal-evidence"
