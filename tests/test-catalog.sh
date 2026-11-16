@@ -437,6 +437,9 @@ for label, rec in (("a streak with fewer runs than it counts", dict(webhook_sche
                    ("a run started by hand inside the streak", dict(webhook_scheduled_streak=2, webhook_scheduled_in_a_row=[WEBRUN(5), dict(WEBRUN(4), event="workflow_dispatch")])),
                    ("a red run inside the streak", dict(webhook_scheduled_streak=2, webhook_scheduled_in_a_row=[WEBRUN(5), dict(WEBRUN(4), conclusion="failure")])),
                    ("a run without an id", dict(webhook_scheduled_streak=1, webhook_scheduled_in_a_row=[dict(WEBRUN(4), id=None)])),
+                   ("a scheduled run no delivery started", dict(webhook_scheduled_streak=2, webhook_scheduled_in_a_row=[WEBRUN(5), dict(WEBRUN(4), webhook=False)])),
+                   ("a run that does not say what started it", dict(webhook_scheduled_streak=1, webhook_scheduled_in_a_row=[{k: v for k, v in WEBRUN(4).items() if k != "webhook"}])),
+                   ("one run counted twice", dict(webhook_scheduled_streak=2, webhook_scheduled_in_a_row=[WEBRUN(4), WEBRUN(4)])),
                    ("a streak that is not a number", dict(webhook_scheduled_streak="two", webhook_scheduled_in_a_row=[WEBRUN(5), WEBRUN(4)]))):
     bad = legs(dict(LIVE, **rec))["live"]
     check("%s carries no webhook streak" % label, ("webhook_scheduled_streak" in bad, "webhook_scheduled_in_a_row" in bad), (False, False))

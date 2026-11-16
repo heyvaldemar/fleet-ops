@@ -583,13 +583,15 @@ def live_status_one(name, path):
     if isinstance(latest.get("event"), str):
         out["latest"]["event"] = latest["event"]
     # The webhook streak travels only with the runs it counted, and only when
-    # they agree: as many runs as the count, each a scheduled success with its id.
+    # they agree: as many runs as the count, each a scheduled success with its
+    # id that a signed delivery started, and no run counted twice.
     streak, runs = s.get(WEBHOOK_STREAK), s.get(WEBHOOK_RUNS)
     if isinstance(streak, int) and not isinstance(streak, bool) and streak >= 0 and isinstance(runs, list):
         kept = [{k: r.get(k) for k in WEBHOOK_RUN_KEYS} for r in runs
                 if isinstance(r, dict) and isinstance(r.get("id"), int) and not isinstance(r.get("id"), bool)
-                and r.get("event") == "schedule" and r.get("conclusion") == "success"]
-        if len(kept) == len(runs) == streak:
+                and r.get("event") == "schedule" and r.get("conclusion") == "success"
+                and r.get("webhook") is True]
+        if len(kept) == len(runs) == streak == len({r["id"] for r in kept}):
             out[WEBHOOK_STREAK] = streak
             out[WEBHOOK_RUNS] = kept
     # Only where the branch keeps one: every other record stays as it was.

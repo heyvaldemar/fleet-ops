@@ -42,6 +42,26 @@ check or a job, a patch fixes one.
   suites; pyflakes now reads `templates/` too.
 
 ### Fixed
+- **Catalog: the webhook streak counts only runs a delivery started, each once.**
+  A run kept in `webhook_scheduled_in_a_row` now has to say `webhook: true`,
+  and the ids have to be as many as the streak: a scheduled run with no
+  delivery, a run that does not say what started it, or one run listed twice
+  no longer reaches fleet.json, where "daily" about the delivery rests on it.
+  The live record was right (two runs, both started by a delivery); the
+  filter let a wrong one through. Three new cases in `tests/test-catalog.sh`
+  (201), each failing on the old filter. And the conformance webhook rule
+  takes a `--config -` only from what runs, not from a comment after `#`; one
+  new case (112). Both found by freshness-canon's review on 2026-11-16.
+- **Conformance: the first sweep of the 16.11 rules had two false findings.**
+  The webhook rule read `$WEBHOOK_HOST` as the hook's URL:
+  cypress-cloud-triage-agent's live check curls `https://$WEBHOOK_HOST/healthz`,
+  and a name for where the hook lives (`_HOST`, `_HOSTNAME`, `_PORT`, `_PATH`)
+  is not the credential. The secret-probe rule asked for the probe in a
+  workflow itself, and terraria's workflow runs `tests/e2e-game.sh`, which
+  runs the probe: a test script a workflow runs now counts, one step away, and
+  a comment there still does not. Both fixes were run over the two repositories
+  before going live: no finding. Five new cases in `tests/test-conformance.sh`
+  (111); the two that pass now fail on the old rules.
 - **Triage does not release a refresh somebody else already released.** A
   pushed refresh waits in the pending ledger for the next run, and in between
   another session may cut a release that carries it. On 2026-11-14 tf2's

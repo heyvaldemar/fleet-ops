@@ -719,6 +719,14 @@ d="$(fixture argvhook)"; tag_all "$d"; put "$d" tools/ban-queue.sh "curl -fsS -X
 expect "a webhook URL handed to curl as an argument is caught" "$WORK/argvhook" "tools/ban-queue.sh:2 a webhook URL handed to curl as an argument"
 d="$(fixture argvhookfine)"; tag_all "$d"; put "$d" tools/notify.sh "printf 'url = \"%s\"\\n' \"\$KF2_DISCORD_${HOOK}_URL\" | curl -fsS --config - -d \"\$BODY\""
 expect_clean "$WORK/argvhookfine"
+# Where the hook lives is not the hook: cypress-cloud-triage-agent's live check
+# curls https://$WEBHOOK_HOST/healthz (2026-11-16, the first sweep with the rule).
+d="$(fixture argvhookhost)"; tag_all "$d"; put "$d" tools/live.sh "curl -s -o /dev/null -w '%{http_code}' \"https://\$${HOOK}_HOST/healthz\""
+expect_clean "$WORK/argvhookhost"
+d="$(fixture argvhookmixed)"; tag_all "$d"; put "$d" tools/both.sh "curl -fsS \"https://\$${HOOK}_HOST/healthz\" -d x \"\$KF2_DISCORD_${HOOK}_URL\""
+expect "a host name beside the URL does not hide the URL" "$WORK/argvhookmixed" "tools/both.sh:2 a webhook URL handed to curl as an argument"
+d="$(fixture argvhookcomment)"; tag_all "$d"; put "$d" tools/post.sh "curl -fsS \"\$SLACK_${HOOK}\" -d x  # see curl --config - in the docs"
+expect "a --config - in a comment does not hide the URL" "$WORK/argvhookcomment" "tools/post.sh:2 a webhook URL handed to curl as an argument"
 
 # A GAME TEMPLATE THAT HANDS A SECRET TO ITS IMAGE RUNS tests/secret-probe.sh.
 # The reference compose file hands passwords to its services; under a game
@@ -739,6 +747,14 @@ d="$(game_fixture probecomment)"; put "$d" tests/secret-probe.sh "exit 0"; probe
 expect "a workflow that only names the probe in a comment is caught" "$WORK/probecomment" "no workflow runs it"
 d="$(game_fixture proberun)"; put "$d" tests/secret-probe.sh "exit 0"; probe_workflow "$d" "- run: ./tests/secret-probe.sh"
 expect_clean "$WORK/proberun"
+# One step away counts: terraria's workflow runs tests/e2e-game.sh, which runs
+# the probe (2026-11-16, the first sweep with the rule). A comment there does not.
+d="$(game_fixture probeindirect)"; put "$d" tests/secret-probe.sh "exit 0"; put "$d" tests/e2e-game.sh "tests/secret-probe.sh check server"; probe_workflow "$d" "- run: ./tests/e2e-game.sh"
+expect_clean "$WORK/probeindirect"
+d="$(game_fixture probeindirectcomment)"; put "$d" tests/secret-probe.sh "exit 0"; put "$d" tests/e2e-game.sh "# tests/secret-probe.sh check server"; probe_workflow "$d" "- run: ./tests/e2e-game.sh"
+expect "a test script that only names the probe in a comment is caught" "$WORK/probeindirectcomment" "no workflow runs it"
+d="$(game_fixture probeindirectunrun)"; put "$d" tests/secret-probe.sh "exit 0"; put "$d" tests/e2e-game.sh "tests/secret-probe.sh check server"; probe_workflow "$d" "- run: ./tests/other.sh"
+expect "a test script no workflow runs does not count" "$WORK/probeindirectunrun" "no workflow runs it"
 d="$(game_fixture probeallow)"
 printf '\n# conformance: allow-no-secret-probe - a fixture: every secret here is a public test constant\n' >> "$(compose_of "$d")"
 out="$(run_on "$WORK/probeallow")"

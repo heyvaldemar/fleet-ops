@@ -1299,7 +1299,11 @@ ARGV_SECRET_PATTERNS = [
     # bot. Found 2026-11-14 in two host scripts that queue game bans and guard a
     # world (curl "$X_WEBHOOK_URL"). curl reads the URL from stdin with
     # --config - (url = "..."), and that line is not a finding.
-    (re.compile(r"^(?!.*(?:--config|-K)\s+-(?:\s|$)).*\bcurl\b.*\$\$?\{?[A-Za-z0-9_]*WEBHOOK[A-Za-z0-9_]*"), None,
+    # A name for where the hook lives (WEBHOOK_HOST, _PORT, _PATH) is not the
+    # URL: cypress-cloud-triage-agent's live check curls https://$WEBHOOK_HOST/healthz.
+    # Only what runs exempts it: a `--config -` after a # is a comment.
+    (re.compile(r"^(?![^#]*(?:--config|-K)\s+-(?:\s|$)).*\bcurl\b.*\$\$?\{?"
+                r"(?![A-Za-z0-9_]*WEBHOOK_(?:HOST|HOSTNAME|PORT|PATH)\b)[A-Za-z0-9_]*WEBHOOK[A-Za-z0-9_]*"), None,
      "a webhook URL handed to curl as an argument; the URL is the credential, pass it with curl --config -"),
 ]
 ARGV_SECRET_KEEP = re.compile(r"_(?:FILE|PATH|DIR)$")
@@ -1393,6 +1397,7 @@ def compose_command_secrets(path, lines, exempt):
 # A template may declare why it does not need one, in its compose file:
 #   # conformance: allow-no-secret-probe - <why>
 SECRET_PROBE = "tests/secret-probe.sh"
+TEST_SCRIPT = re.compile(r"\btests/[A-Za-z0-9_.-]+\.sh\b")
 SECRET_PROBE_ALLOW = re.compile(r"#\s*conformance:\s*allow-no-secret-probe\s*[-—]\s*(\S.*)")
 
 
@@ -1413,10 +1418,16 @@ def secret_probe_findings(repo, compose, exempt):
     if "secret-probe.sh" not in repo.names_in("tests"):
         return [f"hands {names} to its image and has no {SECRET_PROBE}: the image's own start line can print a "
                 f"secret into docker compose logs or keep it in a process's arguments, and nothing here would see it"]
-    # a comment that names the probe runs nothing
-    if not any(SECRET_PROBE in uncommented(repo.read(f".github/workflows/{w}") or "") for w in repo.workflows()):
-        return [f"{SECRET_PROBE} is in the repository and no workflow runs it"]
-    return []
+    # A comment that names the probe runs nothing. A workflow may run it
+    # through a test script of its own, one step away: terraria's
+    # deployment-verification.yml runs tests/e2e-game.sh, which runs the probe.
+    runs = [uncommented(repo.read(f".github/workflows/{w}") or "") for w in repo.workflows()]
+    if any(SECRET_PROBE in t for t in runs):
+        return []
+    scripts = sorted({m.group(0) for t in runs for m in TEST_SCRIPT.finditer(t)} - {SECRET_PROBE})
+    if any(SECRET_PROBE in uncommented(repo.read(sc) or "") for sc in scripts):
+        return []
+    return [f"{SECRET_PROBE} is in the repository and no workflow runs it, not even through a test script it runs"]
 
 
 def argv_secret_findings(repo, exempt):
