@@ -1,0 +1,91 @@
+name: gk hook store
+# What the GitKraken CLI keeps of a Claude Code session. GitKraken Desktop and
+# GitLens show live agent status through a Claude Code plugin that pipes every
+# hook event (prompt, command, its output, the agent's last reply) to
+# `gk ai hook run`. This hands gk synthetic events in a throwaway home and
+# records what it writes after each one, the file modes under two umasks,
+# when ended sessions are purged, what `gk ai hook remove-session` takes away,
+# whether deleted text stays in its SQLite file until VACUUM, and every
+# connect() the hook makes with telemetry on and off.
+# scripts/gk-hook-store.py says exactly what each section does.
+#
+# Run by hand. Arm64, because gk's core build for Linux is published for arm64
+# and not for amd64 at 3.1.79. No secret is read; the result is the job
+# summary and an artifact.
+on:
+  workflow_dispatch:
+    inputs:
+      gk_version:
+        description: "gk core version to fetch"
+        type: string
+        default: "3.1.79"
+      gk_sha256:
+        description: "Expected sha256 of the core zip; empty records it instead"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    name: What gk writes, keeps and sends
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: The checks can fail
+        run: ./tests/test-gk-hook-store.sh
+
+      - name: strace, to count connect() calls
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq strace > /dev/null
+          strace -V | head -1
+
+      - name: Fetch the gk core
+        env:
+          GK_VERSION: ${{ inputs.gk_version }}
+          GK_SHA256: ${{ inputs.gk_sha256 }}
+        run: |
+          set -euo pipefail
+          case "$GK_VERSION" in ''|*[!0-9.]*) echo "::error::gk_version must look like 3.1.79"; exit 1 ;; esac
+          if [ -n "$GK_SHA256" ] && ! [[ "$GK_SHA256" =~ ^[0-9a-f]{64}$ ]]; then
+            echo "::error::gk_sha256 must be 64 hex characters"; exit 1
+          fi
+          url="https://api.gitkraken.dev/releases/gkcli/production/linux/arm64/${GK_VERSION}/gk_core_${GK_VERSION}_linux_arm64.zip"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/gk.zip" "$url"
+          sum="$(sha256sum "$RUNNER_TEMP/gk.zip" | cut -d' ' -f1)"
+          echo "core zip sha256: $sum"
+          if [ -n "$GK_SHA256" ] && [ "$sum" != "$GK_SHA256" ]; then
+            echo "::error::the core zip is not the one pinned"; exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/gk"
+          unzip -q "$RUNNER_TEMP/gk.zip" -d "$RUNNER_TEMP/gk"
+          bin="$(find "$RUNNER_TEMP/gk" -type f -size +1M | head -1)"
+          [ -n "$bin" ] || { echo "::error::no binary in the core zip"; exit 1; }
+          chmod +x "$bin"
+          {
+            echo "GK_BIN=$bin"
+            echo "GK_URL=$url"
+            echo "GK_ZIP_SHA256=$sum"
+          } >> "$GITHUB_ENV"
+          "$bin" version
+
+      - name: Measure
+        run: |
+          python3 scripts/gk-hook-store.py run --gk "$GK_BIN" --out "$RUNNER_TEMP/gk-hook-store" \
+            --summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the result
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gk-hook-store
+          path: ${{ runner.temp }}/gk-hook-store
+          if-no-files-found: error
+          retention-days: 90

@@ -27,3 +27,4 @@ scorecard.yml
 release-assets.yml
 codeql.yml
 worktree-index-race.yml
+gk-hook-store.yml

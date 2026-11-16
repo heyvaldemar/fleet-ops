@@ -176,6 +176,17 @@ check or a job, a patch fixes one.
   final stage (moved) and under a build-platform stage (not moved).
 
 ### Added
+- **What the GitKraken CLI keeps of a Claude Code session, measured.**
+  GitKraken Desktop and GitLens get live agent status from a Claude Code
+  plugin that pipes every hook event, prompt, command, its output and the
+  agent's last reply included, to `gk ai hook run`. The manual gk hook store
+  workflow hands gk synthetic events on an arm64 runner and records what it
+  writes after each event, the file modes under two umasks, when ended
+  sessions are purged, what `remove-session` takes away, whether deleted text
+  stays in its SQLite file until VACUUM and whether SQLite's secure_delete
+  would wipe it (tried on a copy), and every connect() the hook makes
+  with telemetry on and off. Each check is first shown what it looks for. The
+  result is kept in `docs/gk-hook-store.json`.
 - **Conformance: a Redis health check reads the reply, and a health check's
   `test:` is a command line.** `redis-cli` exits 0 on an error reply: against
   `requirepass` a bare `redis-cli ping` prints NOAUTH, with a wrong
