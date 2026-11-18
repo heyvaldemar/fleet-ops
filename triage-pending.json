@@ -1,77 +1,17 @@
 [
   {
-    "repo": "bitbucket-traefik-letsencrypt-docker-compose",
-    "sha": "b755df4096a2559907466534d12d4e058b6d65e7",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-17T16:34:28Z"
-  },
-  {
-    "repo": "confluence-traefik-letsencrypt-docker-compose",
-    "sha": "def1018a749f503d023ce4ad66e99d109ff8f66b",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-17T16:34:44Z"
-  },
-  {
     "repo": "game-server-wireguard-relay-docker-compose",
-    "sha": "7eb10f21010722416fdbd7766ca03dbdd01c4db7",
+    "sha": "76626234281bb2523b93bcddd84e1a2e7b7c6b96",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-17T16:35:01Z"
+    "pushed_at": "2026-11-18T01:47:54Z"
   },
   {
-    "repo": "gitea-traefik-letsencrypt-docker-compose",
-    "sha": "0285822f4d5ceb9abccb7cedb8133af2d87faef4",
+    "repo": "ghost-traefik-letsencrypt-docker-compose",
+    "sha": "1e0c779845a3e02e53e34ed7e908f5f457dbb68f",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-17T16:35:48Z",
-    "review": "\n## Upstream changes 28.3.0 -> 28.4.0\n\n**Verdict:** SAFE TO APPLY \u2014 bug fixes and one security dependency bump, no breaking changes, no new requirements, image configuration unchanged.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- No database version requirement is named or changed in the 28.4.0 notes. Postgres stays at the compose-pinned `15`.\n- `*(deps)* Update module github.com/andybalholm/brotli to v1.2.7 [security] (#40246) (#40249)` \u2014 library-level security fix, no action needed on a deployed host.\n- `Upgrade Alpine base packages in Docker images (#40252) (#40253)` \u2014 base image packages updated; no host-side action, just a smaller attack surface.\n- `*(auth)* Limit failed TOTP attempts per account (#39993) (#40374)` \u2014 behavioural change: accounts with 2FA now get TOTP attempts rate-limited. Worth knowing if users report lockouts, but nothing to configure.\n- `*(queue)* Bump levelqueue to v0.5.1 and remove workarounds (#40219) (#40350)` \u2014 internal dependency bump, no configuration impact for this compose setup (queue type isn't overridden here).\n\n### Before applying\n- None required. Take the routine backup this template already runs (`backups` service) before any image bump, but no manual migration or config edit is called for by these notes.\n\n### Notes read\n- v28.4.0 (2026-11-15) \u2014 the release being moved to.\n- v28.3.0 (2026-11-01) \u2014 read only as the stated baseline, per instructions; nothing in it was treated as a new requirement of this upgrade.\n"
-  },
-  {
-    "repo": "mailu-traefik-letsencrypt-docker-compose",
-    "sha": "4f643cda94f927cd235945db37640ee5221e59e0",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-17T16:36:41Z"
-  },
-  {
-    "repo": "mattermost-traefik-letsencrypt-docker-compose",
-    "sha": "de04ae8e5d86de198108b2f5f5a0fe937e5bb9d6",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-17T16:37:12Z",
-    "review": "\n## Upstream changes 12.0.2 -> 12.1.0\n\n**Verdict:** SAFE TO APPLY \u2014 the notes describe only feature additions and security fixes, and the image configuration (user, entrypoint, command, ports, volumes, healthcheck, environment) is unchanged between the two versions.\n\n### Breaking changes\n- none found in the notes. The 12.1.0 entry only states: \"Mattermost Platform Release 12.1.0 contains multiple new quality of life improvements, including Bot Attributes and Burn-on-Read Permission Policies.\" No migration, removal, or incompatibility is mentioned.\n- No UPGRADING, BREAKING_CHANGES or CHANGELOG content was available covering this range \u2014 see Notes read below.\n\n### Variables\n- none. No variable is renamed, removed, or newly required by the notes, and nothing in the compose file or .env.example needs to change for this range.\n\n### Data and dependencies\n- none introduced by this range. The compose file pins `postgres:16` for the database; the notes for 12.0.2 through 12.1.0 name no specific required Postgres version, so this is not a mismatch to flag.\n- No irreversible migration, removed default, or changed port/path is mentioned in the 12.1.0 notes.\n\n### Before applying\n- No manual migration command or config edit is called for by the notes.\n- Take the normal precaution for any Mattermost upgrade: a database backup before restarting the stack (the `backups` service in this compose file already runs one on its schedule \u2014 confirm a recent one exists, or trigger `pg_dump` manually, before pulling the new image).\n- Since the actual code content behind \"Bot Attributes\" and \"Burn-on-Read Permission Policies\" is not detailed in the notes provided, a host that uses bots or permission policies heavily should read the full 12.1.0 release page before rolling out to confirm neither feature changes default behaviour for existing bots/policies \u2014 the one-line summary given here doesn't say either way.\n\n### Notes read\n- v12.1.0, v12.1.0-rc4, v12.1.0-rc3 (pre-releases folded into the same version), and the 12.0.2 baseline.\n- v11.11.4, v11.10.5, v11.7.15 were also present in the supplied notes but are parallel maintenance releases on other branches, not in the 12.0.2 \u2192 12.1.0 path, and are not part of this verdict.\n- CHANGELOG.md contains no changelog content, only a pointer to external documentation (\"Please see Mattermost Changelog in product documentation.\"); no UPGRADING or BREAKING_CHANGES section was supplied at all. Treat the absence of a local changelog body as a gap: if higher-severity behavioural changes exist for 12.1.0, they would be documented only at the external changelog link, which this review did not have access to \u2014 a host with strict change-control should fetch that page by hand before confirming the SAFE verdict for production.\n"
-  },
-  {
-    "repo": "ollama-traefik-letsencrypt-docker-compose",
-    "sha": "90b207cc61c50c46459e177d7044728bc8290327",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-17T16:37:59Z",
-    "review": "\n## Upstream changes 0.13.3 -> 0.13.4\n\n**Verdict:** NEEDS ATTENTION \u2014 direct-connection models/tools/terminals and the old Terminals policy-based connections are removed by this release, and this template's Ollama connection itself is unaffected, but anyone using Direct Connections or a Terminals integration will lose functionality on upgrade.\n\n### Breaking changes\n- **Direct Connections removed.** \"Settings > Connections and Settings > Tools are gone together with the Direct Connections and Direct Integrations switches in Admin Settings, the Direct Tool Servers permission and the 'ENABLE_DIRECT_CONNECTIONS', 'ENABLE_DIRECT_INTEGRATIONS' and 'USER_PERMISSIONS_FEATURES_DIRECT_TOOL_SERVERS' settings, so models, tool servers and terminals that users added in their own settings no longer appear.\" Any user who had added their own Ollama/OpenAI-compatible connections, tool servers or terminals this way loses them; they must switch to the Tether app instead.\n- **Terminals integration requires Terminals 0.4.0+, no automatic migration.** \"Connections to a Terminals server no longer carry a policy in Admin Settings > Integrations... the server has to run Terminals 0.4.0 or later... Upgrading Terminals from 0.3.x takes its manual migration, as there is no automatic one... 'TERMINALS_OPEN_WEBUI_URL' and 'TERMINALS_TOKEN_CACHE_TTL' should be removed from the Terminals settings.\" Only relevant if a Terminals server integration is in use \u2014 this template does not run one, only Ollama and Open Terminal/Tether paths are unaffected.\n- **Coding agent model IDs changed.** \"Coding agent models now get IDs made only of letters, digits, dashes and underscores... pins, default models and automations that point at an agent model whose name had other characters, dots included as in most Codex models, need the model picked again.\" Not relevant unless coding agents are configured.\n- **Image generation settings migrated to connections.** \"On the first start of this version, the image generation and editing settings are turned into image connections... from then on the image environment variables such as 'IMAGE_GENERATION_ENGINE', 'IMAGES_OPENAI_API_BASE_URL' and 'COMFYUI_BASE_URL' are no longer read unless 'ENABLE_PERSISTENT_CONFIG' is turned off.\" Not relevant to this template, which does not set any image generation variables.\n- **Live update event names changed.** \"Real-time updates for notes, comments, the inbox, access changes, encrypted channels and channel app errors now arrive as typed messages on the main 'events' socket channel, so custom clients that listened for the old event names such as 'events:note' or 'note:presence' need to listen there instead.\" Only matters for custom API clients.\n- **Chat API field change.** \"Chat responses from the API now carry the saved sharing mode in 'share_mode' and report whether you can reply in a new 'write_access' field, so custom clients that read 'share_mode' for that need to switch.\" Only matters for custom API clients.\n\n### Variables\nNone affecting this template. The template sets no `ENABLE_DIRECT_CONNECTIONS`, `ENABLE_DIRECT_INTEGRATIONS`, `USER_PERMISSIONS_FEATURES_DIRECT_TOOL_SERVERS`, `TERMINALS_OPEN_WEBUI_URL`, `TERMINALS_TOKEN_CACHE_TTL`, or any `IMAGE_GENERATION_ENGINE`/`IMAGES_OPENAI_API_BASE_URL`/`COMFYUI_BASE_URL` variable in the compose file or `.env.example`.\n\n### Data and dependencies\n- Qdrant note found in the Fixed section: \"Connecting to a Qdrant 1.20 server, as the vector database or for external Qdrant knowledge bases, no longer logs a client version warning, which servers on Qdrant 1.18 or older now get instead.\" This template does not run Qdrant, so it does not apply.\n- No database migration, no changed port, path or default is named for the services this template runs (webui, ollama, traefik, backups).\n- WHAT THE IMAGES THEMSELVES DIFFER IN shows only `WEBUI_BUILD_HASH` changing \u2014 no user, entrypoint, command, port, volume, healthcheck or environment difference between the two images, so the compose file's healthcheck (`/dev/tcp/127.0.0.1/8080`), port `8080`, volume `webui-data:/app/backend/data`, and `OLLAMA_BASE_URL` environment all remain valid unchanged.\n\n### Before applying\n- If any user relies on Direct Connections/Direct Integrations (added their own model or tool server connections from their personal Settings), warn them before upgrading: this functionality is gone and must be replaced with the Tether app.\n- If a Terminals server integration is configured (not shown in this template), confirm it runs Terminals 0.4.0+ before upgrading Open WebUI, and perform the manual migration described in the notes; this template as shipped does not configure one.\n- No database backup step is specifically called for by the notes, but the template's own `backups` service already runs independently of this upgrade \u2014 no extra action needed there.\n- No `.env` or compose edits required for this template's own variables.\n\n### Notes read\n- open-webui/open-webui release notes for v0.13.4 (2026-11-17) \u2014 the version being moved to.\n- open-webui/open-webui release notes for v0.13.3 (2026-11-08) \u2014 given as the baseline, read only to confirm nothing in it is newly introduced by this range.\n"
-  },
-  {
-    "repo": "outline-keycloak-traefik-letsencrypt-docker-compose",
-    "sha": "f064182b453f4fc18c4fb872e890ae4091851115",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-17T16:38:41Z",
-    "review": "\n## Upstream changes 1.12.0 -> 1.13.0\n\n**Verdict:** SAFE TO APPLY \u2014 Node runtime bump and a long list of fixes/features, no renamed or newly required variables, no schema action needed beyond Outline's own automatic migrations.\n\n### Breaking changes\n- none found in the notes. The Node 20 drop (\"This release drops support for Node 20, which is end-of-life... The Docker image is updated to Node 26.13.1\") only affects self-hosters who build from source; the Docker image itself already carries the required Node version, confirmed by the registry diff (`NODE_VERSION`: '26.12.1' -> '26.13.1').\n\n### Variables\n- none. `OAUTH_DISABLE_CIMD` is mentioned as new (\"Added `OAUTH_DISABLE_CIMD` to fall back to dynamic client registration... if your installation is unable to retrieve the CIMD due to network restrictions\") but it is optional, with no default behaviour change for installs that don't need it. The .env.example is not affected; it still only needs `OUTLINE_IMAGE_VERSION` bumped to `1.13.0`.\n\n### Data and dependencies\n- none introduced by this range. The notes mention several new indexes and query-locking changes (`userId` index on `oauth_authentications`, inherited group permission index, partial index for stuck imports, `FOR NO KEY UPDATE`, `lock_timeout` on request transactions) \u2014 these run as Outline's own internal migrations on boot, not anything the host must do by hand.\n- Redis dependency is already a requirement at 1.12.0 (fixed there: \"Server does not exit when a Redis connection stays unavailable\"); this release only tightens Redis error handling further (\"Requests fail when Redis is unavailable\", \"Ephemeral Redis client not connected before services start\") \u2014 not a new requirement, so it doesn't drive the verdict. The compose file's Redis pin (`redis:7.4`) is unaffected by anything in these notes.\n\n### Before applying\n- Pull the new image, then set `OUTLINE_IMAGE_VERSION=1.13.0` (or update the digest pin in the compose file's `x-images` block) and redeploy. No manual migration command, backup requirement, or config edit is called for by the notes beyond the operator's usual pre-upgrade backup habit.\n\n### Notes read\n- v1.13.0 release notes (outline/outline, full text above)\n- v1.12.0 release notes, read only as the baseline per instructions\n"
-  },
-  {
-    "repo": "xwiki-traefik-letsencrypt-docker-compose",
-    "sha": "d4daf7c39a9b2715ca756d41e7b83439732768ec",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-17T16:40:05Z"
-  },
-  {
-    "repo": "uptime-kuma-traefik-letsencrypt-docker-compose",
-    "sha": "de4aea7ed5d1dac555c9f26188c0d777a73ac805",
-    "wf": "Deployment Verification",
-    "kind": "digest",
-    "pushed_at": "2026-11-17T16:41:46Z",
-    "review": "\n## Upstream changes 2.5.11 -> 2.5.12\n\n**Verdict:** SAFE TO APPLY \u2014 the notes describe a dependency-sandbox security fix and dependency updates, the image configuration is unchanged, and no companion-service version is named.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none. The notes name no database/cache/search-engine version, raised requirement, or migration. \"#8187 fix: sandbox a dangerous library\" and \"#8167 chore: Update dependencies\" are internal dependency changes with no stated effect on deploy-time configuration.\n\n### Before applying\n- Update `UPTIME_KUMA_IMAGE_VERSION` (and the digest in the compose file's `x-images` block) from 2.5.11 to 2.5.12, then `docker compose up -d` for the `uptime-kuma` service.\n- No backup, manual migration, or config edit is indicated by the notes. The compose file's own backup container runs independently of this upgrade.\n\n### Notes read\n- 2.5.12 (2026-11-17) \u2014 upstream release notes\n- 2.5.11 (2026-11-12) \u2014 baseline, read only for context, not a source of changes in this range\n"
+    "pushed_at": "2026-11-18T01:48:16Z",
+    "review": "\n## Upstream changes 6.77.0 -> 6.78.0\n\n**Verdict:** SAFE TO APPLY \u2014 only bug fixes and a minor feature addition; nothing in the notes or image diff requires host action.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none \u2014 the only registry-reported difference is the `GHOST_VERSION` env label (`'6.77.0' -> '6.78.0'`), which just reflects the version bump; no database version requirement, migration, or dependency change is named in either the 6.78.0 notes or the 6.77.0 baseline.\n\n### Before applying\n- none beyond the normal `GHOST_IMAGE_VERSION=6.78.0` bump (or letting the compose default move) and a routine restart.\n\n### Notes read\n- v6.78.0 (TryGhost/Ghost release notes, the version being moved to)\n- v6.77.0 (TryGhost/Ghost release notes, given as the current-baseline section)\n"
   }
 ]
