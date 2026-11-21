@@ -1,17 +1,74 @@
 [
   {
-    "repo": "sonarqube-traefik-letsencrypt-docker-compose",
-    "sha": "bfbcb71f133b56688a6dcb6555c0ac1ed2a71ef0",
+    "repo": "anythingllm-traefik-letsencrypt-docker-compose",
+    "sha": "d4d9243697408fc333ead3653293abfd52db665e",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-21T01:01:53Z"
+    "pushed_at": "2026-11-21T15:01:07Z",
+    "review": "\n## Upstream changes 0.40.16 -> 0.40.17\n\n**Verdict:** SAFE TO APPLY \u2014 the notes describe new features, CLI/UX fixes, and platform-specific fixes, with no breaking changes and no companion-service version requirement introduced by this range.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none. The notes mention a new model (`inkling-2-mini`) and various fixes (Vulkan mmap behaviour, Windows iGPU KV cache allocation, API schema handling), none of which touch this template's configuration, volumes, or companion services.\n\n### Before applying\n- none required beyond the normal pull/restart of the `ollama` service.\n\n### Notes read\n- `v0.40.17` (2026-11-10): the release moved to, read in full.\n- `v0.40.16` (2026-11-09): the baseline currently running, read only to confirm nothing in it is newly required by this range.\n\nNote on the registry comparison: the task states the two image configs (`User`, `Entrypoint`, `Cmd`, `WorkingDir`, `ExposedPorts`, `Volumes`, `Healthcheck`, environment) are identical between 0.40.16 and 0.40.17, so nothing there contradicts or supplements the notes \u2014 the compose file's `entrypoint: [\"/usr/bin/bash\", \"/entrypoint.sh\"]` override and healthcheck remain valid unchanged.\n\n## Upstream changes 1.19.0 -> 1.20.0\n\n**Verdict:** NEEDS ATTENTION \u2014 the upstream release notes for this range could not be retrieved, so the upgrade is going in without its documentation; the image-registry diff shows nothing beyond the version label, but that only covers container-level configuration, not application behaviour.\n\n### Breaking changes\n- Not available: GitHub releases for `mintplexlabs/anythingllm` could not be read (HTTP Error 404: Not Found). No breaking-change claims can be sourced, so none are reported \u2014 but absence of notes is not evidence of absence. Check by hand:\n  - the project's GitHub releases/tags page for `v1.20.0` directly in a browser, in case the API path used here was wrong rather than the release missing\n  - the repository's CHANGELOG.md (if one exists) on the `v1.20.0` tag\n  - the commit log between the `v1.19.0` and `v1.20.0` tags for migration files, new required environment variables, or changes to `/api/ping`, `/api/system/generate-api-key`, storage layout, or the LanceDB/SQLite schema\n\n### Variables\n- none found \u2014 the only image-level difference reported is the cosmetic `DEPLOYMENT_VERSION` env value (`'1.19.0' -> '1.20.0'`), which is not a configuration variable the operator sets\n- compose and `.env.example` still default-pin `ANYTHINGLLM_IMAGE_VERSION=1.19.0`; moving to 1.20.0 requires editing that pin (or the `x-images` default) yourself \u2014 this is the delivery mechanism, not an upstream variable change\n\n### Data and dependencies\n- none found in the notes (none available) and none shown by the registry diff\n- already true at the current version, not new in this range: the stack requires `ANYTHINGLLM_PASSWORD` and `ANYTHINGLLM_JWT_SECRET` to be set (`AUTH_TOKEN: ${ANYTHINGLLM_PASSWORD:?set in .env...}`, `JWT_SECRET: ${ANYTHINGLLM_JWT_SECRET:?...}`) \u2014 unrelated to this upgrade\n- Ollama (0.40.17), Traefik (3.7) and the backups image are unaffected pins; nothing in this range names a required companion-service version the compose file doesn't already pin\n\n### Before applying\n- Take a backup before touching the pin \u2014 the `backups` service already does rolling SQLite + tarball backups of the storage volume; confirm a recent `*.sqlite3.gz` and `*.tar.gz` exist in the `anythingllm-backups` volume before proceeding\n- Since the real release notes are unavailable, manually check the AnythingLLM GitHub repo for the `v1.20.0` tag's notes and any migration steps before updating the pin\n- Update the version pin: either the `x-images` default in the compose file (`1.19.0@sha256:...` -> `1.20.0@sha256:...`, with the new digest) or set `ANYTHINGLLM_IMAGE_VERSION=1.20.0` / `ANYTHINGLLM_IMAGE_TAG=mintplexlabs/anythingllm:1.20.0@sha256:...` in `.env`\n- After updating, watch the container's healthcheck (`/api/ping` via `docker-healthcheck.sh`) and logs through the `start_period: 90s` window to confirm a clean start before declaring the upgrade done\n\n### Notes read\n- None. Upstream release notes for `mintplexlabs/anythingllm` 1.19.0 and 1.20.0 could not be read (HTTP Error 404: Not Found). No UPGRADING/BREAKING_CHANGES/CHANGELOG section was supplied for this range. Verdict and findings above are based solely on the registry image-config diff and the compose/.env.example files shown.\n"
   },
   {
-    "repo": "dashy-traefik-letsencrypt-docker-compose",
-    "sha": "85d2cbebd11504ff9e6bf3f9ecffbb46ddf73143",
+    "repo": "game-server-wireguard-relay-docker-compose",
+    "sha": "c043aa065385a75213e01fb1b6ecb97c1ec1485a",
     "wf": "Deployment Verification",
     "kind": "digest",
-    "pushed_at": "2026-11-21T01:02:23Z",
-    "review": "\n## Upstream changes 4.9.19 -> 4.9.20\n\n**Verdict:** SAFE TO APPLY \u2014 only dependency bumps (dev tooling, frontend libraries) are recorded; the image configuration itself is unchanged between the two versions.\n\n### Breaking changes\n- none found in the notes. The only recorded changes are 12 dependency bumps (`@codemirror/lint`, `@sentry/vue`, `dompurify`, `simple-icons`, `vue-i18n`, `vue-router`, and several dev-only tools), none of which the commit messages describe as breaking: \"\u2b06\ufe0f (deps): Bump the minor-and-patch group with 12 updates\".\n\n### Variables\n- none. No variable additions, renames or removals are mentioned in the commits, and `.env.example` needs no edit beyond the usual version bump of `DASHY_IMAGE_VERSION=4.9.19` \u2192 `4.9.20` if a host pins it there.\n\n### Data and dependencies\n- none. No database, cache or other companion service is named in these notes, and the compose file pins no such service for Dashy.\n\n### Before applying\n- Update the pin: in the compose file's `x-images` block, change `DASHY_IMAGE_VERSION:-4.9.19` to `4.9.20` and refresh the `@sha256:...` digest to match the new tag (the file's own convention of shipping a tested tag+digest pair). If a host overrides via `DASHY_IMAGE_VERSION` in `.env`, bump that value instead/also.\n- No backup, migration, or config edit is indicated by the notes.\n\n### Notes read\n- Commits between 4.9.19 and 4.9.20 from the GitHub compare API for `Lissy93/dashy` (no dedicated release notes exist for these tags \u2014 the three commits, one dependency-bump commit, its merge, and the version-bump commit, are the full record read).\n"
+    "pushed_at": "2026-11-21T15:03:56Z"
+  },
+  {
+    "repo": "humanitz-server-docker-compose",
+    "sha": "4b2b9679debabf46a759828f9e2d4cf0995afa69",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-21T15:04:36Z"
+  },
+  {
+    "repo": "jira-traefik-letsencrypt-docker-compose",
+    "sha": "54675c690d4247c599a15cb1bde1accc573e4a04",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-21T15:04:46Z"
+  },
+  {
+    "repo": "kf2-server-docker-compose",
+    "sha": "7f91cb4c4d9e84bc19dddd991aa1dd60bbdbda7c",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-21T15:04:55Z"
+  },
+  {
+    "repo": "ollama-traefik-letsencrypt-docker-compose",
+    "sha": "62500f6c6decf4b31767efe384eb9ae89114c025",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-21T15:05:19Z",
+    "review": "\n## Upstream changes 0.40.16 -> 0.40.17\n\n**Verdict:** SAFE TO APPLY \u2014 the notes describe new features, CLI/UX fixes, and platform-specific fixes, with no breaking changes and no companion-service version requirement introduced by this range.\n\n### Breaking changes\n- none found in the notes\n\n### Variables\n- none\n\n### Data and dependencies\n- none. The notes mention a new model (`inkling-2-mini`) and various fixes (Vulkan mmap behaviour, Windows iGPU KV cache allocation, API schema handling), none of which touch this template's configuration, volumes, or companion services.\n\n### Before applying\n- none required beyond the normal pull/restart of the `ollama` service.\n\n### Notes read\n- `v0.40.17` (2026-11-10): the release moved to, read in full.\n- `v0.40.16` (2026-11-09): the baseline currently running, read only to confirm nothing in it is newly required by this range.\n\nNote on the registry comparison: the task states the two image configs (`User`, `Entrypoint`, `Cmd`, `WorkingDir`, `ExposedPorts`, `Volumes`, `Healthcheck`, environment) are identical between 0.40.16 and 0.40.17, so nothing there contradicts or supplements the notes \u2014 the compose file's `entrypoint: [\"/usr/bin/bash\", \"/entrypoint.sh\"]` override and healthcheck remain valid unchanged.\n"
+  },
+  {
+    "repo": "owncloud-traefik-letsencrypt-docker-compose",
+    "sha": "486b3e67e9d7c50c7d3c0508c80282e6d366f717",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-21T15:05:30Z"
+  },
+  {
+    "repo": "seafile-traefik-letsencrypt-docker-compose",
+    "sha": "cf560a5a70e564d77544de29425baf62b23862fe",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-21T15:06:22Z"
+  },
+  {
+    "repo": "tf2-server-docker-compose",
+    "sha": "0e52fb053be6aaabc7843b3e60de552bc5ef4063",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-21T15:06:31Z"
+  },
+  {
+    "repo": "xwiki-traefik-letsencrypt-docker-compose",
+    "sha": "7bc15c24122c2e235b479ec5cae00d9e84d17c86",
+    "wf": "Deployment Verification",
+    "kind": "digest",
+    "pushed_at": "2026-11-21T15:06:44Z"
   }
 ]
