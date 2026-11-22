@@ -9,6 +9,55 @@ check or a job, a patch fixes one.
 
 ## [Unreleased]
 
+### Security
+- **A release is verified for its exact signer, and a changed archive must be
+  refused for being changed.** Three findings of the security review of
+  b14587e, in `templates/release-assets.yml`, which 120 public repositories
+  carry:
+  - The signature was checked against the prefix
+    `^https://github.com/<owner>/<repo>/`, which any workflow of the
+    repository matches, on any branch. The job and the README now name
+    `release-assets.yml` on the ref the run ran on, `@refs/tags/<tag>` for a
+    release.
+  - The changed-archive check counted any non-zero exit as a refusal. With
+    Sigstore out of reach for the changed copy, the real cosign v3.1.3 exited
+    1 on a TUF error and the old step went green (outline-keycloak v2.2.27,
+    locally). Each tool must now refuse in its own words: "invalid signature
+    when validating ASN.1 encoded signature" for cosign, and "artifact hash
+    does not match provenance subject" for slsa-verifier. Anything else,
+    including a missing tool, fails the job.
+  - A run started by hand from a feature branch signed and attached
+    provenance naming that branch. It now refuses to start anywhere but main,
+    and its verify step checks `--source-branch main`.
+  - Found by the cloud evidence pack, whose checks pin the tag's identity: a
+    run by hand on a release that already had its files replaced them
+    (`--clobber`), so the signature named main instead of the tag. A run by
+    hand now refuses a release that already carries its signature, or one
+    it cannot read; to replace the files on purpose, delete them first.
+
+  `tests/test-release-assets.sh` (43) runs those steps the way GitHub runs
+  them, against stand-ins answering in the tools' words, on the template and
+  on the copy from before (`tests/fixtures/release-assets/`). Each finding is
+  green on the old copy and red on the new one. With `LIVE=1` it also runs
+  the real tools on a real release. The README advice for releases signed by
+  hand on `main` (`@refs/heads/main`, `--source-branch main`) was checked on
+  outline-keycloak v2.1.0. `scripts/readme-exact-identity.py` moves the 69
+  README sections the rollout wrote to the exact identity; a section in any
+  other form is reported, not rewritten. README-public.md is moved by hand.
+- **The security-contact rollout calls a policy current only by the line it
+  writes.** Any link to the advisory form used to count, so a policy keeping
+  an old contact line beside the new one, or naming the form in its own words
+  with an old address in it, was reported current and never read again. Both
+  are now left alone and reported, and the run ends red.
+  `tests/test-security-contact.sh` (8) runs the script dry against local
+  repositories in place of GitHub, and the old copy to show the finding.
+- **A commit a script makes says +0000.** git writes the machine's UTC offset
+  into the author and committer dates, so a rollout run from a laptop put
+  the laptop's time zone into every commit it pushed. `scripts/git-auth.sh`,
+  which every script that pushes sources, now sets `TZ=UTC`.
+  `tests/test-git-auth.sh` (3) commits from a UTC+9 zone with it (+0000)
+  and without it (+0900).
+
 ### Added
 - **Conformance: a product is not a template.** oxy-llm-gateway was the only
   red repository in every sweep from 15 November on, for four rules only a
@@ -52,6 +101,15 @@ check or a job, a patch fixes one.
   suites; pyflakes now reads `templates/` too.
 
 ### Fixed
+- **The freshness canon judges a Terraform provider against its newest stable
+  release.** `against_registry()` took the registry's `version`, the last one
+  published, pre-releases included: coder/coder 2.20.1-pre0 (17 November 2026)
+  made kubernetes-coder-agent-workspaces' pin on 2.20.0 a finding. It now takes
+  `newest()` of the versions the registry lists, as every other source in the
+  canon does, and a registry with no stable release is reported. Three
+  selftest cases, which fail on the old function. Every copy of the canon
+  (eight repositories) moves with it, because conformance compares them byte
+  for byte.
 - **Catalog: the webhook streak counts only runs a delivery started, each once.**
   A run kept in `webhook_scheduled_in_a_row` now has to say `webhook: true`,
   and the ids have to be as many as the streak: a scheduled run with no

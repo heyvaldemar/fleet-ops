@@ -28,8 +28,9 @@
 # fleet-ops-private and reaches it with the next publish. SKIP_REPOS adds
 # more, REPOS_ONLY names the only ones to touch.
 #
-# Idempotent: a policy that already links the form is skipped, and switching
-# private vulnerability reporting on twice changes nothing.
+# Idempotent: a policy that already carries the line this script writes, and
+# no old one beside it, is skipped, and switching private vulnerability
+# reporting on twice changes nothing.
 set -euo pipefail
 # shellcheck source=scripts/git-auth.sh
 . "$(dirname "${BASH_SOURCE[0]}")/git-auth.sh"  # GH_TOKEN reaches git by environment, never in a URL
@@ -87,10 +88,22 @@ for entry in "${REPOS[@]}"; do
   f=""
   for p in SECURITY.md .github/SECURITY.md docs/SECURITY.md; do [ -f "$dir/$p" ] && { f="$p"; break; }; done
   if [ -z "$f" ]; then ODD=$((ODD + 1)); echo "  $repo: no SECURITY.md"; rm -rf "$dir"; continue; fi
-  if grep -qF "/security/advisories/new" "$dir/$f"; then
-    CURRENT=$((CURRENT + 1)); pvr "$repo" || true; rm -rf "$dir"; continue
-  fi
+  # CURRENT MEANS THE LINE THIS SCRIPT WRITES, AND NO OLD ONE BESIDE IT. Until
+  # 17 November 2026 any mention of the form counted: a policy that kept an old
+  # contact line next to a link to the form, or one that names the form in its
+  # own words with the old address still in it, was reported current and never
+  # looked at again.
+  new_line="Report privately through GitHub: [**Security → Report a vulnerability**](https://github.com/$OWNER/$repo/security/advisories/new) on this repository. Email to $CONTACT also works. The process is described at [heyvaldemar.com/security](https://heyvaldemar.com/security/)."
   n="$(grep -cE "$OLD_RE" "$dir/$f" || true)"
+  if grep -qxF -- "$new_line" "$dir/$f"; then
+    if [ "$n" = 0 ]; then
+      CURRENT=$((CURRENT + 1)); pvr "$repo" || true; rm -rf "$dir"; continue
+    fi
+    ODD=$((ODD + 1)); echo "  $repo: the new contact line and $n old one(s) side by side, left alone"; rm -rf "$dir"; continue
+  fi
+  if [ "$n" = 0 ] && grep -qF "/security/advisories/new" "$dir/$f"; then
+    ODD=$((ODD + 1)); echo "  $repo: links the form in its own words, not the line this script writes; left alone, read it by hand"; rm -rf "$dir"; continue
+  fi
   if [ "$n" != 1 ]; then ODD=$((ODD + 1)); echo "  $repo: $n contact lines of a known shape, left alone"; rm -rf "$dir"; continue; fi
   before="$(wc -l < "$dir/$f")"
   python3 - "$dir/$f" "$OLD_RE" "$OWNER" "$repo" "$CONTACT" <<'PY'

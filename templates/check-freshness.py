@@ -768,8 +768,16 @@ def provider_release(source, data):
 
 def against_registry(what, source, pinned, verb):
     data = json.loads(get("https://registry.terraform.io/v1/providers/%s" % source))
-    latest = data["version"]
-    against(what, pinned, latest, data.get("versions") or [latest], provider_release(source, data),
+    # The registry's "version" is the last one published, a pre-release
+    # included: coder/coder 2.20.1-pre0, published on 17 November 2026, made a
+    # pin on 2.20.0 a finding. A pre-release is not something to move a pin
+    # to, so the newest stable version is the one compared, as everywhere else.
+    versions = list(data.get("versions") or []) + ([data["version"]] if data.get("version") else [])
+    latest = newest(versions)
+    if latest is None:
+        behind(what, "the registry lists no stable release of %s; the pin %s is unchanged" % (source, pinned))
+        return
+    against(what, pinned, latest, versions, provider_release(source, data),
             head=verb + " %s, latest is %s")
 
 
@@ -950,8 +958,9 @@ def selftest():
     """A registry that answers 429 every time must fail the run as not
     checked, after three tries, and stop asking that host; one that answers
     must still be checked. Versions with release candidates must order.
-    Releases must land on the right side of the grace."""
-    global imagetools, WAITS, now
+    Releases must land on the right side of the grace, and a registry that
+    names a pre-release as its last version must not count it."""
+    global imagetools, WAITS, now, get
     import contextlib
     import io
     calls = []
@@ -1044,8 +1053,39 @@ def selftest():
                             "    created: 2026-11-14T00:00:00.5+00:00\n  c:\n  - version: 5.0.0\ngenerated: x\n", "a")
     if entries != {"1.2.3": "2026-11-01T00:00:00Z", "1.2.4": "2026-11-14T00:00:00.5+00:00"}:
         failures.append("a chart index was read as %s" % entries)
+
+    # The Terraform registry names the last version published, a pre-release
+    # included (coder/coder 2.20.1-pre0, 17 November 2026); the pin is judged
+    # against the newest stable one.
+    base = "https://registry.terraform.io/v1/providers/coder/coder"
+    registry = {}
+    saved_get = get
+    get = lambda url, gh=False: json.dumps(registry[url]).encode()  # noqa: E731
+    registry_cases = [
+        # name, the registry's answer, per-version answers, expected, text the line must carry
+        ("a pre-release published last", {"version": "2.20.1-pre0", "versions": ["2.19.0", "2.20.0", "2.20.1-pre0"],
+                                          "published_at": "2026-11-14T12:00:00Z"}, {}, "ok", "2.20.0"),
+        ("a stable release under a later pre-release", {"version": "2.21.0-pre0", "versions": ["2.20.0", "2.20.1", "2.21.0-pre0"],
+                                                         "published_at": "2026-11-14T12:00:00Z"},
+         {base + "/2.20.1": {"published_at": "2026-11-10T12:00:00Z"}}, "error", "latest is 2.20.1"),
+        ("nothing stable at all", {"version": "3.0.0-pre0", "versions": ["3.0.0-pre0"]}, {}, "error", "no stable release"),
+    ]
+    for name, data, more, want, carries in registry_cases:
+        reset()
+        registry.clear()
+        registry[base] = data
+        registry.update(more)
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            against_registry("provider coder/coder", "coder/coder", "2.20.0", "pinned")
+        line = out.getvalue()
+        got = "error" if problems else "warning" if graced_pins else "ok" if line.startswith("ok") else "nothing"
+        if got != want or carries not in line:
+            failures.append("registry, %s: wanted %s carrying %r, got %s: %s" % (name, want, carries, got, line.strip()))
+    get = saved_get
+    reset()
     grace_ok = not failures
-    print("selftest grace: %s (%d cases%s)" % ("ok" if grace_ok else "FAILED", len(grace_cases),
+    print("selftest grace: %s (%d cases%s)" % ("ok" if grace_ok else "FAILED", len(grace_cases) + len(registry_cases),
                                                "".join("\n  " + f for f in failures)))
     imagetools, WAITS, now = saved
     return 0 if throttle_ok and versions_ok and grace_ok else 1

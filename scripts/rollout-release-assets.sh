@@ -57,19 +57,20 @@ Every release from v$2 on carries three files made on GitHub's runner with a sho
 \`\`\`bash
 cosign verify-blob $repo-<tag>.tar.gz \\
   --bundle $repo-<tag>.tar.gz.sigstore.json \\
-  --certificate-identity-regexp '^https://github.com/$OWNER/$repo/' \\
+  --certificate-identity https://github.com/$OWNER/$repo/.github/workflows/release-assets.yml@refs/tags/<tag> \\
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 
 slsa-verifier verify-artifact $repo-<tag>.tar.gz \\
   --provenance-path $repo-<tag>.intoto.jsonl \\
-  --source-uri github.com/$OWNER/$repo
+  --source-uri github.com/$OWNER/$repo \\
+  --source-tag <tag>
 \`\`\`
 
-Add \`--source-tag <tag>\` for a release published after 24 September 2026, which is signed by the run that published it. The five releases before that date were signed by a run started by hand on \`main\`, so their provenance names the branch, not the tag; the archive is still the tag's tree, and the signature still belongs to this repository's workflow. The workflow that makes them is [\`release-assets.yml\`](.github/workflows/release-assets.yml).
+The identity is exact: this repository's \`release-assets.yml\`, on the tag you deploy. A signature from any other workflow, or from this one on another ref, fails the check. A release published by this workflow is signed by the run that published it, so the commands above take it as they are. A release before v$2, given the same files afterwards by a run started by hand on \`main\`, needs the identity to end in \`@refs/heads/main\` and \`--source-branch main\` instead of \`--source-tag <tag>\`. The workflow that makes them is [\`release-assets.yml\`](.github/workflows/release-assets.yml).
 MD
 }
 
-ADDED=0; README=0; SKIPPED=0; NORELEASE=0; DISPATCHED=0; PRS=0
+ADDED=0; README=0; EXACT=0; SKIPPED=0; NORELEASE=0; DISPATCHED=0; PRS=0; BYHAND=()
 for repo in "${REPOS[@]}"; do
   [ -n "$ONLY" ] && [ "$repo" != "$ONLY" ] && continue
   case " $SKIP " in *" $repo "*) continue ;; esac
@@ -109,6 +110,16 @@ if body == s:
 io.open(p, "w", encoding="utf-8").write(body)
 PY
     then changed=true; README=$((README + 1)); fi
+  fi
+  # A section written before 16 November 2026 names the signer by a prefix
+  # any workflow of the repository matches; it moves to the exact identity.
+  if [ "$README_SECTIONS" = "true" ] && [ -f "$dir/README.md" ]; then
+    rc=0; python3 "$HERE/readme-exact-identity.py" "$dir/README.md" "$OWNER/$repo" || rc=$?
+    case $rc in
+      0) changed=true; EXACT=$((EXACT + 1)) ;;
+      1) ;;
+      *) BYHAND+=("$repo") ;;
+    esac
   fi
   if [ "$changed" = "true" ]; then
     if [ "$DRY_RUN" = "true" ]; then
@@ -154,4 +165,5 @@ PY
   rm -rf "$dir"
 done
 
-echo "workflow added: $ADDED   readme sections: $README   already done: $SKIPPED   no release: $NORELEASE   pull requests instead: $PRS   backfill runs started: $DISPATCHED"
+echo "workflow written: $ADDED   readme sections: $README   moved to the exact signer: $EXACT   already done: $SKIPPED   no release: $NORELEASE   pull requests instead: $PRS   backfill runs started: $DISPATCHED"
+if [ "${#BYHAND[@]}" -gt 0 ]; then echo "::warning::read by hand, the README section is not in a known form: ${BYHAND[*]}"; fi

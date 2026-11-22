@@ -11,3 +11,8 @@ GIT_CONFIG_COUNT=1
 GIT_CONFIG_KEY_0=http.https://github.com/.extraheader
 GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
 export GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0
+# Every commit a script makes says +0000. git writes the local UTC offset into
+# the author and committer dates, so a rollout run from a laptop published the
+# laptop's time zone in every commit it pushed. On a runner this changes
+# nothing: it is UTC already.
+export TZ=UTC

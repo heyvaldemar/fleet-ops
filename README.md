@@ -49,13 +49,15 @@ Every release carries three files made on GitHub's runner with a short-lived ide
 ```bash
 cosign verify-blob fleet-ops-<tag>.tar.gz \
   --bundle fleet-ops-<tag>.tar.gz.sigstore.json \
-  --certificate-identity-regexp '^https://github.com/heyvaldemar/fleet-ops/' \
+  --certificate-identity https://github.com/heyvaldemar/fleet-ops/.github/workflows/release-assets.yml@refs/tags/<tag> \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 
 slsa-verifier verify-artifact fleet-ops-<tag>.tar.gz \
   --provenance-path fleet-ops-<tag>.intoto.jsonl \
   --source-uri github.com/heyvaldemar/fleet-ops --source-tag <tag>
 ```
+
+The identity is exact: this repository's `release-assets.yml`, on the tag you deploy. A signature from any other workflow, or from this one on another ref, fails the check.
 
 The changes between releases are in [CHANGELOG.md](CHANGELOG.md).
 
