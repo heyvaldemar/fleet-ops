@@ -13,21 +13,23 @@ name: gk hook store
 # for linux/arm64 and darwin/arm64 and not for amd64 at 3.1.79. strace exists
 # only on Linux, so connections are counted there. No secret is read; the
 # result is each job's summary and an artifact.
+#
+# gk runs only from a zip pinned in scripts/gk-core-pins.json: fetched from
+# the pinned https URL with no redirect, and unpacked only when its sha256
+# matches; on macOS the binary must also carry Axosoft's Developer ID. With no
+# pin the run stops. record: true fetches a new version through gk's release
+# API and prints its URL and sum for the pins file; it never unpacks or runs gk.
 on:
   workflow_dispatch:
     inputs:
       gk_version:
-        description: "gk core version to fetch"
+        description: "gk core version; it must be pinned in scripts/gk-core-pins.json"
         type: string
         default: "3.1.79"
-      gk_sha256:
-        description: "Expected sha256 of the linux/arm64 core zip; empty records it instead"
-        type: string
-        default: ""
-      gk_sha256_darwin:
-        description: "Expected sha256 of the darwin/arm64 core zip; empty records it instead"
-        type: string
-        default: ""
+      record:
+        description: "Only fetch the core and print its URL and sha256 for the pins file; gk is not run"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -54,52 +56,70 @@ jobs:
       - name: The checks can fail
         run: ./tests/test-gk-hook-store.sh
 
+      - name: Record a core's URL and sha256 (gk is not run)
+        if: ${{ inputs.record }}
+        env:
+          GK_VERSION: ${{ inputs.gk_version }}
+          GK_PLATFORM: ${{ matrix.platform }}
+        run: |
+          set -euo pipefail
+          case "$GK_VERSION" in ''|*[!0-9.]*) echo "::error::gk_version must look like 3.1.79"; exit 1 ;; esac
+          api="https://api.gitkraken.dev/releases/gkcli/production/${GK_PLATFORM}/arm64/${GK_VERSION}/gk_core_${GK_VERSION}_${GK_PLATFORM}_arm64.zip"
+          final="$(curl -fsS --proto '=https' --proto-redir '=https' -L --max-redirs 1 --retry 3 \
+            -o "$RUNNER_TEMP/gk.zip" -w '%{url_effective}' "$api")"
+          case "$final" in
+            *'?'*) echo "::error::the release URL carries a query string; it would not last as a pin"; exit 1 ;;
+            https://release.gitkraken.dev/*) ;;
+            *) echo "::error::the release API sent the download somewhere else"; exit 1 ;;
+          esac
+          sum="$(shasum -a 256 "$RUNNER_TEMP/gk.zip" | cut -d' ' -f1)"
+          printf '"%s": {"%s-arm64": {"url": "%s", "sha256": "%s"}}\n' "$GK_VERSION" "$GK_PLATFORM" "$final" "$sum" \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: strace, to count connect() calls
-        if: matrix.platform == 'linux'
+        if: ${{ matrix.platform == 'linux' && !inputs.record }}
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq strace > /dev/null
           strace -V | head -1
 
-      - name: Fetch the gk core
+      - name: Fetch the pinned gk core
+        if: ${{ !inputs.record }}
         env:
           GK_VERSION: ${{ inputs.gk_version }}
-          GK_SHA256_LINUX: ${{ inputs.gk_sha256 }}
-          GK_SHA256_DARWIN: ${{ inputs.gk_sha256_darwin }}
           GK_PLATFORM: ${{ matrix.platform }}
         run: |
           set -euo pipefail
-          if [ "$GK_PLATFORM" = linux ]; then GK_SHA256="$GK_SHA256_LINUX"; else GK_SHA256="$GK_SHA256_DARWIN"; fi
-          case "$GK_VERSION" in ''|*[!0-9.]*) echo "::error::gk_version must look like 3.1.79"; exit 1 ;; esac
-          if [ -n "$GK_SHA256" ] && ! [[ "$GK_SHA256" =~ ^[0-9a-f]{64}$ ]]; then
-            echo "::error::gk_sha256 must be 64 hex characters"; exit 1
-          fi
-          url="https://api.gitkraken.dev/releases/gkcli/production/${GK_PLATFORM}/arm64/${GK_VERSION}/gk_core_${GK_VERSION}_${GK_PLATFORM}_arm64.zip"
-          curl -fsSL --retry 3 -o "$RUNNER_TEMP/gk.zip" "$url"
-          sum="$(shasum -a 256 "$RUNNER_TEMP/gk.zip" | cut -d' ' -f1)"
-          echo "core zip sha256: $sum"
-          if [ -n "$GK_SHA256" ] && [ "$sum" != "$GK_SHA256" ]; then
-            echo "::error::the core zip is not the one pinned"; exit 1
-          fi
+          pin="$(python3 scripts/gk-hook-store.py pin "$GK_VERSION" "$GK_PLATFORM-arm64")"
+          url="${pin% *}"; want="${pin#* }"
+          curl -fsS --proto '=https' --max-redirs 0 --retry 3 -o "$RUNNER_TEMP/gk.zip" "$url"
+          python3 scripts/gk-hook-store.py check-zip "$RUNNER_TEMP/gk.zip" "$want"
           mkdir -p "$RUNNER_TEMP/gk"
           unzip -q "$RUNNER_TEMP/gk.zip" -d "$RUNNER_TEMP/gk"
           bin="$(find "$RUNNER_TEMP/gk" -type f -size +1M | head -1)"
           [ -n "$bin" ] || { echo "::error::no binary in the core zip"; exit 1; }
+          if [ "$GK_PLATFORM" = darwin ]; then
+            codesign --verify --strict "$bin"
+            sig="$(codesign -dv "$bin" 2>&1)"
+            grep -x 'TeamIdentifier=T7QVVUTZQ8' <<< "$sig" > /dev/null \
+              || { echo "::error::the gk binary does not carry Axosoft's Developer ID"; exit 1; }
+          fi
           chmod +x "$bin"
           {
             echo "GK_BIN=$bin"
             echo "GK_URL=$url"
-            echo "GK_ZIP_SHA256=$sum"
+            echo "GK_ZIP_SHA256=$want"
           } >> "$GITHUB_ENV"
           "$bin" version
 
       - name: Measure
+        if: ${{ !inputs.record }}
         run: |
           python3 scripts/gk-hook-store.py run --gk "$GK_BIN" --out "$RUNNER_TEMP/gk-hook-store" \
             --summary "$GITHUB_STEP_SUMMARY"
 
       - name: Keep the result
-        if: always()
+        if: ${{ always() && !inputs.record }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: gk-hook-store-${{ matrix.platform }}

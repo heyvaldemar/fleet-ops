@@ -102,6 +102,19 @@ def game(name):
     return bool(GAME.search(name))
 
 
+# Products, not templates: a repository someone runs as a product, whose
+# verdict is its own CI rather than the template's Deployment Verification.
+# Conformance still holds it to every rule about what it runs (secrets off
+# the command line, restart policies, health checks); it skips only the
+# template-only rules (Deployment Verification, .env.example, update.sh, the
+# x-images block). Named, because no suffix describes a product.
+GATEWAYS = ("oxy-llm-gateway",)
+
+
+def gateway(name):
+    return name in GATEWAYS
+
+
 def kind_of(name):
     if name in NAMED:
         return NAMED[name]

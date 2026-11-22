@@ -1,7 +1,8 @@
 {
-  "what": "What the GitKraken CLI keeps of a Claude Code session: synthetic hook events handed to `gk ai hook run` in a throwaway home, not signed in; scripts/gk-hook-store.py, workflow .github/workflows/gk-hook-store.yml, its checks shown what they look for in tests/test-gk-hook-store.sh",
+  "what": "What the GitKraken CLI keeps of a Claude Code session: synthetic hook events handed to `gk ai hook run` in a throwaway home, not signed in, on linux/arm64 and darwin/arm64 (gk's own folders on each; connections counted on Linux); scripts/gk-hook-store.py, workflow .github/workflows/gk-hook-store.yml, its checks shown what they look for in tests/test-gk-hook-store.sh. Run 44981009608 ran before gk was pinned; its zips are the ones scripts/gk-core-pins.json now pins.",
   "runs": [
     {
+      "platform": "linux",
       "run": "https://github.com/heyvaldemar/fleet-ops/actions/runs/43809194867",
       "commit": "b74618571a12e781418116390b252b0a29c0d924",
       "measured": "2026-11-16T05:17:48Z",
@@ -211,6 +212,407 @@
             "outside_destinations": []
           }
         }
+      }
+    },
+    {
+      "platform": "linux",
+      "run": "https://github.com/heyvaldemar/fleet-ops/actions/runs/44981009608",
+      "commit": "84be9b250962865ea0b011df01ec25f7a7ce7bd7",
+      "measured": "2026-11-22T03:31:42Z",
+      "gk": {
+        "version": "3.1.79",
+        "core_zip": "https://api.gitkraken.dev/releases/gkcli/production/linux/arm64/3.1.79/gk_core_3.1.79_linux_arm64.zip",
+        "core_zip_sha256": "c798d6d637ada1b8c99f25b7c5564807a559b4a5acd936cb65ed7bf455547be2",
+        "binary_sha256": "bb4c45a0e4f319b3fb6f8164a92a59419657b1113efe766975b634e796435bbf"
+      },
+      "runner": "Ubuntu 24.04.5 LTS, aarch64, image ubuntu24-arm64 20261116.188.1; SQLite 3.45.1 (reader); strace -- version 6.8",
+      "marks": {
+        "prompt": "MARK-PROMPT-7f3a",
+        "command": "MARK-COMMAND-9b1c",
+        "stdout": "MARK-STDOUT-6e8f",
+        "reply": "MARK-REPLY-2c5a",
+        "transcript": "MARK-TRANSCRIPT-4d2e"
+      },
+      "fields": {
+        "files_holding_each_mark_after_each_event": [
+          {
+            "after": "SessionStart",
+            "exit": 0,
+            "kept": {}
+          },
+          {
+            "after": "UserPromptSubmit",
+            "exit": 0,
+            "kept": {
+              "prompt": [
+                ".cache/GitKrakenCLI/sessions/<id>.json",
+                ".local/share/GitKrakenCLI/store/.cache/cache.db"
+              ]
+            }
+          },
+          {
+            "after": "PreToolUse",
+            "exit": 0,
+            "kept": {
+              "prompt": [
+                ".cache/GitKrakenCLI/sessions/<id>.json",
+                ".local/share/GitKrakenCLI/store/.cache/cache.db"
+              ],
+              "command": [
+                ".cache/GitKrakenCLI/sessions/<id>.json",
+                ".local/share/GitKrakenCLI/store/.cache/cache.db"
+              ]
+            }
+          },
+          {
+            "after": "PostToolUse",
+            "exit": 0,
+            "kept": {
+              "prompt": [
+                ".cache/GitKrakenCLI/sessions/<id>.json",
+                ".local/share/GitKrakenCLI/store/.cache/cache.db"
+              ],
+              "command": [
+                ".cache/GitKrakenCLI/sessions/<id>.json",
+                ".local/share/GitKrakenCLI/store/.cache/cache.db"
+              ],
+              "stdout": [
+                ".cache/GitKrakenCLI/sessions/<id>.json",
+                ".local/share/GitKrakenCLI/store/.cache/cache.db"
+              ]
+            }
+          },
+          {
+            "after": "Stop",
+            "exit": 0,
+            "kept": {
+              "prompt": [
+                ".cache/GitKrakenCLI/sessions/<id>.json",
+                ".local/share/GitKrakenCLI/store/.cache/cache.db"
+              ],
+              "reply": [
+                ".cache/GitKrakenCLI/sessions/<id>.json",
+                ".local/share/GitKrakenCLI/store/.cache/cache.db"
+              ]
+            }
+          },
+          {
+            "after": "SessionEnd",
+            "exit": 0,
+            "kept": {
+              "prompt": [
+                ".cache/GitKrakenCLI/sessions/ended/<id>.json",
+                ".local/share/GitKrakenCLI/store/.cache/cache.db"
+              ]
+            }
+          }
+        ],
+        "transcript_path_a_fifo": "transcript_path pointed at a FIFO with no writer, so reading it would block until the 10 s timeout; every event returned in 0.05 s or less with exit 0, so gk did not read the transcript"
+      },
+      "perms": {
+        "umask 0022": {
+          "checked": 22,
+          "open_to_others": [
+            {
+              "path": ".local/share/GitKrakenCLI/gk_cli.log",
+              "kind": "file",
+              "mode": "0644",
+              "holds_a_mark": false
+            }
+          ],
+          "modes": [
+            "dir 0700",
+            "file 0600",
+            "file 0644"
+          ]
+        },
+        "umask 0077": {
+          "checked": 22,
+          "open_to_others": [],
+          "modes": [
+            "dir 0700",
+            "file 0600"
+          ]
+        }
+      },
+      "retention": {
+        "aged_fields": {
+          "database": "ai_sessions.ended_at and updated_at",
+          "json": "endedAt and updatedAt"
+        },
+        "after_cleanup": {
+          "31 days, both timestamps": {
+            "json": false,
+            "db_row": false
+          },
+          "29 days, both timestamps": {
+            "json": true,
+            "db_row": true
+          },
+          "31 days, database only": {
+            "json": true,
+            "db_row": false
+          },
+          "31 days, JSON only": {
+            "json": true,
+            "db_row": true
+          }
+        },
+        "note": "each case is aged, then one SessionStart is sent 35 s later (gk throttles cleanup to about once in 30 s); before cleanup all four were present"
+      },
+      "remove_session": {
+        "exit": 0,
+        "record_after": {
+          "json": false,
+          "db_row": false
+        },
+        "prompt_mark_in_store_files": [
+          "cache.db"
+        ],
+        "freelist_pages": 0,
+        "journal_mode": "wal",
+        "copy_after_wal_checkpoint": [
+          "cache.db"
+        ],
+        "copy_after_vacuum": []
+      },
+      "secure_delete_on_a_copy": {
+        "note": "the same ai_sessions row deleted from a copy of the store taken before remove-session; secure_delete is a setting of the deleting connection, gk's own connection decides",
+        "copy_before": [
+          "cache.db"
+        ],
+        "off": {
+          "after_commit": [
+            "cache.db",
+            "cache.db-wal"
+          ],
+          "after_close": [
+            "cache.db"
+          ]
+        },
+        "on": {
+          "after_commit": [
+            "cache.db"
+          ],
+          "after_close": []
+        }
+      },
+      "network": {
+        "counted_by": "strace -f -e trace=connect around each `gk ai hook run`, 5 loops of 6 events per mode",
+        "plant": {
+          "attempts": 1,
+          "outside": [
+            "192.0.2.1:9"
+          ]
+        },
+        "modes": {
+          "default": {
+            "events": 30,
+            "connect_attempts": 0,
+            "dns_attempts": 0,
+            "outside_destinations": []
+          },
+          "--no-telemetry": {
+            "events": 30,
+            "connect_attempts": 0,
+            "dns_attempts": 0,
+            "outside_destinations": []
+          },
+          "GK_CLI_NO_TELEMETRY=1": {
+            "events": 30,
+            "connect_attempts": 0,
+            "dns_attempts": 0,
+            "outside_destinations": []
+          }
+        }
+      }
+    },
+    {
+      "platform": "darwin",
+      "run": "https://github.com/heyvaldemar/fleet-ops/actions/runs/44981009608",
+      "commit": "84be9b250962865ea0b011df01ec25f7a7ce7bd7",
+      "measured": "2026-11-22T03:31:22Z",
+      "gk": {
+        "version": "3.1.79",
+        "core_zip": "https://api.gitkraken.dev/releases/gkcli/production/darwin/arm64/3.1.79/gk_core_3.1.79_darwin_arm64.zip",
+        "core_zip_sha256": "8a8669a8435231ec8a3a14ecee3375aa1d342b43bbc37c32812f9510814460da",
+        "binary_sha256": "d807a84c362940b06a8c2ef2d8ab2cfd9417e0d30d7467d610ce8e3631bc3feb"
+      },
+      "runner": "macOS-15.8.2-arm64-arm-64bit-Mach-O, arm64, image macos15 20261118.0550.1; SQLite 3.54.1 (reader)",
+      "marks": {
+        "prompt": "MARK-PROMPT-7f3a",
+        "command": "MARK-COMMAND-9b1c",
+        "stdout": "MARK-STDOUT-6e8f",
+        "reply": "MARK-REPLY-2c5a",
+        "transcript": "MARK-TRANSCRIPT-4d2e"
+      },
+      "fields": {
+        "files_holding_each_mark_after_each_event": [
+          {
+            "after": "SessionStart",
+            "exit": 0,
+            "kept": {}
+          },
+          {
+            "after": "UserPromptSubmit",
+            "exit": 0,
+            "kept": {
+              "prompt": [
+                "Library/Application Support/GitKrakenCLI/store/.cache/cache.db",
+                "Library/Caches/GitKrakenCLI/sessions/<id>.json"
+              ]
+            }
+          },
+          {
+            "after": "PreToolUse",
+            "exit": 0,
+            "kept": {
+              "prompt": [
+                "Library/Application Support/GitKrakenCLI/store/.cache/cache.db",
+                "Library/Caches/GitKrakenCLI/sessions/<id>.json"
+              ],
+              "command": [
+                "Library/Application Support/GitKrakenCLI/store/.cache/cache.db",
+                "Library/Caches/GitKrakenCLI/sessions/<id>.json"
+              ]
+            }
+          },
+          {
+            "after": "PostToolUse",
+            "exit": 0,
+            "kept": {
+              "prompt": [
+                "Library/Application Support/GitKrakenCLI/store/.cache/cache.db",
+                "Library/Caches/GitKrakenCLI/sessions/<id>.json"
+              ],
+              "command": [
+                "Library/Application Support/GitKrakenCLI/store/.cache/cache.db",
+                "Library/Caches/GitKrakenCLI/sessions/<id>.json"
+              ],
+              "stdout": [
+                "Library/Application Support/GitKrakenCLI/store/.cache/cache.db",
+                "Library/Caches/GitKrakenCLI/sessions/<id>.json"
+              ]
+            }
+          },
+          {
+            "after": "Stop",
+            "exit": 0,
+            "kept": {
+              "prompt": [
+                "Library/Application Support/GitKrakenCLI/store/.cache/cache.db",
+                "Library/Caches/GitKrakenCLI/sessions/<id>.json"
+              ],
+              "reply": [
+                "Library/Application Support/GitKrakenCLI/store/.cache/cache.db",
+                "Library/Caches/GitKrakenCLI/sessions/<id>.json"
+              ]
+            }
+          },
+          {
+            "after": "SessionEnd",
+            "exit": 0,
+            "kept": {
+              "prompt": [
+                "Library/Application Support/GitKrakenCLI/store/.cache/cache.db",
+                "Library/Caches/GitKrakenCLI/sessions/ended/<id>.json"
+              ]
+            }
+          }
+        ],
+        "transcript_path_a_fifo": "transcript_path pointed at a FIFO with no writer, so reading it would block until the 10 s timeout; every event returned in 0.05 s or less with exit 0, so gk did not read the transcript"
+      },
+      "perms": {
+        "umask 0022": {
+          "checked": 22,
+          "open_to_others": [
+            {
+              "path": "Library/Application Support/GitKrakenCLI/gk_cli.log",
+              "kind": "file",
+              "mode": "0644",
+              "holds_a_mark": false
+            }
+          ],
+          "modes": [
+            "dir 0700",
+            "file 0600",
+            "file 0644"
+          ]
+        },
+        "umask 0077": {
+          "checked": 22,
+          "open_to_others": [],
+          "modes": [
+            "dir 0700",
+            "file 0600"
+          ]
+        }
+      },
+      "retention": {
+        "aged_fields": {
+          "database": "ai_sessions.ended_at and updated_at",
+          "json": "endedAt and updatedAt"
+        },
+        "after_cleanup": {
+          "31 days, both timestamps": {
+            "json": false,
+            "db_row": false
+          },
+          "29 days, both timestamps": {
+            "json": true,
+            "db_row": true
+          },
+          "31 days, database only": {
+            "json": true,
+            "db_row": false
+          },
+          "31 days, JSON only": {
+            "json": true,
+            "db_row": true
+          }
+        },
+        "note": "each case is aged, then one SessionStart is sent 35 s later (gk throttles cleanup to about once in 30 s); before cleanup all four were present"
+      },
+      "remove_session": {
+        "exit": 0,
+        "record_after": {
+          "json": false,
+          "db_row": false
+        },
+        "prompt_mark_in_store_files": [
+          "cache.db"
+        ],
+        "freelist_pages": 0,
+        "journal_mode": "wal",
+        "copy_after_wal_checkpoint": [
+          "cache.db"
+        ],
+        "copy_after_vacuum": []
+      },
+      "secure_delete_on_a_copy": {
+        "note": "the same ai_sessions row deleted from a copy of the store taken before remove-session; secure_delete is a setting of the deleting connection, gk's own connection decides",
+        "copy_before": [
+          "cache.db"
+        ],
+        "off": {
+          "after_commit": [
+            "cache.db",
+            "cache.db-wal"
+          ],
+          "after_close": [
+            "cache.db"
+          ]
+        },
+        "on": {
+          "after_commit": [
+            "cache.db"
+          ],
+          "after_close": []
+        }
+      },
+      "network": {
+        "measured": false,
+        "why": "no strace on macOS; connections are counted on Linux"
       }
     }
   ]

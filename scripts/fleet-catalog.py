@@ -121,7 +121,7 @@ NAMED_TRAEFIK_STACKS = ("chatops-privilege-wall",)
 # violations in CI. Its verdict workflow is ci.yml, which no group lists, so it
 # fell through to the catch-all and was dropped (2026-11-16). Its branch
 # `status` has the same shape as the measured repositories' (scripts/status.py).
-NAMED_GATEWAYS = ("oxy-llm-gateway",)
+NAMED_GATEWAYS = fleet_kind.GATEWAYS
 
 GROUPS = [
     ("Self-hosted applications behind Traefik with Let's Encrypt", "self-hosted applications behind Traefik",

@@ -1584,7 +1584,8 @@ def check_repo(repo, exempt=None):
         return [f"{compose_name} is listed but could not be read"]
 
     # 1. pins
-    if "x-images:" not in compose:
+    product = fleet_kind.gateway(repo.name)
+    if "x-images:" not in compose and not product:
         bad.append("no x-images block: the pins are not in one place")
     elif "@sha256:" not in compose:
         # A digest is only meaningful for an image that is PULLED. modernuo
@@ -1752,6 +1753,8 @@ def check_repo(repo, exempt=None):
 
     # 3. the surrounding repository
     for f in ("README.md", "CHANGELOG.md", "LICENSE", "SECURITY.md", ".env.example", ".gitignore"):
+        if f == ".env.example" and product:
+            continue
         if f not in names:
             bad.append(f"missing {f}")
 
@@ -1893,7 +1896,8 @@ def check_repo(repo, exempt=None):
     # are about what the repository checks, so they read both files as one.
     fresh = repo.read(".github/workflows/freshness.yml")
     if wf is None:
-        bad.append("no Deployment Verification workflow")
+        if not product:
+            bad.append("no Deployment Verification workflow")
     else:
         if fresh is not None:
             wf = wf + "\n" + fresh
@@ -1976,7 +1980,8 @@ def check_repo(repo, exempt=None):
     # anchor on; the game templates boot nothing in CI by design.
     up = repo.read("update.sh")
     if up is None:
-        bad.append("no update.sh: a deployed host has no release-tag updater")
+        if not product:
+            bad.append("no update.sh: a deployed host has no release-tag updater")
     elif "NEW VARIABLES SINCE YOUR VERSION" not in up:
         bad.append("update.sh does not name variables that became required since the deployed version")
     if up is not None:

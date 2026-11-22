@@ -5,6 +5,8 @@
     gk-hook-store.py scan ROOT MARK...        which files under ROOT hold each mark
     gk-hook-store.py perms ROOT               files or folders others may read
     gk-hook-store.py connects STRACE_LOG      connect() calls in an strace log
+    gk-hook-store.py pin VERSION PLATFORM     the pinned URL and sha256 of a gk core, or exit
+    gk-hook-store.py check-zip ZIP SHA256     exit unless ZIP has that sha256
 
 WHY. GitKraken Desktop and GitLens show live Claude Code status through a
 Claude Code plugin, gitkraken-hooks, that pipes every hook event to
@@ -524,6 +526,34 @@ def run(args):
     print(md)
 
 
+# ------------------------------------------------------------ the core ---
+
+PINS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "gk-core-pins.json")
+PIN_HOST = "https://release.gitkraken.dev/"
+
+
+def pin_for(version, platform, pins=PINS):
+    """The URL and sha256 a gk core may be fetched from and run with, or exit."""
+    with open(pins) as fh:
+        p = json.load(fh).get(version, {})
+    p = p.get(platform) if isinstance(p, dict) else None
+    if not isinstance(p, dict):
+        raise SystemExit("no pin for gk %s %s in %s: dispatch with record: true, check the sum, add it"
+                         % (version, platform, pins))
+    url, sha = p.get("url", ""), p.get("sha256", "")
+    if not url.startswith(PIN_HOST) or not re.fullmatch(r"[0-9a-f]{64}", sha):
+        raise SystemExit("the pin for gk %s %s is not an %s URL with a sha256" % (version, platform, PIN_HOST))
+    return url, sha
+
+
+def sha256_of(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -541,9 +571,23 @@ def main():
     c.add_argument("log")
     st = sub.add_parser("self-test")
     st.add_argument("--dir")
+    pn = sub.add_parser("pin")
+    pn.add_argument("version")
+    pn.add_argument("platform")
+    pn.add_argument("--pins", default=PINS)
+    cz = sub.add_parser("check-zip")
+    cz.add_argument("zip")
+    cz.add_argument("sha256")
     a = ap.parse_args()
     if a.cmd == "run":
         run(a)
+    elif a.cmd == "pin":
+        print("%s %s" % pin_for(a.version, a.platform, a.pins))
+    elif a.cmd == "check-zip":
+        got = sha256_of(a.zip)
+        print("core zip sha256: %s" % got)
+        if got != a.sha256:
+            raise SystemExit("the core zip is not the one pinned (want %s)" % a.sha256)
     elif a.cmd == "scan":
         print(json.dumps(scan(a.root, a.marks)))
     elif a.cmd == "perms":

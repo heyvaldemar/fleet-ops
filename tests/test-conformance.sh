@@ -841,5 +841,39 @@ if [ "$ran" != 7 ]; then
   echo "  FAIL: the variants checks did not all run ($ran of 7)"; FAILED=$((FAILED+1))
 fi
 
+
+# A PRODUCT IS NOT A TEMPLATE. oxy-llm-gateway is run as a product: its verdict
+# is its own CI, it has no Deployment Verification, no .env.example to copy, no
+# update.sh and no x-images block. Those four rules are skipped for a name in
+# fleet_kind.GATEWAYS, and only those: what it runs is held to every other rule.
+gateway_fixture() {  # gateway_fixture <case>: the reference under the gateway's name
+  local d g; d="$(fixture "$1")"; g="$(dirname "$d")/oxy-llm-gateway"
+  mv "$d" "$g"; tag_all "$g"; printf '%s' "$g"
+}
+strip_template() {   # strip_template <repo-dir>: what only a template carries
+  rm -f "$1/.github/workflows/deployment-verification.yml" "$1/update.sh" "$1/.env.example"
+}
+as_product() {       # as_product <repo-dir>: its verdict is its own CI, as Oxy's is
+  strip_template "$1"
+  sed -i.bak 's/"Deployment Verification"/"CI"/' "$1/.github/workflows/dependabot-automerge.yml" && rm -f "$1/.github/workflows/dependabot-automerge.yml.bak"
+  printf 'name: CI\non: push\npermissions:\n  contents: read\njobs:\n  test:\n    name: Tests\n    runs-on: ubuntu-24.04\n    timeout-minutes: 10\n    steps:\n      - run: "true"\n' > "$1/.github/workflows/ci.yml"
+}
+d="$(gateway_fixture gwclean)"; as_product "$d"
+expect_clean "$WORK/gwclean"
+d="$(fixture gwtemplate)"; strip_template "$d"
+expect "a template without them is still caught" "$WORK/gwtemplate" "no Deployment Verification workflow"
+expect "and its updater" "$WORK/gwtemplate" "no update.sh"
+expect "and its .env.example" "$WORK/gwtemplate" "missing .env.example"
+d="$(gateway_fixture gwrestart)"; as_product "$d"
+python3 - "$(compose_of "$d")" <<'PY'
+import io, re, sys
+c = sys.argv[1]
+s = io.open(c, encoding="utf-8").read()
+s2, n = re.subn(r"(?m)^    restart: .*\n", "", s, count=1)
+assert n == 1, "no restart line to drop"
+io.open(c, "w", encoding="utf-8").write(s2)
+PY
+expect "a gateway is still held to its restart policies" "$WORK/gwrestart" "has no restart policy"
+
 echo "passed: $PASSED   failed: $FAILED"
 [ "$FAILED" -eq 0 ]

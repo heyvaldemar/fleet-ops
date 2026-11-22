@@ -10,6 +10,16 @@ check or a job, a patch fixes one.
 ## [Unreleased]
 
 ### Added
+- **Conformance: a product is not a template.** oxy-llm-gateway was the only
+  red repository in every sweep from 15 November on, for four rules only a
+  template can meet: a Deployment Verification workflow, an `.env.example` to
+  copy, an `update.sh` that moves a deployed host between release tags, and an
+  `x-images` block. Its verdict is its own CI. A name in `fleet_kind.GATEWAYS`
+  now skips those four and nothing else: what it runs is still held to every
+  rule (no secret on a command line, restart policies, health checks), and the
+  catalog asks the same list. Checked on oxy-llm-gateway's main: clean. Five
+  new cases in `tests/test-conformance.sh` (117), the clean one failing on the
+  old rules.
 - **One freshness check for every Kubernetes repository, with a three-day
   grace for new releases.** The seven repositories that pin charts, images,
   tools and providers outside Dependabot each carried their own
@@ -207,7 +217,10 @@ check or a job, a patch fixes one.
   stays in its SQLite file until VACUUM and whether SQLite's secure_delete
   would wipe it (tried on a copy), and every connect() the hook makes
   with telemetry on and off. Each check is first shown what it looks for. The
-  result is kept in `docs/gk-hook-store.json`.
+  result is kept in `docs/gk-hook-store.json`. gk runs only from a core zip
+  pinned in `scripts/gk-core-pins.json` (https URL, no redirect, sha256; on
+  macOS also Axosoft's Developer ID); with no pin the run stops, and
+  `record: true` only fetches a new version and prints its pin.
 - **Conformance: a Redis health check reads the reply, and a health check's
   `test:` is a command line.** `redis-cli` exits 0 on an error reply: against
   `requirepass` a bare `redis-cli ping` prints NOAUTH, with a wrong

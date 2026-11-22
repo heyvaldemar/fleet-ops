@@ -1,0 +1,15 @@
+{
+  "about": "The gk core zips the gk hook store workflow may run, by gk version and platform: the release URL it is fetched from (no redirect) and its sha256. A run with no pin here, or with a zip whose sum differs, stops before gk is unpacked. A new version is fetched with the workflow's record: true, which prints the URL and sum and never runs gk; check it, then add it here.",
+  "3.1.79": {
+    "linux-arm64": {
+      "url": "https://release.gitkraken.dev/gkcli/production/normal/linux/arm64/3.1.79/3LKgf1a4XPtCbF68tVt3U9PRlNt/gk_core_3.1.79_linux_arm64.zip",
+      "sha256": "c798d6d637ada1b8c99f25b7c5564807a559b4a5acd936cb65ed7bf455547be2",
+      "checked": "the same sum fetched in runs 43809194867 (2026-11-16) and 44981009608 (2026-11-22)"
+    },
+    "darwin-arm64": {
+      "url": "https://release.gitkraken.dev/gkcli/production/normal/darwin/arm64/3.1.79/3LKgegu96pVd3yxfg2XfysJs4c0/gk_core_3.1.79_darwin_arm64.zip",
+      "sha256": "8a8669a8435231ec8a3a14ecee3375aa1d342b43bbc37c32812f9510814460da",
+      "checked": "run 44981009608 (2026-11-22); the binary in it, sha256 d807a84c362940b06a8c2ef2d8ab2cfd9417e0d30d7467d610ce8e3631bc3feb, is byte-identical to the gk core that GitKraken Desktop 12.6.2 installed on a Mac on 2026-11-08, signed Developer ID Application: Axosoft, LLC (T7QVVUTZQ8)"
+    }
+  }
+}
