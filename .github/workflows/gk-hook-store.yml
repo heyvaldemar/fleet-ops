@@ -9,9 +9,10 @@ name: gk hook store
 # connect() the hook makes with telemetry on and off.
 # scripts/gk-hook-store.py says exactly what each section does.
 #
-# Run by hand. Arm64, because gk's core build for Linux is published for arm64
-# and not for amd64 at 3.1.79. No secret is read; the result is the job
-# summary and an artifact.
+# Run by hand, on Linux and on macOS, both arm64: gk's core build is published
+# for linux/arm64 and darwin/arm64 and not for amd64 at 3.1.79. strace exists
+# only on Linux, so connections are counted there. No secret is read; the
+# result is each job's summary and an artifact.
 on:
   workflow_dispatch:
     inputs:
@@ -20,7 +21,11 @@ on:
         type: string
         default: "3.1.79"
       gk_sha256:
-        description: "Expected sha256 of the core zip; empty records it instead"
+        description: "Expected sha256 of the linux/arm64 core zip; empty records it instead"
+        type: string
+        default: ""
+      gk_sha256_darwin:
+        description: "Expected sha256 of the darwin/arm64 core zip; empty records it instead"
         type: string
         default: ""
 
@@ -29,8 +34,16 @@ permissions:
 
 jobs:
   measure:
-    name: What gk writes, keeps and sends
-    runs-on: ubuntu-24.04-arm
+    name: What gk writes, keeps and sends (${{ matrix.platform }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux
+            runner: ubuntu-24.04-arm
+          - platform: darwin
+            runner: macos-15
     timeout-minutes: 20
     steps:
       - name: Checkout repository
@@ -42,6 +55,7 @@ jobs:
         run: ./tests/test-gk-hook-store.sh
 
       - name: strace, to count connect() calls
+        if: matrix.platform == 'linux'
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq strace > /dev/null
@@ -50,16 +64,19 @@ jobs:
       - name: Fetch the gk core
         env:
           GK_VERSION: ${{ inputs.gk_version }}
-          GK_SHA256: ${{ inputs.gk_sha256 }}
+          GK_SHA256_LINUX: ${{ inputs.gk_sha256 }}
+          GK_SHA256_DARWIN: ${{ inputs.gk_sha256_darwin }}
+          GK_PLATFORM: ${{ matrix.platform }}
         run: |
           set -euo pipefail
+          if [ "$GK_PLATFORM" = linux ]; then GK_SHA256="$GK_SHA256_LINUX"; else GK_SHA256="$GK_SHA256_DARWIN"; fi
           case "$GK_VERSION" in ''|*[!0-9.]*) echo "::error::gk_version must look like 3.1.79"; exit 1 ;; esac
           if [ -n "$GK_SHA256" ] && ! [[ "$GK_SHA256" =~ ^[0-9a-f]{64}$ ]]; then
             echo "::error::gk_sha256 must be 64 hex characters"; exit 1
           fi
-          url="https://api.gitkraken.dev/releases/gkcli/production/linux/arm64/${GK_VERSION}/gk_core_${GK_VERSION}_linux_arm64.zip"
+          url="https://api.gitkraken.dev/releases/gkcli/production/${GK_PLATFORM}/arm64/${GK_VERSION}/gk_core_${GK_VERSION}_${GK_PLATFORM}_arm64.zip"
           curl -fsSL --retry 3 -o "$RUNNER_TEMP/gk.zip" "$url"
-          sum="$(sha256sum "$RUNNER_TEMP/gk.zip" | cut -d' ' -f1)"
+          sum="$(shasum -a 256 "$RUNNER_TEMP/gk.zip" | cut -d' ' -f1)"
           echo "core zip sha256: $sum"
           if [ -n "$GK_SHA256" ] && [ "$sum" != "$GK_SHA256" ]; then
             echo "::error::the core zip is not the one pinned"; exit 1
@@ -85,7 +102,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: gk-hook-store
+          name: gk-hook-store-${{ matrix.platform }}
           path: ${{ runner.temp }}/gk-hook-store
           if-no-files-found: error
           retention-days: 90

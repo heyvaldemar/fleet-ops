@@ -126,14 +126,21 @@ class Box:
         self.env = {
             "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
             "HOME": self.home,
-            "XDG_CONFIG_HOME": os.path.join(self.home, ".config"),
-            "XDG_CACHE_HOME": os.path.join(self.home, ".cache"),
-            "XDG_DATA_HOME": os.path.join(self.home, ".local", "share"),
-            "XDG_STATE_HOME": os.path.join(self.home, ".local", "state"),
             "CLAUDE_CONFIG_DIR": os.path.join(self.root, "claude"),
             "TMPDIR": os.path.join(self.root, "tmp"),
             "LC_ALL": "C",
         }
+        # On Linux these are the XDG defaults under the box's HOME, set so a
+        # runner's own XDG settings cannot point gk outside it. macOS has no
+        # XDG defaults and gk honours some of these there, so they stay unset
+        # and gk picks the folders it uses on a Mac (under ~/Library).
+        if sys.platform != "darwin":
+            self.env.update({
+                "XDG_CONFIG_HOME": os.path.join(self.home, ".config"),
+                "XDG_CACHE_HOME": os.path.join(self.home, ".cache"),
+                "XDG_DATA_HOME": os.path.join(self.home, ".local", "share"),
+                "XDG_STATE_HOME": os.path.join(self.home, ".local", "state"),
+            })
 
     def gk_run(self, args, stdin=None, extra_env=None, prefix=(), timeout=60):
         env = dict(self.env, **(extra_env or {}))

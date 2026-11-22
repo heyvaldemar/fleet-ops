@@ -200,7 +200,8 @@ check or a job, a patch fixes one.
   GitKraken Desktop and GitLens get live agent status from a Claude Code
   plugin that pipes every hook event, prompt, command, its output and the
   agent's last reply included, to `gk ai hook run`. The manual gk hook store
-  workflow hands gk synthetic events on an arm64 runner and records what it
+  workflow hands gk synthetic events on Linux and macOS arm64 runners (gk's
+  own folders on each; connections counted on Linux) and records what it
   writes after each event, the file modes under two umasks, when ended
   sessions are purged, what `remove-session` takes away, whether deleted text
   stays in its SQLite file until VACUUM and whether SQLite's secure_delete
