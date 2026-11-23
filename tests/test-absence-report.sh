@@ -285,7 +285,7 @@ check "the outsider's question is waiting at the end" "$(field "$WORK/got.json" 
 FAKE_MODE=private PATH="$WORK/bin:$PATH" python3 "$S" collect --owner acme --start 2026-11-10T00:00:00Z --end 2026-11-13T00:00:00Z --out "$WORK/priv" 2> "$WORK/priv.err"
 check "a private repository coming back from the query stops the collection" "$?" 1
 check "and says why, without naming it" "$(grep -c 'private repository came back' "$WORK/priv.err")/$(grep -c secret-private "$WORK/priv.err")" "1/0"
-check "nothing was written" "$(ls "$WORK/priv" 2>/dev/null | wc -l | tr -d ' ')" 0
+check "nothing was written" "$(find "$WORK/priv" -mindepth 1 2>/dev/null | wc -l | tr -d ' ')" 0
 python3 "$S" collect --owner acme --start 2026-11-10T00:00:00Z --end 2099-01-01T00:00:00Z --out "$WORK/future" 2> "$WORK/future.err"
 check "a window that has not ended is refused" "$?" 1
 
