@@ -444,6 +444,44 @@ pin_platforms() {
   tr ',' '\n' <<<"$out" | awk 'NF && !seen[$0]++' | sort | paste -sd, -
 }
 
+# A bump branch is the triage's, until a person writes on it.
+#
+# Every run used to do `checkout -B bump/<v> main` and `push -f`, so a commit
+# a person had added to the branch, or to an open pull request on it, was
+# erased by the next run. On 2026-11-22 at 14:59Z that took a docs commit (the
+# watch_mode migration note) off diun's pull request #9, and the pull request
+# was one click from merging without it.
+#
+# So the branch is looked at before it is touched. A commit the bump did not
+# make (its subject does not start with "chore(deps): move ") means the branch
+# is no longer only the bump: it is left exactly as it is, and an open pull
+# request on it is told once that the bump is out of date. Otherwise the branch
+# is rewritten, but only if it still points where it was seen
+# (--force-with-lease against that sha), so a commit that lands in between is
+# not lost either. BUMP_LEASE is that sha, or empty when the branch is new.
+BUMP_LEASE=""
+bump_branch_check() {   # bump_branch_check <repo> <branch>: non-zero when the branch must not be rewritten
+  local repo="$1" br="$2" sha foreign pr marker
+  BUMP_LEASE=""
+  sha="$(git -C "$dir" ls-remote origin "refs/heads/$br" 2>/dev/null | cut -f1)"
+  [ -n "$sha" ] || return 0
+  git -C "$dir" fetch -q --depth 200 origin main "$br" 2>/dev/null || true
+  foreign="$(git -C "$dir" log --format=%s "origin/main..$sha" 2>/dev/null | grep -v '^chore(deps): move ' || true)"
+  if [ -z "$foreign" ] && git -C "$dir" cat-file -e "$sha^{commit}" 2>/dev/null; then
+    BUMP_LEASE="$sha"
+    return 0
+  fi
+  [ -n "$foreign" ] || foreign="(the branch could not be read)"
+  note "$repo: \`$br\` carries a commit the bump did not make, so it was left as it is; the bump is out of date — merge or drop that branch by hand"
+  marker="<!-- fleet-triage: bump out of date -->"
+  pr="$(gh pr list --repo "$OWNER/$repo" --head "$br" --state open --json number --jq '.[0].number // empty' 2>/dev/null || true)"
+  if [ -n "$pr" ] && ! gh pr view "$pr" --repo "$OWNER/$repo" --json comments --jq '.comments[].body' 2>/dev/null | grep -qF "$marker"; then
+    gh pr comment "$pr" --repo "$OWNER/$repo" --body "$marker
+The fleet triage prepared this branch and has stopped updating it: it carries a commit the bump did not make. The bump may be out of date; check the pin against main before merging." >/dev/null 2>&1 || true
+  fi
+  return 1
+}
+
 # A major bump is prepared, never landed: the compose file and the changelog
 # are changed on a branch, pushed, and the compare link goes to the report.
 # Opening the pull request is the decision, and it is one click.
@@ -466,8 +504,10 @@ major_branch() {
   # died on the `fix(security): refresh pins` commit that followed. mssql hit
   # exactly that on 2026-09-18: a traefik digest refresh belonging on main
   # rode onto bump/2022-CU27 instead, and the triage exited 1.
-  local stashed=0
+  local stashed=0 lease=""
   if [ "$DRY_RUN" != "true" ]; then
+    bump_branch_check "$repo" "$br" || return 0
+    lease="$BUMP_LEASE"
     if ! git -C "$dir" diff --quiet; then
       git -C "$dir" stash push -q -u && stashed=1
     fi
@@ -535,8 +575,8 @@ Prepared by fleet triage and not landed by it: the deploy job will boot the
 stack on the new images when this branch is opened as a pull request, and the
 decision to merge stays with a person. Every pin carrying $oldv moves together,
 because a version shared by two images is one version." || true
-  if ! git -C "$dir" push -q -f origin "$br"; then
-    note "$repo: the branch $br could not be pushed — needs a human"
+  if ! git -C "$dir" push -q "--force-with-lease=$br:$lease" origin "$br"; then
+    note "$repo: the branch $br could not be pushed, or changed while the triage ran — needs a human"
     restore_main
     return 0
   fi
@@ -753,6 +793,8 @@ terraform_major_branch() {
   local dir="$1" repo="$2" src="$3" oldv="$4" newv="$5"
   local br="bump/${src##*/}-${newv}"
   [ "$DRY_RUN" = "true" ] && { note "$repo: would prepare branch $br"; return 0; }
+  bump_branch_check "$repo" "$br" || return 0
+  local lease="$BUMP_LEASE"
   git -C "$dir" checkout -q -B "$br" main
   case "$src" in
     */*) sed -i "s|\"~> ${oldv}\"|\"~> ${newv}\"|" "$dir/01-providers.tf" ;;
@@ -761,8 +803,8 @@ terraform_major_branch() {
   changelog_line "$dir" "Changed" "- **\`${src}\` ${oldv} → ${newv}.** A major provider release: read its notes, regenerate the lockfile with \`terraform providers lock\`, and let CI validate before merging."
   git -C "$dir" -c user.name="$GIT_AUTHOR" -c user.email="$GIT_EMAIL" \
     commit -aqm "chore(deps): move $src to $newv" -m "A major provider release, prepared by fleet triage and not landed by it. The lockfile is NOT regenerated here: run terraform providers lock with the four platforms after reading the provider's notes. The decision to merge stays with a person." || true
-  if ! git -C "$dir" push -q -f origin "$br"; then
-    note "$repo: the branch $br could not be pushed — needs a human"
+  if ! git -C "$dir" push -q "--force-with-lease=$br:$lease" origin "$br"; then
+    note "$repo: the branch $br could not be pushed, or changed while the triage ran — needs a human"
     git -C "$dir" checkout -q main
     return 0
   fi

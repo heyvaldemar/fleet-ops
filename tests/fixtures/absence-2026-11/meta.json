@@ -1,0 +1,14 @@
+{
+ "api_calls": {
+  "rest": 6
+ },
+ "collected_at": "2026-11-22T05:20:00Z",
+ "end": "2026-11-22T03:00:00Z",
+ "minutes": "billing usage API, Actions minutes, public repositories",
+ "owner": "heyvaldemar",
+ "read_from": "2026-11-16T18:00:00Z",
+ "read_to": "2026-11-22T04:00:00Z",
+ "scope": "public repositories of the owner, forks and archives left out",
+ "source": "the sweep behind the November 2026 fact file (one serial pass, 2026-11-22 03:31-03:50Z), converted to this format with private repositories, logins and emails dropped; outside.jsonl collected by this script afterwards",
+ "start": "2026-11-16T20:03:41Z"
+}

@@ -1,0 +1,187 @@
+{"author": "owner", "committed_at": "2026-11-16T20:03:41Z", "headline": "Release v1.0.3: push by digest, sign, and only then name the image (#3)", "repo": "minio-client-docker", "sha": "0b934fe"}
+{"author": "owner", "committed_at": "2026-11-17T02:36:53Z", "headline": "fix(security): move pins to the newest patch of their own line", "repo": "dashy-traefik-letsencrypt-docker-compose", "sha": "2c2716c"}
+{"author": "owner", "committed_at": "2026-11-17T02:37:38Z", "headline": "fix(security): move pins to the newest patch of their own line", "repo": "gitlab-traefik-letsencrypt-docker-compose", "sha": "d70b0a8"}
+{"author": "owner", "committed_at": "2026-11-17T02:37:59Z", "headline": "fix(security): move pins to the newest patch of their own line", "repo": "homeassistant-traefik-letsencrypt-docker-compose", "sha": "421ac33"}
+{"author": "owner", "committed_at": "2026-11-17T02:39:19Z", "headline": "chore(triage): what is pushed and not yet judged", "repo": "fleet-ops", "sha": "e3417c1"}
+{"author": "owner", "committed_at": "2026-11-17T16:22:56Z", "headline": "The catalog, regenerated", "repo": "catalog", "sha": "fad0252"}
+{"author": "owner", "committed_at": "2026-11-17T16:22:58Z", "headline": "docs: the fleet counts, regenerated", "repo": "heyvaldemar", "sha": "9f10ecb"}
+{"author": "owner", "committed_at": "2026-11-17T16:30:20Z", "headline": "chore(release): v2.5.29", "repo": "dashy-traefik-letsencrypt-docker-compose", "sha": "9aeb858"}
+{"author": "owner", "committed_at": "2026-11-17T16:30:28Z", "headline": "chore(release): v1.8.25", "repo": "gitlab-traefik-letsencrypt-docker-compose", "sha": "977d6b7"}
+{"author": "owner", "committed_at": "2026-11-17T16:30:36Z", "headline": "chore(release): v1.7.23", "repo": "homeassistant-traefik-letsencrypt-docker-compose", "sha": "1877e06"}
+{"author": "owner", "committed_at": "2026-11-17T16:34:26Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "bitbucket-traefik-letsencrypt-docker-compose", "sha": "b755df4"}
+{"author": "owner", "committed_at": "2026-11-17T16:34:42Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "confluence-traefik-letsencrypt-docker-compose", "sha": "def1018"}
+{"author": "owner", "committed_at": "2026-11-17T16:34:59Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "game-server-wireguard-relay-docker-compose", "sha": "7eb10f2"}
+{"author": "owner", "committed_at": "2026-11-17T16:35:47Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "gitea-traefik-letsencrypt-docker-compose", "sha": "0285822"}
+{"author": "owner", "committed_at": "2026-11-17T16:36:39Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "mailu-traefik-letsencrypt-docker-compose", "sha": "4f643cd"}
+{"author": "owner", "committed_at": "2026-11-17T16:37:11Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "mattermost-traefik-letsencrypt-docker-compose", "sha": "de04ae8"}
+{"author": "owner", "committed_at": "2026-11-17T16:37:58Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "ollama-traefik-letsencrypt-docker-compose", "sha": "90b207c"}
+{"author": "owner", "committed_at": "2026-11-17T16:38:40Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "outline-keycloak-traefik-letsencrypt-docker-compose", "sha": "f064182"}
+{"author": "owner", "committed_at": "2026-11-17T16:40:04Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "xwiki-traefik-letsencrypt-docker-compose", "sha": "d4daf7c"}
+{"author": "owner", "committed_at": "2026-11-17T16:41:45Z", "headline": "fix(security): move pins to the newest patch of their own line", "repo": "uptime-kuma-traefik-letsencrypt-docker-compose", "sha": "de4aea7"}
+{"author": "owner", "committed_at": "2026-11-17T16:42:30Z", "headline": "chore(triage): what is pushed and not yet judged", "repo": "fleet-ops", "sha": "64f0c1e"}
+{"author": "owner", "committed_at": "2026-11-18T01:43:31Z", "headline": "chore(release): v1.9.27", "repo": "bitbucket-traefik-letsencrypt-docker-compose", "sha": "440e5ea"}
+{"author": "owner", "committed_at": "2026-11-18T01:43:39Z", "headline": "chore(release): v1.9.30", "repo": "confluence-traefik-letsencrypt-docker-compose", "sha": "cddca40"}
+{"author": "owner", "committed_at": "2026-11-18T01:43:46Z", "headline": "chore(release): v1.3.38", "repo": "game-server-wireguard-relay-docker-compose", "sha": "c5c74dc"}
+{"author": "owner", "committed_at": "2026-11-18T01:43:53Z", "headline": "chore(release): v2.0.22", "repo": "gitea-traefik-letsencrypt-docker-compose", "sha": "d918825"}
+{"author": "owner", "committed_at": "2026-11-18T01:44:00Z", "headline": "chore(release): v1.8.34", "repo": "mailu-traefik-letsencrypt-docker-compose", "sha": "7b28086"}
+{"author": "owner", "committed_at": "2026-11-18T01:44:09Z", "headline": "chore(release): v1.10.16", "repo": "mattermost-traefik-letsencrypt-docker-compose", "sha": "680e35a"}
+{"author": "owner", "committed_at": "2026-11-18T01:44:16Z", "headline": "chore(release): v2.0.21", "repo": "ollama-traefik-letsencrypt-docker-compose", "sha": "7f2d967"}
+{"author": "owner", "committed_at": "2026-11-18T01:44:23Z", "headline": "chore(release): v2.2.28", "repo": "outline-keycloak-traefik-letsencrypt-docker-compose", "sha": "f402135"}
+{"author": "owner", "committed_at": "2026-11-18T01:44:30Z", "headline": "chore(release): v1.9.26", "repo": "xwiki-traefik-letsencrypt-docker-compose", "sha": "27f5d5a"}
+{"author": "owner", "committed_at": "2026-11-18T01:44:37Z", "headline": "chore(release): v1.1.18", "repo": "uptime-kuma-traefik-letsencrypt-docker-compose", "sha": "db4d2b8"}
+{"author": "owner", "committed_at": "2026-11-18T01:47:53Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "game-server-wireguard-relay-docker-compose", "sha": "7662623"}
+{"author": "owner", "committed_at": "2026-11-18T01:48:14Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "ghost-traefik-letsencrypt-docker-compose", "sha": "1e0c779"}
+{"author": "owner", "committed_at": "2026-11-18T01:51:38Z", "headline": "chore(triage): what is pushed and not yet judged", "repo": "fleet-ops", "sha": "243578b"}
+{"author": "dependabot[bot]", "committed_at": "2026-11-18T06:03:23Z", "headline": "ci: bump the github-actions group with 3 updates (#1)", "repo": "agent-security-benchmark", "sha": "1aa21ab"}
+{"author": "owner", "committed_at": "2026-11-18T15:59:12Z", "headline": "chore(release): v1.3.39", "repo": "game-server-wireguard-relay-docker-compose", "sha": "ced3322"}
+{"author": "owner", "committed_at": "2026-11-18T15:59:19Z", "headline": "chore(release): v1.9.28", "repo": "ghost-traefik-letsencrypt-docker-compose", "sha": "a3ed713"}
+{"author": "owner", "committed_at": "2026-11-18T16:00:18Z", "headline": "The catalog, regenerated", "repo": "catalog", "sha": "901dc35"}
+{"author": "owner", "committed_at": "2026-11-18T16:00:19Z", "headline": "docs: the fleet counts, regenerated", "repo": "heyvaldemar", "sha": "d5a49bb"}
+{"author": "owner", "committed_at": "2026-11-18T16:04:03Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "audiobookshelf-traefik-letsencrypt-docker-compose", "sha": "20650b6"}
+{"author": "owner", "committed_at": "2026-11-18T16:05:29Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "dify-traefik-letsencrypt-docker-compose", "sha": "3d81325"}
+{"author": "owner", "committed_at": "2026-11-18T16:05:39Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "game-server-wireguard-relay-docker-compose", "sha": "ccce9d1"}
+{"author": "owner", "committed_at": "2026-11-18T16:06:17Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "nextcloud-onlyoffice-traefik-letsencrypt-docker-compose", "sha": "3b10936"}
+{"author": "owner", "committed_at": "2026-11-18T16:08:47Z", "headline": "chore(triage): what is pushed and not yet judged", "repo": "fleet-ops", "sha": "9b57244"}
+{"author": "owner", "committed_at": "2026-11-19T01:19:16Z", "headline": "chore(release): v1.1.19", "repo": "audiobookshelf-traefik-letsencrypt-docker-compose", "sha": "544656d"}
+{"author": "owner", "committed_at": "2026-11-19T01:19:22Z", "headline": "chore(release): v1.1.21", "repo": "dify-traefik-letsencrypt-docker-compose", "sha": "eafdbb5"}
+{"author": "owner", "committed_at": "2026-11-19T01:19:29Z", "headline": "chore(release): v1.3.40", "repo": "game-server-wireguard-relay-docker-compose", "sha": "fa29720"}
+{"author": "owner", "committed_at": "2026-11-19T01:19:35Z", "headline": "chore(release): v2.2.23", "repo": "nextcloud-onlyoffice-traefik-letsencrypt-docker-compose", "sha": "98dd8ba"}
+{"author": "owner", "committed_at": "2026-11-19T01:24:11Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "dify-traefik-letsencrypt-docker-compose", "sha": "bef10dd"}
+{"author": "owner", "committed_at": "2026-11-19T01:24:45Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "nextcloud-onlyoffice-traefik-letsencrypt-docker-compose", "sha": "8ada419"}
+{"author": "owner", "committed_at": "2026-11-19T01:26:15Z", "headline": "fix(security): move pins to the newest patch of their own line", "repo": "forgejo-traefik-letsencrypt-docker-compose", "sha": "cb6db83"}
+{"author": "owner", "committed_at": "2026-11-19T01:26:38Z", "headline": "fix(security): move pins to the newest patch of their own line", "repo": "immich-traefik-letsencrypt-docker-compose", "sha": "177dcd7"}
+{"author": "owner", "committed_at": "2026-11-19T01:27:14Z", "headline": "fix(security): move pins to the newest patch of their own line", "repo": "mailu-traefik-letsencrypt-docker-compose", "sha": "2b8d7f9"}
+{"author": "owner", "committed_at": "2026-11-19T01:27:28Z", "headline": "fix(security): move pins to the newest patch of their own line", "repo": "minecraft-server-docker-compose", "sha": "9eadd4e"}
+{"author": "owner", "committed_at": "2026-11-19T01:27:55Z", "headline": "fix(security): move pins to the newest patch of their own line", "repo": "portainer-traefik-letsencrypt-docker-compose", "sha": "e76f651"}
+{"author": "owner", "committed_at": "2026-11-19T01:28:16Z", "headline": "fix(security): move pins to the newest patch of their own line", "repo": "wordpress-traefik-letsencrypt-docker-compose", "sha": "0eddcc6"}
+{"author": "owner", "committed_at": "2026-11-19T01:28:45Z", "headline": "chore(triage): what is pushed and not yet judged", "repo": "fleet-ops", "sha": "e90d766"}
+{"author": "owner", "committed_at": "2026-11-19T16:03:30Z", "headline": "The catalog, regenerated", "repo": "catalog", "sha": "b3572d6"}
+{"author": "owner", "committed_at": "2026-11-19T16:03:32Z", "headline": "docs: the fleet counts, regenerated", "repo": "heyvaldemar", "sha": "dd945c9"}
+{"author": "owner", "committed_at": "2026-11-19T16:05:34Z", "headline": "chore(release): v1.1.22", "repo": "dify-traefik-letsencrypt-docker-compose", "sha": "f7992f8"}
+{"author": "owner", "committed_at": "2026-11-19T16:05:41Z", "headline": "chore(release): v2.2.24", "repo": "nextcloud-onlyoffice-traefik-letsencrypt-docker-compose", "sha": "836cff7"}
+{"author": "owner", "committed_at": "2026-11-19T16:05:49Z", "headline": "chore(release): v1.2.12", "repo": "forgejo-traefik-letsencrypt-docker-compose", "sha": "2abdd1b"}
+{"author": "owner", "committed_at": "2026-11-19T16:05:57Z", "headline": "chore(release): v2.1.19", "repo": "immich-traefik-letsencrypt-docker-compose", "sha": "a31c9f9"}
+{"author": "owner", "committed_at": "2026-11-19T16:06:05Z", "headline": "chore(release): v1.8.35", "repo": "mailu-traefik-letsencrypt-docker-compose", "sha": "3848f1a"}
+{"author": "owner", "committed_at": "2026-11-19T16:06:13Z", "headline": "chore(release): v1.9.1", "repo": "minecraft-server-docker-compose", "sha": "d367b35"}
+{"author": "owner", "committed_at": "2026-11-19T16:06:21Z", "headline": "chore(release): v1.7.15", "repo": "portainer-traefik-letsencrypt-docker-compose", "sha": "2be42cc"}
+{"author": "owner", "committed_at": "2026-11-19T16:06:29Z", "headline": "chore(release): v1.10.27", "repo": "wordpress-traefik-letsencrypt-docker-compose", "sha": "ffadf22"}
+{"author": "owner", "committed_at": "2026-11-19T16:09:40Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "affine-traefik-letsencrypt-docker-compose", "sha": "a1256cf"}
+{"author": "owner", "committed_at": "2026-11-19T16:10:30Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "authelia-traefik-letsencrypt-docker-compose", "sha": "e7ed951"}
+{"author": "owner", "committed_at": "2026-11-19T16:10:43Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "bitbucket-traefik-letsencrypt-docker-compose", "sha": "76206b8"}
+{"author": "owner", "committed_at": "2026-11-19T16:10:56Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "confluence-traefik-letsencrypt-docker-compose", "sha": "59d8633"}
+{"author": "owner", "committed_at": "2026-11-19T16:12:46Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "docmost-traefik-letsencrypt-docker-compose", "sha": "044892c"}
+{"author": "owner", "committed_at": "2026-11-19T16:12:57Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "game-server-wireguard-relay-docker-compose", "sha": "ce4492e"}
+{"author": "owner", "committed_at": "2026-11-19T16:13:11Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "gitea-traefik-letsencrypt-docker-compose", "sha": "c4fb4f0"}
+{"author": "owner", "committed_at": "2026-11-19T16:13:45Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "gitlab-traefik-letsencrypt-docker-compose", "sha": "7d59b90"}
+{"author": "owner", "committed_at": "2026-11-19T16:14:03Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "grafana-traefik-letsencrypt-docker-compose", "sha": "a3964ac"}
+{"author": "owner", "committed_at": "2026-11-19T16:14:20Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "immich-traefik-letsencrypt-docker-compose", "sha": "54800a7"}
+{"author": "owner", "committed_at": "2026-11-19T16:14:32Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "jira-traefik-letsencrypt-docker-compose", "sha": "5df589e"}
+{"author": "owner", "committed_at": "2026-11-19T16:14:45Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "joomla-traefik-letsencrypt-docker-compose", "sha": "b9430f2"}
+{"author": "owner", "committed_at": "2026-11-19T16:14:56Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "keycloak-traefik-letsencrypt-docker-compose", "sha": "259c0e0"}
+{"author": "owner", "committed_at": "2026-11-19T16:16:18Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "mailu-traefik-letsencrypt-docker-compose", "sha": "65bf147"}
+{"author": "owner", "committed_at": "2026-11-19T16:16:29Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "mattermost-traefik-letsencrypt-docker-compose", "sha": "d47d001"}
+{"author": "owner", "committed_at": "2026-11-19T16:16:50Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "nextcloud-traefik-letsencrypt-docker-compose", "sha": "041e02f"}
+{"author": "owner", "committed_at": "2026-11-19T16:17:19Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "nocodb-traefik-letsencrypt-docker-compose", "sha": "7d30e7a"}
+{"author": "owner", "committed_at": "2026-11-19T16:17:42Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "outline-keycloak-traefik-letsencrypt-docker-compose", "sha": "b5c748c"}
+{"author": "owner", "committed_at": "2026-11-19T16:19:14Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "siyuan-docker-compose", "sha": "560e8a6"}
+{"author": "owner", "committed_at": "2026-11-19T16:19:25Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "sonarqube-traefik-letsencrypt-docker-compose", "sha": "9ea6144"}
+{"author": "owner", "committed_at": "2026-11-19T16:19:45Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "wikijs-traefik-letsencrypt-docker-compose", "sha": "ed0be44"}
+{"author": "owner", "committed_at": "2026-11-19T16:19:57Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "wordpress-traefik-letsencrypt-docker-compose", "sha": "12b6c53"}
+{"author": "owner", "committed_at": "2026-11-19T16:20:07Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "xwiki-traefik-letsencrypt-docker-compose", "sha": "049a8f0"}
+{"author": "owner", "committed_at": "2026-11-19T16:20:21Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "zabbix-docker-compose", "sha": "cfabd3a"}
+{"author": "owner", "committed_at": "2026-11-19T16:20:36Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "zabbix-traefik-letsencrypt-docker-compose", "sha": "2dc1cf2"}
+{"author": "owner", "committed_at": "2026-11-19T16:20:53Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "zammad-traefik-letsencrypt-docker-compose", "sha": "2875b8f"}
+{"author": "owner", "committed_at": "2026-11-19T16:22:11Z", "headline": "chore(triage): what is pushed and not yet judged", "repo": "fleet-ops", "sha": "896a33c"}
+{"author": "owner", "committed_at": "2026-11-20T01:22:09Z", "headline": "chore(release): v1.9.21", "repo": "affine-traefik-letsencrypt-docker-compose", "sha": "f736850"}
+{"author": "owner", "committed_at": "2026-11-20T01:22:19Z", "headline": "chore(release): v1.8.21", "repo": "authelia-traefik-letsencrypt-docker-compose", "sha": "d470705"}
+{"author": "owner", "committed_at": "2026-11-20T01:22:26Z", "headline": "chore(release): v1.9.28", "repo": "bitbucket-traefik-letsencrypt-docker-compose", "sha": "ddd8c99"}
+{"author": "owner", "committed_at": "2026-11-20T01:22:33Z", "headline": "chore(release): v1.9.31", "repo": "confluence-traefik-letsencrypt-docker-compose", "sha": "1574ae5"}
+{"author": "owner", "committed_at": "2026-11-20T01:22:40Z", "headline": "chore(release): v1.9.23", "repo": "docmost-traefik-letsencrypt-docker-compose", "sha": "e6add3c"}
+{"author": "owner", "committed_at": "2026-11-20T01:22:47Z", "headline": "chore(release): v1.3.41", "repo": "game-server-wireguard-relay-docker-compose", "sha": "02cfcd0"}
+{"author": "owner", "committed_at": "2026-11-20T01:22:53Z", "headline": "chore(release): v2.0.23", "repo": "gitea-traefik-letsencrypt-docker-compose", "sha": "f5412d5"}
+{"author": "owner", "committed_at": "2026-11-20T01:23:00Z", "headline": "chore(release): v1.8.26", "repo": "gitlab-traefik-letsencrypt-docker-compose", "sha": "bcfb23a"}
+{"author": "owner", "committed_at": "2026-11-20T01:23:07Z", "headline": "chore(release): v1.8.19", "repo": "grafana-traefik-letsencrypt-docker-compose", "sha": "7606d99"}
+{"author": "owner", "committed_at": "2026-11-20T01:23:14Z", "headline": "chore(release): v2.1.20", "repo": "immich-traefik-letsencrypt-docker-compose", "sha": "51b4e51"}
+{"author": "owner", "committed_at": "2026-11-20T01:23:20Z", "headline": "chore(release): v1.8.29", "repo": "jira-traefik-letsencrypt-docker-compose", "sha": "a061ec4"}
+{"author": "owner", "committed_at": "2026-11-20T01:23:27Z", "headline": "chore(release): v1.9.29", "repo": "joomla-traefik-letsencrypt-docker-compose", "sha": "22cadf8"}
+{"author": "owner", "committed_at": "2026-11-20T01:23:34Z", "headline": "chore(release): v1.8.26", "repo": "keycloak-traefik-letsencrypt-docker-compose", "sha": "b342e32"}
+{"author": "owner", "committed_at": "2026-11-20T01:23:41Z", "headline": "chore(release): v1.8.36", "repo": "mailu-traefik-letsencrypt-docker-compose", "sha": "7eaf62f"}
+{"author": "owner", "committed_at": "2026-11-20T01:23:47Z", "headline": "chore(release): v1.10.17", "repo": "mattermost-traefik-letsencrypt-docker-compose", "sha": "3217462"}
+{"author": "owner", "committed_at": "2026-11-20T01:23:54Z", "headline": "chore(release): v2.1.26", "repo": "nextcloud-traefik-letsencrypt-docker-compose", "sha": "2395e1e"}
+{"author": "owner", "committed_at": "2026-11-20T01:24:01Z", "headline": "chore(release): v1.0.13", "repo": "nocodb-traefik-letsencrypt-docker-compose", "sha": "40a17ed"}
+{"author": "owner", "committed_at": "2026-11-20T01:24:07Z", "headline": "chore(release): v2.2.29", "repo": "outline-keycloak-traefik-letsencrypt-docker-compose", "sha": "e0a8ba6"}
+{"author": "owner", "committed_at": "2026-11-20T01:24:14Z", "headline": "chore(release): v1.6.10", "repo": "siyuan-docker-compose", "sha": "2f4640a"}
+{"author": "owner", "committed_at": "2026-11-20T01:24:22Z", "headline": "chore(release): v1.9.22", "repo": "sonarqube-traefik-letsencrypt-docker-compose", "sha": "9ae7b87"}
+{"author": "owner", "committed_at": "2026-11-20T01:24:28Z", "headline": "chore(release): v2.1.23", "repo": "wikijs-traefik-letsencrypt-docker-compose", "sha": "7b97513"}
+{"author": "owner", "committed_at": "2026-11-20T01:24:35Z", "headline": "chore(release): v1.10.28", "repo": "wordpress-traefik-letsencrypt-docker-compose", "sha": "99cf656"}
+{"author": "owner", "committed_at": "2026-11-20T01:24:42Z", "headline": "chore(release): v1.9.27", "repo": "xwiki-traefik-letsencrypt-docker-compose", "sha": "50f2de9"}
+{"author": "owner", "committed_at": "2026-11-20T01:24:48Z", "headline": "chore(release): v1.9.13", "repo": "zabbix-docker-compose", "sha": "8d9dfcb"}
+{"author": "owner", "committed_at": "2026-11-20T01:24:55Z", "headline": "chore(release): v1.10.21", "repo": "zabbix-traefik-letsencrypt-docker-compose", "sha": "7dea105"}
+{"author": "owner", "committed_at": "2026-11-20T01:25:01Z", "headline": "chore(release): v1.8.22", "repo": "zammad-traefik-letsencrypt-docker-compose", "sha": "4cda170"}
+{"author": "owner", "committed_at": "2026-11-20T01:30:03Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "immich-traefik-letsencrypt-docker-compose", "sha": "65b8150"}
+{"author": "owner", "committed_at": "2026-11-20T01:30:25Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "mailu-traefik-letsencrypt-docker-compose", "sha": "98191cd"}
+{"author": "owner", "committed_at": "2026-11-20T01:32:33Z", "headline": "chore(triage): what is pushed and not yet judged", "repo": "fleet-ops", "sha": "4e19828"}
+{"author": "dependabot[bot]", "committed_at": "2026-11-20T03:28:05Z", "headline": "build: bump golang from `c47c3fd` to `f18c3d7` (#4)", "repo": "minio-client-docker", "sha": "3942b6a"}
+{"author": "owner", "committed_at": "2026-11-20T15:47:13Z", "headline": "chore(release): v2.1.21", "repo": "immich-traefik-letsencrypt-docker-compose", "sha": "2b3a131"}
+{"author": "owner", "committed_at": "2026-11-20T15:47:20Z", "headline": "chore(release): v1.8.37", "repo": "mailu-traefik-letsencrypt-docker-compose", "sha": "69894fe"}
+{"author": "owner", "committed_at": "2026-11-20T15:47:30Z", "headline": "The catalog, regenerated", "repo": "catalog", "sha": "9d91eee"}
+{"author": "owner", "committed_at": "2026-11-20T15:47:32Z", "headline": "docs: the fleet counts, regenerated", "repo": "heyvaldemar", "sha": "a0c4f77"}
+{"author": "owner", "committed_at": "2026-11-20T15:52:54Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "dozzle-traefik-letsencrypt-docker-compose", "sha": "1152b9a"}
+{"author": "owner", "committed_at": "2026-11-20T15:53:02Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "gaseous-server-using-docker-compose", "sha": "d6545a5"}
+{"author": "owner", "committed_at": "2026-11-20T15:53:50Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "gitlab-traefik-letsencrypt-docker-compose", "sha": "9c2e4c0"}
+{"author": "owner", "committed_at": "2026-11-20T15:53:56Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "glpi-traefik-letsencrypt-docker-compose", "sha": "9b4819b"}
+{"author": "owner", "committed_at": "2026-11-20T15:54:26Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "mailu-traefik-letsencrypt-docker-compose", "sha": "97cf3ed"}
+{"author": "owner", "committed_at": "2026-11-20T15:54:42Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "nextcloud-onlyoffice-traefik-letsencrypt-docker-compose", "sha": "4e3bdb3"}
+{"author": "owner", "committed_at": "2026-11-20T15:54:55Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "owncloud-traefik-letsencrypt-docker-compose", "sha": "89472ec"}
+{"author": "owner", "committed_at": "2026-11-20T15:55:04Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "rathena-docker", "sha": "8a247d9"}
+{"author": "owner", "committed_at": "2026-11-20T15:55:52Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "rocketchat-traefik-letsencrypt-docker-compose", "sha": "0322dec"}
+{"author": "owner", "committed_at": "2026-11-20T15:55:58Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "romm-traefik-letsencrypt-docker-compose", "sha": "d148a1d"}
+{"author": "owner", "committed_at": "2026-11-20T15:56:20Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "seafile-traefik-letsencrypt-docker-compose", "sha": "1dbcc13"}
+{"author": "owner", "committed_at": "2026-11-20T15:56:28Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "sonarqube-traefik-letsencrypt-docker-compose", "sha": "4bc25ee"}
+{"author": "owner", "committed_at": "2026-11-20T15:56:42Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "wordpress-traefik-letsencrypt-docker-compose", "sha": "8fe92a2"}
+{"author": "owner", "committed_at": "2026-11-20T15:56:54Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "zammad-traefik-letsencrypt-docker-compose", "sha": "fcc13a1"}
+{"author": "owner", "committed_at": "2026-11-20T15:57:57Z", "headline": "chore(triage): what is pushed and not yet judged", "repo": "fleet-ops", "sha": "0346408"}
+{"author": "owner", "committed_at": "2026-11-21T00:53:38Z", "headline": "chore(release): v2.1.28", "repo": "dozzle-traefik-letsencrypt-docker-compose", "sha": "48a2422"}
+{"author": "owner", "committed_at": "2026-11-21T00:53:45Z", "headline": "chore(release): v1.3.17", "repo": "gaseous-server-using-docker-compose", "sha": "1c0dd87"}
+{"author": "owner", "committed_at": "2026-11-21T00:53:51Z", "headline": "chore(release): v1.8.27", "repo": "gitlab-traefik-letsencrypt-docker-compose", "sha": "cab484d"}
+{"author": "owner", "committed_at": "2026-11-21T00:53:58Z", "headline": "chore(release): v2.0.22", "repo": "glpi-traefik-letsencrypt-docker-compose", "sha": "9de49e1"}
+{"author": "owner", "committed_at": "2026-11-21T00:54:05Z", "headline": "chore(release): v1.8.38", "repo": "mailu-traefik-letsencrypt-docker-compose", "sha": "59525ad"}
+{"author": "owner", "committed_at": "2026-11-21T00:54:11Z", "headline": "chore(release): v2.2.25", "repo": "nextcloud-onlyoffice-traefik-letsencrypt-docker-compose", "sha": "ec09945"}
+{"author": "owner", "committed_at": "2026-11-21T00:54:18Z", "headline": "chore(release): v1.9.42", "repo": "owncloud-traefik-letsencrypt-docker-compose", "sha": "e4859e7"}
+{"author": "owner", "committed_at": "2026-11-21T00:54:25Z", "headline": "chore(release): v1.7.7", "repo": "rathena-docker", "sha": "a9c377d"}
+{"author": "owner", "committed_at": "2026-11-21T00:54:31Z", "headline": "chore(release): v1.10.1", "repo": "rocketchat-traefik-letsencrypt-docker-compose", "sha": "5024653"}
+{"author": "owner", "committed_at": "2026-11-21T00:54:38Z", "headline": "chore(release): v1.1.19", "repo": "romm-traefik-letsencrypt-docker-compose", "sha": "065c66b"}
+{"author": "owner", "committed_at": "2026-11-21T00:54:44Z", "headline": "chore(release): v1.9.23", "repo": "seafile-traefik-letsencrypt-docker-compose", "sha": "dad96ab"}
+{"author": "owner", "committed_at": "2026-11-21T00:54:51Z", "headline": "chore(release): v1.9.23", "repo": "sonarqube-traefik-letsencrypt-docker-compose", "sha": "7d4c852"}
+{"author": "owner", "committed_at": "2026-11-21T00:54:57Z", "headline": "chore(release): v1.10.29", "repo": "wordpress-traefik-letsencrypt-docker-compose", "sha": "45eb907"}
+{"author": "owner", "committed_at": "2026-11-21T00:55:04Z", "headline": "chore(release): v1.8.23", "repo": "zammad-traefik-letsencrypt-docker-compose", "sha": "c74f154"}
+{"author": "owner", "committed_at": "2026-11-21T01:01:51Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "sonarqube-traefik-letsencrypt-docker-compose", "sha": "bfbcb71"}
+{"author": "owner", "committed_at": "2026-11-21T01:02:21Z", "headline": "fix(security): move pins to the newest patch of their own line", "repo": "dashy-traefik-letsencrypt-docker-compose", "sha": "85d2cbe"}
+{"author": "owner", "committed_at": "2026-11-21T01:03:20Z", "headline": "chore(triage): what is pushed and not yet judged", "repo": "fleet-ops", "sha": "f7c174b"}
+{"author": "owner", "committed_at": "2026-11-21T14:54:08Z", "headline": "The catalog, regenerated", "repo": "catalog", "sha": "1193a92"}
+{"author": "owner", "committed_at": "2026-11-21T14:54:09Z", "headline": "docs: the fleet counts, regenerated", "repo": "heyvaldemar", "sha": "8477bc3"}
+{"author": "owner", "committed_at": "2026-11-21T14:57:27Z", "headline": "chore(release): v1.9.24", "repo": "sonarqube-traefik-letsencrypt-docker-compose", "sha": "f2301b0"}
+{"author": "owner", "committed_at": "2026-11-21T14:57:34Z", "headline": "chore(release): v2.5.30", "repo": "dashy-traefik-letsencrypt-docker-compose", "sha": "d4a686c"}
+{"author": "owner", "committed_at": "2026-11-21T15:01:06Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "anythingllm-traefik-letsencrypt-docker-compose", "sha": "d4d9243"}
+{"author": "owner", "committed_at": "2026-11-21T15:03:55Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "game-server-wireguard-relay-docker-compose", "sha": "c043aa0"}
+{"author": "owner", "committed_at": "2026-11-21T15:04:35Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "humanitz-server-docker-compose", "sha": "4b2b967"}
+{"author": "owner", "committed_at": "2026-11-21T15:04:45Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "jira-traefik-letsencrypt-docker-compose", "sha": "54675c6"}
+{"author": "owner", "committed_at": "2026-11-21T15:04:53Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "kf2-server-docker-compose", "sha": "7f91cb4"}
+{"author": "owner", "committed_at": "2026-11-21T15:05:18Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "ollama-traefik-letsencrypt-docker-compose", "sha": "62500f6"}
+{"author": "owner", "committed_at": "2026-11-21T15:05:29Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "owncloud-traefik-letsencrypt-docker-compose", "sha": "486b3e6"}
+{"author": "owner", "committed_at": "2026-11-21T15:06:21Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "seafile-traefik-letsencrypt-docker-compose", "sha": "cf560a5"}
+{"author": "owner", "committed_at": "2026-11-21T15:06:30Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "tf2-server-docker-compose", "sha": "0e52fb0"}
+{"author": "owner", "committed_at": "2026-11-21T15:06:43Z", "headline": "fix(security): refresh pins (upstream repushes, releases inside a major)", "repo": "xwiki-traefik-letsencrypt-docker-compose", "sha": "7bc15c2"}
+{"author": "owner", "committed_at": "2026-11-21T15:08:07Z", "headline": "chore(triage): what is pushed and not yet judged", "repo": "fleet-ops", "sha": "b6a8a99"}
+{"author": "owner", "committed_at": "2026-11-21T23:51:54Z", "headline": "chore(release): v1.0.18", "repo": "anythingllm-traefik-letsencrypt-docker-compose", "sha": "a195076"}
+{"author": "owner", "committed_at": "2026-11-21T23:52:00Z", "headline": "chore(release): v1.3.42", "repo": "game-server-wireguard-relay-docker-compose", "sha": "8af4865"}
+{"author": "owner", "committed_at": "2026-11-21T23:52:06Z", "headline": "Revert \"fix(security): refresh pins (upstream repushes, releases insi\u2026", "repo": "humanitz-server-docker-compose", "sha": "f086f4a"}
+{"author": "owner", "committed_at": "2026-11-21T23:52:10Z", "headline": "chore(release): v1.8.30", "repo": "jira-traefik-letsencrypt-docker-compose", "sha": "0e569e9"}
+{"author": "owner", "committed_at": "2026-11-21T23:52:17Z", "headline": "chore(release): v1.8.3", "repo": "kf2-server-docker-compose", "sha": "a13ed55"}
+{"author": "owner", "committed_at": "2026-11-21T23:52:23Z", "headline": "chore(release): v2.0.22", "repo": "ollama-traefik-letsencrypt-docker-compose", "sha": "08bdcdb"}
+{"author": "owner", "committed_at": "2026-11-21T23:52:30Z", "headline": "chore(release): v1.9.43", "repo": "owncloud-traefik-letsencrypt-docker-compose", "sha": "9792e78"}
+{"author": "owner", "committed_at": "2026-11-21T23:52:36Z", "headline": "chore(release): v1.9.24", "repo": "seafile-traefik-letsencrypt-docker-compose", "sha": "5238f15"}
+{"author": "owner", "committed_at": "2026-11-21T23:52:41Z", "headline": "chore(release): v2.2.4", "repo": "tf2-server-docker-compose", "sha": "dd24b83"}
+{"author": "owner", "committed_at": "2026-11-21T23:52:47Z", "headline": "chore(release): v1.9.28", "repo": "xwiki-traefik-letsencrypt-docker-compose", "sha": "e3ab7eb"}
+{"author": "owner", "committed_at": "2026-11-22T00:01:26Z", "headline": "chore(triage): what is pushed and not yet judged", "repo": "fleet-ops", "sha": "2430665"}
+{"author": "owner", "committed_at": "2026-11-22T03:30:56Z", "headline": "gk hook store: on macOS too, in gk's own folders", "repo": "fleet-ops", "sha": "84be9b2"}

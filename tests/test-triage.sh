@@ -165,6 +165,59 @@ case "$named" in
   *) no "the report names neither image" ;;
 esac
 
+echo "== a branch a person has written on is left alone (diun #9, 2026-11-22)"
+# Every run did `checkout -B` and `push -f`, so a docs commit added to
+# bump/<v> was erased by the next run. The branch must stay exactly as it is
+# when it carries a commit the bump did not make, and be rewritten, with a
+# lease on the sha the triage saw, when it does not.
+gh() { return 1; }
+bump_sha="$(git -C "$remote" rev-parse refs/heads/bump/19.4.0)"
+
+NOTES=(); PREPARED_THIS_RUN=()
+git -C "$dir" checkout -q main
+major_branch "19.3.2" "19.4.0" >/dev/null 2>&1
+same "a branch that is only the bump is rewritten (it still holds both pins)" "2" \
+  "$(git -C "$remote" show refs/heads/bump/19.4.0:stack.yml | grep -c '19.4.0')"
+same "and it is reported as prepared" "1" "$(printf '%s\n' "${PREPARED_THIS_RUN[@]}" | grep -c 'bump/19.4.0')"
+git -C "$remote" update-ref refs/heads/bump/19.4.0 "$bump_sha"
+
+other="$WORK/other"
+git clone -q "$remote" "$other" 2>/dev/null
+git -C "$other" checkout -q bump/19.4.0
+echo "watch_mode moved; see the note" > "$other/MIGRATION.md"
+git -C "$other" add MIGRATION.md
+git -C "$other" -c user.name=person -c user.email=p@p commit -qm "docs: the watch_mode migration note"
+git -C "$other" push -q origin bump/19.4.0
+person_sha="$(git -C "$remote" rev-parse refs/heads/bump/19.4.0)"
+
+NOTES=(); PREPARED_THIS_RUN=()
+git -C "$dir" checkout -q main
+major_branch "19.3.2" "19.4.0" >/dev/null 2>&1
+same "the branch with a person's commit is untouched" "$person_sha" "$(git -C "$remote" rev-parse refs/heads/bump/19.4.0)"
+same "the person's commit is still on it" "1" \
+  "$(git -C "$remote" log --format=%s refs/heads/bump/19.4.0 | grep -c 'watch_mode migration note')"
+same "it is not reported as prepared" "0" "${#PREPARED_THIS_RUN[@]}"
+named="$(printf '%s\n' "${NOTES[@]}")"
+case "$named" in
+  *"out of date"*) ok "the report says the bump is out of date" ;;
+  *) no "the report does not say the bump is out of date: $named" ;;
+esac
+same "the working tree is left on main" "main" "$(git -C "$dir" rev-parse --abbrev-ref HEAD)"
+
+# A commit that lands between the look and the push is not lost either.
+git -C "$remote" update-ref refs/heads/bump/19.4.0 "$bump_sha"
+git -C "$dir" checkout -q main
+git -C "$dir" fetch -q origin 2>/dev/null
+raced_sha="$(git -C "$remote" rev-parse refs/heads/bump/19.4.0)"
+if git -C "$dir" push -q "--force-with-lease=bump/19.4.0:$person_sha" origin main:refs/heads/bump/19.4.0 2>/dev/null; then
+  no "a lease on a stale sha was ignored"
+else
+  ok "a push leased on a stale sha is refused"
+fi
+same "and the branch did not move" "$raced_sha" "$(git -C "$remote" rev-parse refs/heads/bump/19.4.0)"
+unset -f gh
+git -C "$dir" checkout -q main
+
 echo "== an unrelated edit already in the tree stays on main"
 # The digest-drift pass runs before this one and leaves its edits uncommitted
 # in the same compose file. They belong on main. Until 2026-09-18 the commit

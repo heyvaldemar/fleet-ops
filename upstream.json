@@ -177,6 +177,11 @@
   {
    "url": "https://github.com/kyverno/policies/pull/1721#discussion_r4571970628",
    "role": "review suggestion"
+  },
+  {
+   "url": "https://github.com/kubernetes-sigs/kube-network-policies/issues/452",
+   "role": "issue with a reproduction",
+   "found_in": "netpol-first-instant"
   }
  ]
 }

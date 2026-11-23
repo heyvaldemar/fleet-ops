@@ -1,0 +1,143 @@
+{
+ "cron_times": {
+  "answered": 930,
+  "daily_expected": 922,
+  "daily_missing": 0,
+  "expected": 930,
+  "from": "2026-11-17T00:00:00Z",
+  "missing": 0,
+  "to": "2026-11-21T00:00:00Z"
+ },
+ "fleet_jobs": {
+  "CodeQL": {
+   "red": 0,
+   "runs": 1
+  },
+  "Fleet Conformance": {
+   "red": 6,
+   "runs": 6
+  },
+  "Fleet Triage": {
+   "red": 0,
+   "runs": 11
+  },
+  "Fleet catalog": {
+   "red": 0,
+   "runs": 5
+  },
+  "Fleet heartbeat": {
+   "red": 5,
+   "runs": 5
+  },
+  "OpenSSF Scorecard": {
+   "red": 0,
+   "runs": 1
+  },
+  "github_actions in /. - Update #1720248967": {
+   "red": 0,
+   "runs": 1
+  }
+ },
+ "k8s_freshness": {
+  "ran_in_window": 0,
+  "workflows": 0
+ },
+ "lateness_hours": {
+  "max": 9.9,
+  "median": 9.0,
+  "min": 5.3,
+  "n": 1123,
+  "p10": 8.2,
+  "p90": 9.6
+ },
+ "minutes": {
+  "before_days": [
+   "2026-11-12",
+   "2026-11-13",
+   "2026-11-14",
+   "2026-11-15",
+   "2026-11-16"
+  ],
+  "before_per_day": 10663,
+  "before_total": 53315,
+  "window_days": [
+   "2026-11-17",
+   "2026-11-18",
+   "2026-11-19",
+   "2026-11-20",
+   "2026-11-21"
+  ],
+  "window_per_day": 2423,
+  "window_total": 12117
+ },
+ "outside": {
+  "answered_in_window": 0,
+  "longest_wait_h": 144.3,
+  "open_in_window": 2,
+  "opened_in_window": 0,
+  "waiting_at_end": 2
+ },
+ "red_streaks": {
+  "all": 72,
+  "closed": 63,
+  "ended_by": {
+   "a push by the automation": 3,
+   "re-run dispatched by the automation": 52,
+   "still red at the window's end": 9,
+   "the next run of the workflow it follows": 1,
+   "the next scheduled run": 7
+  },
+  "red_hours": {
+   "max": 33.5,
+   "median": 10.2,
+   "min": 0.2,
+   "n": 63,
+   "p10": 9.5,
+   "p90": 23.3
+  },
+  "red_runs": 111,
+  "still_red": 9
+ },
+ "releases": {
+  "commits_in_window": 186,
+  "pin_refresh_commits": 81,
+  "release_commits": 80,
+  "release_event_runs": 81,
+  "release_repos": 48,
+  "reverts": 1
+ },
+ "runs": {
+  "all": 2784,
+  "by_event": {
+   "dynamic": 116,
+   "pull_request": 5,
+   "push": 686,
+   "release": 81,
+   "schedule": 1134,
+   "workflow_dispatch": 83,
+   "workflow_run": 679
+  },
+  "cancelled": 0,
+  "failure": 111,
+  "other": 0,
+  "repositories": 121,
+  "rerun": 3,
+  "skipped": 782,
+  "success": 1891
+ },
+ "scheduled": {
+  "all": 1134,
+  "green": 1043,
+  "red": 91,
+  "skipped": 0
+ },
+ "unexplained": {
+  "commits": 1,
+  "runs": 4
+ },
+ "window": {
+  "end": "2026-11-22T03:00:00Z",
+  "hours": 126.94,
+  "start": "2026-11-16T20:03:41Z"
+ }
+}

@@ -9,6 +9,18 @@ check or a job, a patch fixes one.
 
 ## [Unreleased]
 
+### Fixed
+- **The triage no longer erases a commit a person added to a `bump/*` branch.**
+  Every run did `checkout -B` and `push -f`, so on 22 November 2026 at 14:59Z
+  the docs commit with the `watch_mode` migration note vanished from diun's
+  pull request #9, one click from merging without it. A branch carrying a
+  commit the bump did not make (its subject does not start with
+  `chore(deps): move `) is now left exactly as it is, the report says the bump
+  is out of date, and an open pull request on it gets one comment saying so.
+  A branch that is only the bump is rewritten with `--force-with-lease` against
+  the sha the triage saw, so a commit that lands in between is not lost
+  either. `tests/test-triage.sh` has the case.
+
 ### Security
 - **A release is verified for its exact signer, and a changed archive must be
   refused for being changed.** Three findings of the security review of
@@ -59,6 +71,20 @@ check or a job, a patch fixes one.
   and without it (+0900).
 
 ### Added
+- **An operator-absence report.** `scripts/absence-report.py` is the method
+  behind the November 2026 fact file, written so a planned absence is
+  measured the same way and its numbers sit next to November's: `collect`
+  reads a UTC window of the public repositories (a PUBLIC repository query,
+  forks and archives left out; no login that is not the owner's or a bot's
+  is kept), `report` prints runs by event, scheduled runs against their cron
+  time, cron times with no run, red streaks and what closed each, releases,
+  Kubernetes freshness, who acted, people outside waiting, Actions minutes and
+  the fleet's own jobs, and `compare` puts two windows side by side per 24
+  hours. `tests/test-absence-report.sh` (86) plants each rule, runs the
+  collector against a stand-in for `gh` that also answers for a private
+  repository, and runs November's recorded sweep
+  (`tests/fixtures/absence-2026-11`) through the same code. The rules and
+  the November reference are in `docs/drills/operator-absence.md`.
 - **Conformance: a product is not a template.** oxy-llm-gateway was the only
   red repository in every sweep from 15 November on, for four rules only a
   template can meet: a Deployment Verification workflow, an `.env.example` to
