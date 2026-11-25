@@ -2,10 +2,10 @@
  "_why": "What the reference architectures found and reported to the projects they run on. fleet-catalog.py reads each item's live state from GitHub into fleet.json's upstream block; titles, dates and states come from there, not from here. Add an item only when it has been posted.",
  "items": [
   {
-   "url": "https://github.com/google/gvisor/issues/15756",
+   "url": "https://github.com/gvisor/gvisor/issues/15756",
    "role": "issue",
    "found_in": "kubernetes-ai-agent-sandbox",
-   "related": "https://github.com/google/gvisor/pull/16798"
+   "related": "https://github.com/gvisor/gvisor/pull/16798"
   },
   {
    "url": "https://github.com/kyverno/website/pull/2201",
